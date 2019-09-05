@@ -19,6 +19,7 @@ export class CodeEngineFile implements File {
     }});
 
     this.path = props.path;
+    Object.assign(this.metadata, props.metadata);
   }
 
   public get name(): string {
