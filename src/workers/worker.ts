@@ -1,56 +1,75 @@
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
+import { CodeEngine } from "../code-engine";
 import { awaitOnline } from "./await-online";
 import { WorkerConfig } from "./config";
-import { PendingMessage, PostMessage, WorkerEvent, WorkerRequest, WorkerResponse } from "./types";
+import { ExecutorRequest, ExecutorResponse, PendingMessage, PostMessage, WorkerEvent } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
-let workerID = 0;
-let messageID = 0;
-
+let workerId = 0;
+let messageId = 0;
 
 /**
- * Controls an `Executor` running on a worker thread.
+ * Controls an `Executor` instance running on a worker thread.
  */
-export class Worker extends WorkerBase {
+export class CodeEngineWorker extends WorkerBase {
   public id: number;
+  private _engine: CodeEngine;
   private _isTerminated: boolean;
   private _waitUntilOnline: Promise<void>;
   private readonly _pending: Map<number, PendingMessage>;
 
-  public constructor() {
+  public constructor(engine: CodeEngine) {
     let workerData: WorkerConfig = {
-      id: ++workerID,
+      id: ++workerId,
     };
 
     super(workerScript, { workerData });
 
     this.id = workerData.id;
+    this._engine = engine;
     this._isTerminated = false;
     this._waitUntilOnline = awaitOnline(this);
     this._pending = new Map();
 
-    this.on("online", this._online);
-    this.on("message", this._message);
-    this.on("exit", this._exit);
-    this.on("error", this._error);
+    this.on("online", this._handleOnline);
+    this.on("message", this._handleMessage);
+    this.on("exit", this._handleExit);
+    this.on("error", this._handleError);
   }
 
   /**
-   * TODO
+   * Terminates the worker thread and cancels all pending operations.
    */
   public async terminate(): Promise<number> {
+    if (this._isTerminated) {
+      return 0;
+    }
+
     this._isTerminated = true;
     this._rejectAllPending(new Error(`CodeEngine is terminating.`));
-    return super.terminate();
+    let exitCode = await super.terminate();
+    this._debug(WorkerEvent.Terminated, `CodeEngine worker #${this.id} has terminated`, { exitCode });
+    return exitCode;
   }
 
-  // tslint:disable-next-line: prefer-function-over-method
-  private _online() {
-    // console.debug(`CodeEngine worker #${this.id} is online`);
+  /**
+   * Logs a debug message when the worker thread comes online.
+   */
+  private _handleOnline() {
+    this._debug(WorkerEvent.Online, `CodeEngine worker #${this.id} is online`);
   }
 
-  private _message(message: WorkerResponse) {
+  /**
+   * Handles a message from the `Executor`.
+   */
+  private _handleMessage(message: ExecutorResponse) {
+    if (this._isTerminated) {
+      // Ignore messages received after termination.
+      // We've already rejected the pending Promises.
+      return;
+    }
+
     // Find the pending message that this is a response to
     let pending = this._pending.get(message.id);
     if (!pending) {
@@ -66,28 +85,58 @@ export class Worker extends WorkerBase {
     }
   }
 
-  private _exit(exitCode: number) {
-    if (!this._isTerminated) {
-      this._error(new Error(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
+  /**
+   * Handles the worker thread exiting, either because we told it to terminate, or because it crashed.
+   */
+  private _handleExit(exitCode: number) {
+    if (this._isTerminated && exitCode === 0) {
+      // This was a normal and expected exit 👍
+    }
+    else {
+      // The worker crashed or exited unexpectedly
+      this._handleError(new Error(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
     }
   }
 
-  private _error(error: Error) {
+  /**
+   * Handles the worker thread crashing, usually due to an unhandled error.
+   * In this case, Node will automatically terminate the worker thread.
+   */
+  private _handleError(error: Error) {
+    // Update our flag to match the fact that Node has terminated the worker thread
+    this._isTerminated = true;
+
+    // Any pending operations on the worker have failed
     this._rejectAllPending(error);
-    throw error;
+
+    // Crash CodeEngine as well, since we're now in an unknown state
+    this._engine.error(error);
   }
 
-  private async _postMessageAsync<T>(message: PostMessage): Promise<T> {
+  /**
+   * Logs a debug message for this worker.
+   */
+  private _debug(event: WorkerEvent, message: string, data?: object) {
+    this._engine.logger.debug(message, { ...data, event, workerId: this.id });
+  }
+
+  /**
+   * Sends a message to the `Executor` and awaits a response.
+   */
+  public async postMessage<T>(message: PostMessage): Promise<T> {
     await this._waitUntilOnline;
 
     return new Promise<T>((resolve, reject) => {
-      let workerMessage = message as WorkerRequest;
-      workerMessage.id = ++messageID;
-      this.postMessage(workerMessage);
-      this._pending.set(workerMessage.id, { event: message.event, resolve, reject });
+      let request = message as ExecutorRequest;
+      request.id = ++messageId;
+      super.postMessage(request);
+      this._pending.set(request.id, { event: request.event, resolve, reject });
     });
   }
 
+  /**
+   * Rejects all pending messages between the `CodeEngineWorker` and the `Executor`.
+   */
   private _rejectAllPending(error: Error): void {
     let currentlyPending = [...this._pending.values()];
     this._pending.clear();

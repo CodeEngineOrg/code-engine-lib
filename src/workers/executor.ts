@@ -1,7 +1,7 @@
 import { ono } from "ono";
 import { MessagePort, parentPort } from "worker_threads";
 import { WorkerConfig } from "./config";
-import { WorkerRequest, WorkerResponse } from "./types";
+import { ExecutorRequest, ExecutorResponse } from "./types";
 
 /**
  * TODO
@@ -16,8 +16,8 @@ export class Executor {
     this._port.on("message", this._message.bind(this));
   }
 
-  private _message(message: WorkerRequest) {
-    let response: WorkerResponse = { id: message.id };
+  private _message(message: ExecutorRequest) {
+    let response: ExecutorResponse = { id: message.id };
 
     try {
       switch (message.event) {

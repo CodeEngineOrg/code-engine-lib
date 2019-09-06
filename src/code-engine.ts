@@ -4,7 +4,7 @@ import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
 import { Logger } from "./loggers/types";
 import { CodeEngineContext, isDestinationCleaner, Plugin, UsePlugin } from "./plugins";
-import { Config } from "./types";
+import { Config, Event } from "./types";
 import { WorkerPool } from "./workers";
 
 const _internal = Symbol("Internal CodeEngine Properties");
@@ -24,7 +24,7 @@ export class CodeEngine extends EventEmitter {
 
     Object.defineProperty(this, _internal, { value: {
       plugins: [],
-      workerPool: new WorkerPool(config),
+      workerPool: new WorkerPool(this, config),
     }});
 
     this.logger = new LogEmitter(this);
@@ -81,5 +81,15 @@ export class CodeEngine extends EventEmitter {
    */
   public async dispose(): Promise<void> {
     return this[_internal].workerPool.dispose();
+  }
+
+  /**
+   * Emits an "error" event and disposes this CodeEngine instance.
+   *
+   * @internal
+   */
+  public error(error: Error): void {
+    this.emit(Event.Error, error);
+    this.dispose();  // tslint:disable-line: no-floating-promises
   }
 }

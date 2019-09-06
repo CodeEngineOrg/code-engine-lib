@@ -1,34 +1,19 @@
 import { ErrorPOJO } from "ono";
 
 /**
- * TODO
+ * Events that occur on a `CodeEngineWorker` or `Executor`.
+ */
+export enum WorkerEvent {
+  Online = "online",
+  Terminated = "terminated",
+}
+
+/**
+ * A message sent from a `CodeEngineWorker` to an `Executor`
  */
 export interface PostMessage {
   event: WorkerEvent;
   data?: unknown;
-}
-
-/**
- * TODO
- */
-export interface WorkerRequest extends PostMessage {
-  id: number;
-}
-
-/**
- * TODO
- */
-export interface WorkerResponse {
-  id: number;
-  error?: ErrorPOJO;
-  value?: unknown;
-}
-
-/**
- * TODO
- */
-export enum WorkerEvent {
-  Online,
 }
 
 /**
@@ -49,4 +34,20 @@ export interface PendingMessage {
    * Rejects the pending Promise when an error occurs or the thread is terminated.
    */
   reject(reason: ErrorPOJO): void;
+}
+
+/**
+ * A request received by an `Executor` from a `CodeEngineWorker`.
+ */
+export interface ExecutorRequest extends PostMessage {
+  id: number;
+}
+
+/**
+ * A response sent by an `Executor` to a `CodeEngineWorker`.
+ */
+export interface ExecutorResponse {
+  id: number;
+  error?: ErrorPOJO;
+  value?: unknown;
 }

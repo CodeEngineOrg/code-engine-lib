@@ -1,20 +1,23 @@
 import * as os from "os";
-import { Config } from "../config";
+import { CodeEngine } from "../code-engine";
 import { ParallelPlugin, ParallelPluginModule } from "../plugins";
-import { Worker } from "./worker";
+import { Config } from "../types";
+import { CodeEngineWorker } from "./worker";
 
 /**
  * Manages the CodeEngine worker threads.
  */
 export class WorkerPool {
-  private _workers: Worker[] = [];
+  private _engine: CodeEngine;
+  private _workers: CodeEngineWorker[] = [];
   private _isDisposed = false;
 
-  public constructor({ concurrency }: Config) {
+  public constructor(engine: CodeEngine, { concurrency }: Config) {
+    this._engine = engine;
     concurrency = concurrency || os.cpus().length;
 
     for (let i = 0; i < concurrency; i++) {
-      let worker = new Worker();
+      let worker = new CodeEngineWorker(engine);
       this._workers.push(worker);
     }
   }

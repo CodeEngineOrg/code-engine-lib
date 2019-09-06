@@ -1,11 +1,11 @@
-import { Worker } from "./worker";
+import { CodeEngineWorker } from "./worker";
 
 /**
  * Returns a Promise that resolves when the given Worker comes online,
  * or rejects if the worker errors or exits first.
  */
 // tslint:disable-next-line: promise-function-async
-export function awaitOnline(worker: Worker): Promise<void> {
+export function awaitOnline(worker: CodeEngineWorker): Promise<void> {
   let promise = new Promise<void>((resolve, reject) => {
     // Reject if the worker errors before coming online
     worker.once("error", reject);
