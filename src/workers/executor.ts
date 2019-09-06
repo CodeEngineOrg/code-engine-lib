@@ -3,6 +3,9 @@ import { MessagePort, parentPort } from "worker_threads";
 import { WorkerConfig } from "./config";
 import { WorkerRequest, WorkerResponse } from "./types";
 
+/**
+ * TODO
+ */
 export class Executor {
   public readonly id: number;
   private readonly _port: MessagePort;
@@ -13,7 +16,7 @@ export class Executor {
     this._port.on("message", this._message.bind(this));
   }
 
-  private async _message(message: WorkerRequest) {
+  private _message(message: WorkerRequest) {
     let response: WorkerResponse = { id: message.id };
 
     try {

@@ -10,8 +10,19 @@ let workerID = 0;
 let messageID = 0;
 
 interface PendingMessage {
+  /**
+   * TODO
+   */
   event: WorkerEvent;
+
+  /**
+   * TODO
+   */
   resolve(value: unknown): void;
+
+  /**
+   * TODO
+   */
   reject(reason: ErrorPOJO): void;
 }
 
@@ -42,12 +53,16 @@ export class Worker extends WorkerBase {
     this.on("error", this._error);
   }
 
+  /**
+   * TODO
+   */
   public async terminate(): Promise<number> {
     this._isTerminated = true;
     this._rejectAllPending(new Error(`CodeEngine is terminating.`));
     return super.terminate();
   }
 
+  // tslint:disable-next-line: prefer-function-over-method
   private _online() {
     // console.debug(`CodeEngine worker #${this.id} is online`);
   }
