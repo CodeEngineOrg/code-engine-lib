@@ -1,30 +1,13 @@
-import { ErrorPOJO } from "ono";
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { awaitOnline } from "./await-online";
 import { WorkerConfig } from "./config";
-import { PostMessage, WorkerEvent, WorkerRequest, WorkerResponse } from "./types";
+import { PendingMessage, PostMessage, WorkerEvent, WorkerRequest, WorkerResponse } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
 let workerID = 0;
 let messageID = 0;
 
-interface PendingMessage {
-  /**
-   * TODO
-   */
-  event: WorkerEvent;
-
-  /**
-   * TODO
-   */
-  resolve(value: unknown): void;
-
-  /**
-   * TODO
-   */
-  reject(reason: ErrorPOJO): void;
-}
 
 /**
  * Controls an `Executor` running on a worker thread.

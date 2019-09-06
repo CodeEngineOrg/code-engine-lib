@@ -1,4 +1,3 @@
-
 /**
  * CodeEngine configuration
  */
@@ -9,4 +8,12 @@ export interface Config {
    * Defaults to the number of CPU cores available.
    */
   concurrency?: number;
+}
+
+/**
+ * Events that can be emitted by a CodeEngine instance.
+ */
+export enum Event {
+  Log = "log",
+  Error = "error",
 }

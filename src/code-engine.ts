@@ -1,10 +1,10 @@
 import { EventEmitter } from "events";
 import { build } from "./build";
-import { Config } from "./config";
 import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
 import { Logger } from "./loggers/types";
 import { CodeEngineContext, isDestinationCleaner, Plugin, UsePlugin } from "./plugins";
+import { Config } from "./types";
 import { WorkerPool } from "./workers";
 
 const _internal = Symbol("Internal CodeEngine Properties");

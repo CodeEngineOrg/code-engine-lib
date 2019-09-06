@@ -34,3 +34,13 @@ export interface Logger {
    */
   error(error: string | Error, data?: object): void;
 }
+
+/**
+ * The possible severity levels of a log message.
+ */
+export enum LogLevel {
+  Debug = "debug",
+  Info = "info",
+  Warning = "warning",
+  Error = "error",
+}

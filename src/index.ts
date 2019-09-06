@@ -1,10 +1,10 @@
 import { CodeEngine } from "./code-engine";
 
-export { env } from "./env";
-export { Events } from "./events";
+export { env, Environment } from "./env";
 export * from "./files/types";
 export * from "./loggers/types";
 export * from "./plugins/types";
+export * from "./types";
 export { CodeEngine };
 
 // Export `CodeEngine` as the default export
