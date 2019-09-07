@@ -1,6 +1,7 @@
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
+import { ParallelPluginModule } from "../plugins";
 import { awaitOnline } from "./await-online";
 import { ExecutorConfig, ExecutorRequest, ExecutorResponse, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
 
@@ -39,6 +40,13 @@ export class CodeEngineWorker extends WorkerBase {
   }
 
   /**
+   * Loads the specified `ParallelPlugin` in the worker thread.
+   */
+  public async loadParallelPlugin(module: ParallelPluginModule): Promise<ParallelPluginSignature> {
+    return this.postMessage({ event: WorkerEvent.LoadPlugin, data: module });
+  }
+
+  /**
    * Terminates the worker thread and cancels all pending operations.
    */
   public async terminate(): Promise<number> {
@@ -61,7 +69,7 @@ export class CodeEngineWorker extends WorkerBase {
   }
 
   /**
-   * Handles a message from the `Executor`.
+   * Handles messages from the `Executor`.
    */
   private _handleMessage(message: ExecutorResponse) {
     if (this._isTerminated) {

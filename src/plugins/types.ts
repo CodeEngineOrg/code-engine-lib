@@ -7,15 +7,18 @@ import { Logger } from "../loggers";
  */
 export type UsePlugin = Plugin | ParallelPluginModule | string;
 
+
 /**
  * A synchronous or asynchronous iterable.
  */
 export type AnyIterable<T> = Iterable<T> | AsyncIterable<T>;
 
+
 /**
  * A synchronous or asynchronous iterator.
  */
 export type AnyIterator<T> = Iterator<T> | AsyncIterator<T>;
+
 
 /**
  * CodeEngine plugins can return files as arrays, Sets, Maps, generators, async generators, or
@@ -75,6 +78,35 @@ export interface Plugin extends BasePlugin {
   clean?(context: PluginContext): void | Promise<void>;
 }
 
+/**
+ * A plugin that implements the `find()` method.
+ */
+export type FileSource = Plugin & Required<Pick<Plugin, "find">>;
+
+
+/**
+ * A plugin that implements the `processFile()` method.
+ */
+export type ParallelProcessor = Plugin & Required<Pick<Plugin, "processFile">>;
+
+
+/**
+ * A plugin that implements the `processAllFiles()` method.
+ */
+export type SequentialProcessor = Plugin & Required<Pick<Plugin, "processAllFiles">>;
+
+
+/**
+ * A plugin that implements the `write()` method.
+ */
+export type FileDestination = Plugin & Required<Pick<Plugin, "write">>;
+
+
+/**
+ * A plugin that implements the `clean()` method.
+ */
+export type DestinationCleaner = Plugin & Required<Pick<Plugin, "clean">>;
+
 
 /**
  * A CodeEngine plugin that runs on a worker thread.
@@ -93,9 +125,10 @@ export interface ParallelPlugin extends BasePlugin {
  */
 export interface ParallelPluginModule {
   /**
-   * The path of a JavaScript module whose default export is a function that returns a `ParallelPlugin`.
+   * A JavaScript module ID, such as the path of a JavaScript file or the name of an NPM package.
+   * The module's default export must be a function that returns a `ParallelPlugin`.
    */
-  module: string;
+  moduleId: string;
 
   /**
    * Optional data to be passed when invoking the module's exported function. This data can only

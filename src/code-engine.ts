@@ -3,7 +3,7 @@ import { build } from "./build";
 import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
 import { Logger } from "./loggers/types";
-import { CodeEngineContext, isDestinationCleaner, Plugin, UsePlugin } from "./plugins";
+import { CodeEnginePluginContext, isDestinationCleaner, isPlugin, Plugin, UsePlugin } from "./plugins";
 import { Config, Event } from "./types";
 import { WorkerPool } from "./workers";
 
@@ -49,9 +49,13 @@ export class CodeEngine extends EventEmitter {
     let plugins: UsePlugin[] = arg1.flat();
 
     for (let plugin of plugins) {
-      if (typeof plugin === "string" || "module" in plugin) {
+      if (typeof plugin === "string" || "moduleId" in plugin) {
         // This is a parallel plugin, so load it into the worker threads
         plugin = await this[_internal].workerPool.loadParallelPlugin(plugin);
+      }
+
+      if (!isPlugin(plugin)) {
+        throw new TypeError(`Not a valid CodeEngine plugin.`);
       }
 
       this[_internal].plugins.push(plugin);

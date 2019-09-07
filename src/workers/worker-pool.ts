@@ -37,10 +37,14 @@ export class WorkerPool {
     this._assertNotDisposed();
 
     if (typeof module === "string") {
-      module = { module };
+      module = { moduleId: module };
     }
 
-    return import(module.module);
+    let signatures = await Promise.all(
+      this._workers.map((worker) => worker.loadParallelPlugin(module as ParallelPluginModule))
+    );
+
+    return new CodeEngineParallelPlugin(signatures[0], this);
   }
 
   /**
