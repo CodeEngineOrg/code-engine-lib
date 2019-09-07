@@ -125,7 +125,7 @@ export class CodeEngineFiles implements FileList {
   /**
    * Returns the name to use for `Object.toString()`.
    */
-  public [Symbol.toStringTag](): string {
+  public get [Symbol.toStringTag](): string {
     return "FileList";
   }
 }

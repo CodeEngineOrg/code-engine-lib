@@ -22,7 +22,7 @@ export class CodeEngineContext implements PluginContext {
   /**
    * Returns the name to use for `Object.toString()`.
    */
-  public [Symbol.toStringTag]() {
+  public get [Symbol.toStringTag](): string {
     return "PluginContext";
   }
 }

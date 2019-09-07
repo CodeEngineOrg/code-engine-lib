@@ -82,7 +82,7 @@ export class CodeEngineFile implements File {
   /**
    * Returns the name to use for `Object.toString()`.
    */
-  public [Symbol.toStringTag]() {
+  public get [Symbol.toStringTag](): string {
     return "File";
   }
 }

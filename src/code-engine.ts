@@ -104,14 +104,14 @@ export class CodeEngine extends EventEmitter {
       return `CodeEngine (disposed)`;
     }
     else {
-      return `CodeEngine (${plugins.length} plugins, ${workerPool} workers)`;
+      return `CodeEngine (${plugins.length} plugins)`;
     }
   }
 
   /**
    * Returns the name to use for `Object.toString()`.
    */
-  public [Symbol.toStringTag]() {
+  public get [Symbol.toStringTag](): string {
     return "CodeEngine";
   }
 }
