@@ -15,7 +15,7 @@ const _internal = Symbol("Internal CodeEngine Properties");
 export class CodeEngine extends EventEmitter {
   public readonly logger: Logger;
   private readonly [_internal]: {
-    readonly plugins: Plugin[];
+    plugins: Plugin[];
     readonly workerPool: WorkerPool;
   };
 
@@ -80,7 +80,8 @@ export class CodeEngine extends EventEmitter {
    * Once `dispose()` is called, the CodeEngine instance is no longer usable.
    */
   public async dispose(): Promise<void> {
-    return this[_internal].workerPool.dispose();
+    this[_internal].plugins = [];
+    await this[_internal].workerPool.dispose();
   }
 
   /**
@@ -91,5 +92,26 @@ export class CodeEngine extends EventEmitter {
   public error(error: Error): void {
     this.emit(Event.Error, error);
     this.dispose();  // tslint:disable-line: no-floating-promises
+  }
+
+  /**
+   * Returns a string representation of the CodeEngine instance.
+   */
+  public toString(): string {
+    let { plugins, workerPool } = this[_internal];
+
+    if (workerPool.isDisposed) {
+      return `CodeEngine (disposed)`;
+    }
+    else {
+      return `CodeEngine (${plugins.length} plugins, ${workerPool} workers)`;
+    }
+  }
+
+  /**
+   * Returns the name to use for `Object.toString()`.
+   */
+  public [Symbol.toStringTag]() {
+    return "CodeEngine";
   }
 }
