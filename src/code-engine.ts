@@ -56,7 +56,7 @@ export class CodeEngine extends EventEmitter {
       }
 
       if (!isPlugin(plugin)) {
-        throw ono.type(`Not a valid CodeEngine plugin.`);
+        throw ono.type(`${plugin} is not a valid CodeEngine plugin.`);
       }
 
       this[_internal].plugins.push(plugin);

@@ -2,13 +2,12 @@ import { ono } from "ono";
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
-import { ParallelPluginModule } from "../plugins";
 import { awaitOnline } from "./await-online";
-import { ExecutorConfig, ExecutorRequest, ExecutorResponse, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
+import { ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
-let workerId = 0;
-let messageId = 0;
+let workerCounter = 0;
+let messageCounter = 0;
 
 /**
  * Controls an `Executor` instance running on a worker thread.
@@ -22,7 +21,7 @@ export class CodeEngineWorker extends WorkerBase {
 
   public constructor({ cwd, engine }: WorkerConfig) {
     let workerData: ExecutorConfig = {
-      id: ++workerId,
+      id: ++workerCounter,
       cwd,
     };
 
@@ -43,7 +42,7 @@ export class CodeEngineWorker extends WorkerBase {
   /**
    * Loads the specified `ParallelPlugin` in the worker thread.
    */
-  public async loadParallelPlugin(module: ParallelPluginModule): Promise<ParallelPluginSignature> {
+  public async loadParallelPlugin(module: LoadParallelPluginInfo): Promise<ParallelPluginSignature> {
     return this.postMessage({ event: WorkerEvent.LoadPlugin, data: module });
   }
 
@@ -134,7 +133,7 @@ export class CodeEngineWorker extends WorkerBase {
 
     return new Promise<T>((resolve, reject) => {
       let request = message as ExecutorRequest;
-      request.id = ++messageId;
+      request.id = ++messageCounter;
       super.postMessage(request);
       this._pending.set(request.id, { event: request.event, resolve, reject });
     });

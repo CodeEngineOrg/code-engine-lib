@@ -2,8 +2,8 @@ import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
 import { MessagePort, parentPort } from "worker_threads";
-import { ParallelPluginModule } from "../plugins";
-import { ExecutorConfig, ExecutorRequest, ExecutorResponse, ParallelPluginSignature, WorkerEvent } from "./types";
+import { isPlugin, ParallelPlugin, ParallelPluginFactory } from "../plugins";
+import { ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, WorkerEvent } from "./types";
 
 /**
  * Executes commands in a worker thread that are sent by a corresponding `CodeEngineWorker` running on the main thread.
@@ -12,6 +12,7 @@ export class Executor {
   public readonly id: number;
   private readonly _cwd: string;
   private readonly _port: MessagePort;
+  private readonly _plugins = new Map<number, ParallelPlugin>();
 
   public constructor({ id, cwd }: ExecutorConfig) {
     this.id = id;
@@ -23,13 +24,29 @@ export class Executor {
   /**
    * Loads the specified `ParallelPlugin` and returns its signature.
    */
-  public async loadParallelPlugin(module: ParallelPluginModule): Promise<ParallelPluginSignature> {
-    let exports = await importLocalOrGlobal(module.moduleId, this._cwd);
-    console.log("exported type =", typeof exports);
+  public async loadParallelPlugin(info: LoadParallelPluginInfo): Promise<ParallelPluginSignature> {
+    let { pluginId, moduleId, data } = info;
+
+    // Import the plugin module
+    let exports = await importLocalOrGlobal(moduleId, this._cwd);
+
+    // Make sure the default export is a function
+    let factory = (exports || (exports as { default: unknown }).default) as ParallelPluginFactory;
+    if (typeof factory !== "function") {
+      throw ono.type(`Error loading module "${moduleId}". CodeEngine plugin modules must export a function.`);
+    }
+
+    // Call the exported function to get the plugin
+    let plugin = await factory(data);
+    if (!isPlugin(plugin)) {
+      throw ono.type(`Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`);
+    }
+
+    this._plugins.set(pluginId, plugin);
 
     return {
-      name: "foooo",
-      processFile: false,
+      name: plugin.name,
+      processFile: typeof plugin.processFile === "function",
     };
   }
 
@@ -42,7 +59,7 @@ export class Executor {
     try {
       switch (message.event) {
         case WorkerEvent.LoadPlugin:
-          response.value = await this.loadParallelPlugin(message.data as ParallelPluginModule);
+          response.value = await this.loadParallelPlugin(message.data as LoadParallelPluginInfo);
           break;
 
         default:
@@ -58,6 +75,7 @@ export class Executor {
   }
 }
 
+
 /**
  * Imports the specified module, either from the current path, the local "node_modules" folder,
  * or a globally-installed NPM package.
@@ -67,7 +85,7 @@ export class Executor {
  *
  * @returns - The module's export(s)
  */
-export async function importLocalOrGlobal<T>(moduleId: string, cwd?: string): Promise<T> {
+async function importLocalOrGlobal<T>(moduleId: string, cwd?: string): Promise<T> {
   let modulePath = resolveFrom.silent(cwd || __dirname, moduleId) || resolveGlobal.silent(moduleId);
 
   if (!modulePath) {

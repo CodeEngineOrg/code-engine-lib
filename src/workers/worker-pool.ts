@@ -1,9 +1,12 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginModule } from "../plugins";
-import { WorkerPoolConfig } from "./types";
+import { File } from "../files";
+import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginModule, PluginContext } from "../plugins";
+import { LoadParallelPluginInfo, WorkerPoolConfig } from "./types";
 import { CodeEngineWorker } from "./worker";
+
+let pluginCounter = 0;
 
 /**
  * Manages the CodeEngine worker threads.
@@ -41,11 +44,24 @@ export class WorkerPool {
       module = { moduleId: module };
     }
 
+    let info: LoadParallelPluginInfo = {
+      ...module,
+      pluginId: ++pluginCounter,
+    };
+
     let signatures = await Promise.all(
-      this._workers.map((worker) => worker.loadParallelPlugin(module as ParallelPluginModule))
+      this._workers.map((worker) => worker.loadParallelPlugin(info))
     );
 
-    return new CodeEngineParallelPlugin(signatures[0], this);
+    return new CodeEngineParallelPlugin(info.pluginId, signatures[0], this);
+  }
+
+  /**
+   * Processes the given file on a `CodeEngineWorker` in the pool.
+   */
+  public async processFile(pluginId: number, file: File, context: PluginContext): Promise<void> {
+    // TODO
+    await Promise.reject(new Error("Not Implemented"));
   }
 
   /**

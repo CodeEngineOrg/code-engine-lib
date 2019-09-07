@@ -139,6 +139,16 @@ export interface ParallelPluginModule {
   data?: unknown;
 }
 
+
+/**
+ * A function that returns a `ParallelPlugin`. The default export of a `ParallelPluginModule` must
+ * match this signature.
+ *
+ * @param data - The `ParallelPluginModule.data` value
+ */
+export type ParallelPluginFactory = (data: unknown) => ParallelPlugin | Promise<ParallelPlugin>;
+
+
 /**
  * Contextual information passed to every plugin hook.
  */

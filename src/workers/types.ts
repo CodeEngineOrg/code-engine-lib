@@ -1,6 +1,6 @@
 import { ErrorPOJO } from "ono";
 import { CodeEngine } from "../code-engine";
-import { ParallelPlugin } from "../plugins";
+import { ParallelPlugin, ParallelPluginModule } from "../plugins";
 
 /**
  * Configuration for a `WorkerPool`.
@@ -26,6 +26,7 @@ export interface WorkerPoolConfig {
   engine: CodeEngine;
 }
 
+
 /**
  * Configuration for a `CodeEngineWorker`.
  */
@@ -42,6 +43,7 @@ export interface WorkerConfig {
    */
   engine: CodeEngine;
 }
+
 
 /**
  * Configuration for an `Executor` running in a worker thread.
@@ -60,6 +62,7 @@ export interface ExecutorConfig {
   cwd: string;
 }
 
+
 /**
  * Events that occur on a `CodeEngineWorker` or `Executor`.
  */
@@ -69,6 +72,7 @@ export enum WorkerEvent {
   LoadPlugin = "loadPlugin",
 }
 
+
 /**
  * A message sent from a `CodeEngineWorker` to an `Executor`
  */
@@ -76,6 +80,7 @@ export interface PostMessage {
   event: WorkerEvent;
   data?: unknown;
 }
+
 
 /**
  * A message that has been sent from a `CodeEngineWorker` to an `Executor`, but has't been responded to yet.
@@ -97,12 +102,14 @@ export interface PendingMessage {
   reject(reason: ErrorPOJO): void;
 }
 
+
 /**
  * A request received by an `Executor` from a `CodeEngineWorker`.
  */
 export interface ExecutorRequest extends PostMessage {
   id: number;
 }
+
 
 /**
  * A response sent by an `Executor` to a `CodeEngineWorker`.
@@ -112,6 +119,18 @@ export interface ExecutorResponse {
   error?: ErrorPOJO;
   value?: unknown;
 }
+
+
+/**
+ * Instructs a `CodeEngineWorker` or `Executor` to load the specified `ParallelPluginModule`.
+ */
+export interface LoadParallelPluginInfo extends ParallelPluginModule {
+  /**
+   * A unique ID that is assigned to each plugin so they can be referenced across thread boundaries.
+   */
+  pluginId: number;
+}
+
 
 /**
  * An object that indicates which methods are implemented by a `ParallelPlugin`.
