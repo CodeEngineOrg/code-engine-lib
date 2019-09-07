@@ -89,10 +89,7 @@ export class CodeEngineWorker extends WorkerBase {
    * Handles the worker thread exiting, either because we told it to terminate, or because it crashed.
    */
   private _handleExit(exitCode: number) {
-    if (this._isTerminated && exitCode === 0) {
-      // This was a normal and expected exit 👍
-    }
-    else {
+    if (!this._isTerminated) {
       // The worker crashed or exited unexpectedly
       this._handleError(new Error(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
     }

@@ -1,9 +1,9 @@
 "use strict";
 
-const { CodeEngine } = require("../../");
+const { CodeEngine } = require("../../lib");
 const { expect } = require("chai");
 
-describe("CodeEngine API", () => {
+describe("CodeEngine class", () => {
 
   it("should work without any arguments", async () => {
     let engine;
