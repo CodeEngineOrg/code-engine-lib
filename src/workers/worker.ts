@@ -2,8 +2,7 @@ import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
 import { awaitOnline } from "./await-online";
-import { WorkerConfig } from "./config";
-import { ExecutorRequest, ExecutorResponse, PendingMessage, PostMessage, WorkerEvent } from "./types";
+import { ExecutorConfig, ExecutorRequest, ExecutorResponse, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
 let workerId = 0;
@@ -19,9 +18,10 @@ export class CodeEngineWorker extends WorkerBase {
   private _waitUntilOnline: Promise<void>;
   private readonly _pending: Map<number, PendingMessage>;
 
-  public constructor(engine: CodeEngine) {
-    let workerData: WorkerConfig = {
+  public constructor({ cwd, engine }: WorkerConfig) {
+    let workerData: ExecutorConfig = {
       id: ++workerId,
+      cwd,
     };
 
     super(workerScript, { workerData });

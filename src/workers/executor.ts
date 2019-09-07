@@ -1,19 +1,20 @@
 import { ono } from "ono";
 import { MessagePort, parentPort } from "worker_threads";
-import { WorkerConfig } from "./config";
-import { ExecutorRequest, ExecutorResponse } from "./types";
+import { ExecutorConfig, ExecutorRequest, ExecutorResponse, ParallelPluginSignature, WorkerEvent } from "./types";
 
 /**
- * TODO
+ * Executes commands in a worker thread that are sent by a corresponding `CodeEngineWorker` running on the main thread.
  */
 export class Executor {
   public readonly id: number;
+  private readonly _cwd: string;
   private readonly _port: MessagePort;
 
-  public constructor(config: WorkerConfig) {
-    this.id = config.id;
+  public constructor({ id, cwd }: ExecutorConfig) {
+    this.id = id;
+    this._cwd = cwd;
     this._port = parentPort!;
-    this._port.on("message", this._message.bind(this));
+    this._port.on("message", this._handleMessage.bind(this));
   }
 
   private _message(message: ExecutorRequest) {

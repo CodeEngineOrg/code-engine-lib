@@ -1,4 +1,64 @@
 import { ErrorPOJO } from "ono";
+import { CodeEngine } from "../code-engine";
+import { ParallelPlugin } from "../plugins";
+
+/**
+ * Configuration for a `WorkerPool`.
+ */
+export interface WorkerPoolConfig {
+  /**
+   * The directory used to resolve all relative paths.
+   *
+   * Defaults to `process.cwd()`.
+   */
+  cwd: string;
+
+  /**
+   * The number of worker threads that CodeEngine should use to process files.
+   *
+   * Defaults to the number of CPU cores available.
+   */
+  concurrency?: number;
+
+  /**
+   * The CodeEngine instance that the `WorkerPool` belongs to.
+   */
+  engine: CodeEngine;
+}
+
+/**
+ * Configuration for a `CodeEngineWorker`.
+ */
+export interface WorkerConfig {
+  /**
+   * The directory used to resolve all relative paths.
+   *
+   * Defaults to `process.cwd()`.
+   */
+  cwd: string;
+
+  /**
+   * The CodeEngine instance that the `CodeEngineWorker` belongs to.
+   */
+  engine: CodeEngine;
+}
+
+/**
+ * Configuration for an `Executor` running in a worker thread.
+ */
+export interface ExecutorConfig {
+  /**
+   * A unique ID assigned to each worker.
+   */
+  id: number;
+
+  /**
+   * The directory used to resolve all relative paths.
+   *
+   * Defaults to `process.cwd()`.
+   */
+  cwd: string;
+}
 
 /**
  * Events that occur on a `CodeEngineWorker` or `Executor`.
@@ -6,6 +66,7 @@ import { ErrorPOJO } from "ono";
 export enum WorkerEvent {
   Online = "online",
   Terminated = "terminated",
+  LoadPlugin = "loadPlugin",
 }
 
 /**
@@ -51,3 +112,13 @@ export interface ExecutorResponse {
   error?: ErrorPOJO;
   value?: unknown;
 }
+
+/**
+ * An object that indicates which methods are implemented by a `ParallelPlugin`.
+ */
+export type ParallelPluginSignature = {
+  // Make all properties required
+  [k in keyof ParallelPlugin]-?:
+    // Copy primitive properties (i.e. `name`) as-is, but convert everything else (i.e. methods) to booleans
+    ParallelPlugin[k] extends string | number | boolean ? ParallelPlugin[k] : boolean;
+};

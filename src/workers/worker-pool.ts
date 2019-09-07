@@ -1,7 +1,7 @@
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { ParallelPlugin, ParallelPluginModule } from "../plugins";
-import { Config } from "../types";
+import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginModule } from "../plugins";
+import { WorkerPoolConfig } from "./types";
 import { CodeEngineWorker } from "./worker";
 
 /**
@@ -12,12 +12,12 @@ export class WorkerPool {
   private _workers: CodeEngineWorker[] = [];
   private _isDisposed = false;
 
-  public constructor(engine: CodeEngine, { concurrency }: Config) {
+  public constructor({ cwd, concurrency, engine }: WorkerPoolConfig) {
     this._engine = engine;
     concurrency = concurrency || os.cpus().length;
 
     for (let i = 0; i < concurrency; i++) {
-      let worker = new CodeEngineWorker(engine);
+      let worker = new CodeEngineWorker({ cwd, engine });
       this._workers.push(worker);
     }
   }

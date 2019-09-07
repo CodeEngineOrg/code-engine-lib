@@ -19,12 +19,14 @@ export class CodeEngine extends EventEmitter {
     readonly workerPool: WorkerPool;
   };
 
-  public constructor(config: Config = {}) {
+  public constructor({ cwd, concurrency }: Config = {}) {
     super();
+
+    cwd = cwd || process.cwd();
 
     Object.defineProperty(this, _internal, { value: {
       plugins: [],
-      workerPool: new WorkerPool(this, config),
+      workerPool: new WorkerPool({ cwd, concurrency, engine: this }),
     }});
 
     this.logger = new LogEmitter(this);

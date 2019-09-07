@@ -1,5 +1,5 @@
 import { workerData } from "worker_threads";
-import { WorkerConfig } from "./config";
 import { Executor } from "./executor";
+import { ExecutorConfig } from "./types";
 
-let self = new Executor(workerData as WorkerConfig);
+let self = new Executor(workerData as ExecutorConfig);
