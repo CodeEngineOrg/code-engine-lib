@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import * as path from "path";
 import { File, FileInfo } from "./types";
 
@@ -64,7 +65,7 @@ export class CodeEngineFile implements File {
    */
   public set path(value: string) {
     if (path.isAbsolute(value)) {
-      throw new Error(`Expected a relative path, but got an absolute path: ${value}`);
+      throw ono(`Expected a relative path, but got an absolute path: ${value}`);
     }
 
     let { dir, base } = path.parse(path.normalize(value));

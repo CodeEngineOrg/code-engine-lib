@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import { AnyIterator, CanIterate } from "../plugins";
 
 type IteratorAndResult<T> = [AnyIterator<T>, IteratorResult<T>];
@@ -61,7 +62,7 @@ function getIterator<T>(canIterate: CanIterate<T>): AnyIterator<T> {
     return iterator;
   }
   else {
-    throw new TypeError(`CodeEngine requires an iterable, such as an array, Map, Set, or generator.`);
+    throw ono.type(`CodeEngine requires an iterable, such as an array, Map, Set, or generator.`);
   }
 }
 

@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import { CodeEngineFile, CodeEngineFileList, FileInfo, FileList } from "../files";
 import { isFileDestination, isFileSource, Plugin, PluginContext } from "../plugins";
 import { createBuildPhases } from "./create-build-phases";
@@ -44,7 +45,7 @@ function find(plugins: Plugin[], context: PluginContext): AsyncIterableIterator<
   let sources = plugins.filter(isFileSource);
 
   if (sources.length === 0) {
-    throw new Error("At least one file source is required.");
+    throw ono("At least one file source is required.");
   }
 
   let iterators = sources.map((plugin) => plugin.find(context));

@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
 import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginModule } from "../plugins";
@@ -73,7 +74,7 @@ export class WorkerPool {
    */
   private _assertNotDisposed() {
     if (this._isDisposed) {
-      throw new Error(`CodeEngine cannot be used once it has been disposed.`);
+      throw ono(`CodeEngine cannot be used once it has been disposed.`);
     }
   }
 }

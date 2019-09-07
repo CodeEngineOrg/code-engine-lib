@@ -46,7 +46,7 @@ export class Executor {
           break;
 
         default:
-          throw new Error(`Unknown worker event: ${message.event}`);
+          throw ono(`Unknown worker event: ${message.event}`);
       }
 
       this._port.postMessage(response);
@@ -71,7 +71,7 @@ export async function importLocalOrGlobal<T>(moduleId: string, cwd?: string): Pr
   let modulePath = resolveFrom.silent(cwd || __dirname, moduleId) || resolveGlobal.silent(moduleId);
 
   if (!modulePath) {
-    throw new Error(`Cannot find module "${moduleId}" in the local path or as a globally-installed package.`);
+    throw ono(`Cannot find module "${moduleId}" in the local path or as a globally-installed package.`);
   }
 
   return import(moduleId);

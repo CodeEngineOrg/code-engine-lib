@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import { CodeEngineWorker } from "./worker";
 
 /**
@@ -23,7 +24,7 @@ export function awaitOnline(worker: CodeEngineWorker): Promise<void> {
     });
 
     function exitHandler(exitCode: number) {
-      reject(new Error(`CodeEngine worker #${worker.id} exited with code ${exitCode} before coming online.`));
+      reject(ono(`CodeEngine worker #${worker.id} exited with code ${exitCode} before coming online.`));
     }
   });
 

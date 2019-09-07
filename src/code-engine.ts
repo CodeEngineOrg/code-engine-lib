@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { ono } from "ono";
 import { build } from "./build";
 import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
@@ -55,7 +56,7 @@ export class CodeEngine extends EventEmitter {
       }
 
       if (!isPlugin(plugin)) {
-        throw new TypeError(`Not a valid CodeEngine plugin.`);
+        throw ono.type(`Not a valid CodeEngine plugin.`);
       }
 
       this[_internal].plugins.push(plugin);

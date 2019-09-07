@@ -1,3 +1,4 @@
+import { ono } from "ono";
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
@@ -55,7 +56,7 @@ export class CodeEngineWorker extends WorkerBase {
     }
 
     this._isTerminated = true;
-    this._rejectAllPending(new Error(`CodeEngine is terminating.`));
+    this._rejectAllPending(ono(`CodeEngine is terminating.`));
     let exitCode = await super.terminate();
     this._debug(WorkerEvent.Terminated, `CodeEngine worker #${this.id} has terminated`, { exitCode });
     return exitCode;
@@ -81,7 +82,7 @@ export class CodeEngineWorker extends WorkerBase {
     // Find the pending message that this is a response to
     let pending = this._pending.get(message.id);
     if (!pending) {
-      throw new Error(`Unknown message ID: ${message.id}`);
+      throw ono(`Unknown message ID: ${message.id}`);
     }
 
     this._pending.delete(message.id);
@@ -99,7 +100,7 @@ export class CodeEngineWorker extends WorkerBase {
   private _handleExit(exitCode: number) {
     if (!this._isTerminated) {
       // The worker crashed or exited unexpectedly
-      this._handleError(new Error(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
+      this._handleError(ono(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
     }
   }
 

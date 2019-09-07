@@ -1,4 +1,5 @@
 // tslint:disable: completed-docs
+import { ono } from "ono";
 import { File, FileList } from "./types";
 
 const _internal = Symbol("Internal CodeEngine Properties");
@@ -43,7 +44,7 @@ export class CodeEngineFileList implements FileList {
 
   public add(file: File): this {
     if (this.has(file)) {
-      throw new Error(`Duplicate file path: ${file}`);
+      throw ono(`Duplicate file path: ${file}`);
     }
 
     this[_internal].files.push(file);
@@ -63,7 +64,7 @@ export class CodeEngineFileList implements FileList {
   public demand(file: string | File): File {
     let index = findIndex(this, file);
     if (index === -1) {
-      throw new Error(`Could not find file: ${file}`);
+      throw ono(`Could not find file: ${file}`);
     }
     return this[_internal].files[index];
   }
