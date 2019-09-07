@@ -23,6 +23,13 @@ export class WorkerPool {
   }
 
   /**
+   * The number of workers in the pool.
+   */
+  public get size(): number {
+    return this._workers.length;
+  }
+
+  /**
    * Loads the specified `ParallelPlugin` into all worker threads, and returns a facade that
    * allows it to be used from the main thread like a normal plugin.
    */
@@ -52,7 +59,9 @@ export class WorkerPool {
     }
 
     this._isDisposed = true;
-    await Promise.all(this._workers.map((worker) => worker.terminate()));
+    let workers = this._workers;
+    this._workers = [];
+    await Promise.all(workers.map((worker) => worker.terminate()));
   }
 
   /**
