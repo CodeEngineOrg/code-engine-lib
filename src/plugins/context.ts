@@ -5,7 +5,7 @@ import { PluginContext } from "./types";
 /**
  * The internal CodeEngine implementation of the `PluginContext` interface.
  */
-export class CodeEngineContext implements PluginContext {
+export class CodeEnginePluginContext implements PluginContext {
   public logger: Logger;
 
   public constructor(engine: CodeEngine) {
@@ -16,7 +16,7 @@ export class CodeEngineContext implements PluginContext {
    * Returns a string representation of the context.
    */
   public toString(): string {
-    return "{ PluginContext }";
+    return "PluginContext";
   }
 
   /**

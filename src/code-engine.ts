@@ -61,7 +61,7 @@ export class CodeEngine extends EventEmitter {
    */
   public async clean(): Promise<void> {
     let cleaners = this[_internal].plugins.filter(isDestinationCleaner);
-    let context = new CodeEngineContext(this);
+    let context = new CodeEnginePluginContext(this);
     await Promise.all(cleaners.map((cleaner) => cleaner.clean(context)));
   }
 
@@ -71,7 +71,7 @@ export class CodeEngine extends EventEmitter {
    * @returns - The output files
    */
   public async build(): Promise<FileList> {
-    let context = new CodeEngineContext(this);
+    let context = new CodeEnginePluginContext(this);
     return build(this[_internal].plugins, context);
   }
 

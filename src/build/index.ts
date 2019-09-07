@@ -1,4 +1,4 @@
-import { CodeEngineFile, CodeEngineFiles, FileInfo, FileList } from "../files";
+import { CodeEngineFile, CodeEngineFileList, FileInfo, FileList } from "../files";
 import { isFileDestination, isFileSource, Plugin, PluginContext } from "../plugins";
 import { createBuildPhases } from "./create-build-phases";
 import { iterateMultiple } from "./iterate-multiple";
@@ -7,7 +7,7 @@ import { iterateMultiple } from "./iterate-multiple";
  * Runs the given build pipeline
  */
 export async function build(plugins: Plugin[], context: PluginContext): Promise<FileList> {
-  let files = new CodeEngineFiles();
+  let files = new CodeEngineFileList();
 
   // Split the build into phases,
   // based on which plugins are capable of running in parallel, versus sequential

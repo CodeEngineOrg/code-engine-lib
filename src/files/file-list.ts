@@ -6,7 +6,7 @@ const _internal = Symbol("Internal CodeEngine Properties");
 /**
  * The internal CodeEngine implementation of the `FileList` interface.
  */
-export class CodeEngineFiles implements FileList {
+export class CodeEngineFileList implements FileList {
   private readonly [_internal]: {
     files: File[];
   };
@@ -133,7 +133,7 @@ export class CodeEngineFiles implements FileList {
 /**
  * Returns the internal index of the specified file.
  */
-function findIndex(list: CodeEngineFiles, file: string | File): number {
+function findIndex(list: CodeEngineFileList, file: string | File): number {
   let path = typeof file === "string" ? file : file.path;
 
   let i = 0, files = list[_internal].files;
