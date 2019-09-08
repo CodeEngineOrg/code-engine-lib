@@ -3,9 +3,9 @@ import { Logger } from "../loggers";
 
 /**
  * A plugin for CodeEngine to use. Can be a `Plugin` object that runs on the main thread,
- * or a JavaScript module to load a `ParallelPlugin` that runs on worker threads.
+ * or a JavaScript module to load a `WorkerPlugin` that runs on worker threads.
  */
-export type UsePlugin = Plugin | ParallelPluginModule | string;
+export type UsePlugin = Plugin | WorkerPluginModule | string;
 
 
 /**
@@ -82,7 +82,7 @@ export interface Plugin extends BasePlugin {
 /**
  * A CodeEngine plugin that runs on a worker thread.
  */
-export interface ParallelPlugin extends BasePlugin {
+export interface WorkerPlugin extends BasePlugin {
   /**
    * Processes a file. Depending on the plugin, this may alter the file's path or metadata,
    * edit its contents, add new files, or even delete the file.
@@ -92,12 +92,12 @@ export interface ParallelPlugin extends BasePlugin {
 
 
 /**
- * A JavaScript module whose default export is a function that returns a `ParallelPlugin`.
+ * A JavaScript module whose default export is a function that returns a `WorkerPlugin`.
  */
-export interface ParallelPluginModule {
+export interface WorkerPluginModule {
   /**
    * A JavaScript module ID, such as the path of a JavaScript file or the name of an NPM package.
-   * The module's default export must be a function that returns a `ParallelPlugin`.
+   * The module's default export must be a function that returns a `WorkerPlugin`.
    */
   moduleId: string;
 
@@ -112,12 +112,12 @@ export interface ParallelPluginModule {
 
 
 /**
- * A function that returns a `ParallelPlugin`. The default export of a `ParallelPluginModule` must
+ * A function that returns a `WorkerPlugin`. The default export of a `WorkerPluginModule` must
  * match this signature.
  *
- * @param data - The `ParallelPluginModule.data` value
+ * @param data - The `WorkerPluginModule.data` value
  */
-export type ParallelPluginFactory = (data: unknown) => ParallelPlugin | Promise<ParallelPlugin>;
+export type WorkerPluginFactory = (data: unknown) => WorkerPlugin | Promise<WorkerPlugin>;
 
 
 /**
@@ -147,6 +147,6 @@ export type PluginMethod = MethodNames<Plugin>;
 
 
 /**
- * The name of a `ParallelPlugin` method.
+ * The name of a `WorkerPlugin` method.
  */
-export type ParallelPluginMethod = MethodNames<ParallelPlugin>;
+export type WorkerPluginMethod = MethodNames<WorkerPlugin>;

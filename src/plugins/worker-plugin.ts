@@ -1,17 +1,17 @@
 import { File } from "../files";
-import { ParallelPluginSignature, WorkerPool } from "../workers";
-import { ParallelPlugin, PluginContext } from "./types";
+import { WorkerPluginSignature, WorkerPool } from "../workers";
+import { PluginContext, WorkerPlugin } from "./types";
 
 /**
- * The internal CodeEngine implementation of the `ParallelPlugin` interface.
+ * The internal CodeEngine implementation of the `WorkerPlugin` interface.
  * This class runs a plugin in parallel across many worker threads.
  */
-export class CodeEngineParallelPlugin implements ParallelPlugin {
+export class CodeEngineWorkerPlugin implements WorkerPlugin {
   public readonly id: number;
   public readonly name: string;
   private _workerPool: WorkerPool;
 
-  public constructor(id: number, signature: ParallelPluginSignature, workerPool: WorkerPool) {
+  public constructor(id: number, signature: WorkerPluginSignature, workerPool: WorkerPool) {
     this.id = id;
     this.name = signature.name;
     this._workerPool = workerPool;

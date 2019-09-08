@@ -1,6 +1,6 @@
 import { ErrorPOJO } from "ono";
 import { CodeEngine } from "../code-engine";
-import { ParallelPlugin, ParallelPluginMethod, ParallelPluginModule } from "../plugins";
+import { WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
 
 /**
  * Configuration for a `WorkerPool`.
@@ -123,9 +123,9 @@ export interface ExecutorResponse {
 
 
 /**
- * Instructs a `CodeEngineWorker` or `Executor` to load the specified `ParallelPluginModule`.
+ * Instructs a `CodeEngineWorker` or `Executor` to load the specified `WorkerPluginModule`.
  */
-export interface LoadParallelPluginInfo extends ParallelPluginModule {
+export interface LoadWorkerPluginInfo extends WorkerPluginModule {
   /**
    * A unique ID that is assigned to each plugin so they can be referenced across thread boundaries.
    */
@@ -134,10 +134,10 @@ export interface LoadParallelPluginInfo extends ParallelPluginModule {
 
 
 /**
- * An object that indicates which methods are implemented by a `ParallelPlugin`.
+ * An object that indicates which methods are implemented by a `WorkerPlugin`.
  */
-export type ParallelPluginSignature = {
-  [k in keyof ParallelPlugin]-?: k extends ParallelPluginMethod ? boolean : ParallelPlugin[k];
+export type WorkerPluginSignature = {
+  [k in keyof WorkerPlugin]-?: k extends WorkerPluginMethod ? boolean : WorkerPlugin[k];
 };
 
 
@@ -153,7 +153,7 @@ export interface ExecPluginData {
   /**
    * The plugin method to execute
    */
-  method: ParallelPluginMethod;
+  method: WorkerPluginMethod;
 
   /**
    * The arguments to pass to the method

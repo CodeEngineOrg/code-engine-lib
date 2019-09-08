@@ -1,8 +1,8 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginMethod, ParallelPluginModule } from "../plugins";
-import { LoadParallelPluginInfo, WorkerPoolConfig } from "./types";
+import { CodeEngineWorkerPlugin, WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
+import { LoadWorkerPluginInfo, WorkerPoolConfig } from "./types";
 import { CodeEngineWorker } from "./worker";
 
 let pluginCounter = 0;
@@ -34,32 +34,32 @@ export class WorkerPool {
   }
 
   /**
-   * Loads the specified `ParallelPlugin` into all worker threads, and returns a facade that
+   * Loads the specified `WorkerPlugin` into all worker threads, and returns a facade that
    * allows it to be used from the main thread like a normal plugin.
    */
-  public async loadParallelPlugin(module: ParallelPluginModule | string): Promise<ParallelPlugin> {
+  public async loadWorkerPlugin(module: WorkerPluginModule | string): Promise<WorkerPlugin> {
     this._assertNotDisposed();
 
     if (typeof module === "string") {
       module = { moduleId: module };
     }
 
-    let info: LoadParallelPluginInfo = {
+    let info: LoadWorkerPluginInfo = {
       ...module,
       pluginId: ++pluginCounter,
     };
 
     let signatures = await Promise.all(
-      this._workers.map((worker) => worker.loadParallelPlugin(info))
+      this._workers.map((worker) => worker.loadWorkerPlugin(info))
     );
 
-    return new CodeEngineParallelPlugin(info.pluginId, signatures[0], this);
+    return new CodeEngineWorkerPlugin(info.pluginId, signatures[0], this);
   }
 
   /**
    * Executes the specified plugin method on a `CodeEngineWorker` in the pool.
    */
-  public async execPlugin<T>(pluginId: number, method: ParallelPluginMethod,  ...args: unknown[]): Promise<T> {
+  public async execPlugin<T>(pluginId: number, method: WorkerPluginMethod,  ...args: unknown[]): Promise<T> {
     // Choose which worker should execute the plugin.
     // NOTE: For now, we just use a simple round-robin strategy, but we may employ a more advanced selection strategy later
     let worker = this._workers[roundRobinCounter++ % this._workers.length];

@@ -51,8 +51,8 @@ export class CodeEngine extends EventEmitter {
 
     for (let plugin of plugins) {
       if (typeof plugin === "string" || "moduleId" in plugin) {
-        // This is a parallel plugin, so load it into the worker threads
-        plugin = await this[_internal].workerPool.loadParallelPlugin(plugin);
+        // This is a worker plugin, so load it into the worker threads
+        plugin = await this[_internal].workerPool.loadWorkerPlugin(plugin);
       }
 
       if (!isPlugin(plugin)) {

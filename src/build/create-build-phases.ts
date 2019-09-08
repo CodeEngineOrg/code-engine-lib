@@ -1,4 +1,4 @@
-import { isParallelProcessor, isSequentialProcessor, Plugin } from "../plugins";
+import { isFileListProcessor, isFileProcessor, Plugin } from "../plugins";
 import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phase";
 
 /**
@@ -22,11 +22,11 @@ function createInitialBuildPhase(plugins: Plugin[]): [number, InitialBuildPhase]
   for (; index < plugins.length; index++) {
     let plugin = plugins[index];
 
-    if (isParallelProcessor(plugin)) {
+    if (isFileProcessor(plugin)) {
       initialPhase.plugins.push(plugin);
     }
 
-    if (isSequentialProcessor(plugin)) {
+    if (isFileListProcessor(plugin)) {
       // We found the first sequential plugin, which ends the initial build phase
       break;
     }
@@ -45,13 +45,13 @@ function createSubsequentBuildPhases(plugins: Plugin[]): SubsequentBuildPhase[] 
   let buildPhase: SubsequentBuildPhase | undefined;
 
   for (let [index, plugin] of plugins.entries()) {
-    if (isParallelProcessor(plugin) && index > 0) {
+    if (isFileProcessor(plugin) && index > 0) {
       // Group all parallel plugins together into one build phase
       buildPhase || (buildPhase = new SubsequentBuildPhase());
       buildPhase.plugins.push(plugin);
     }
 
-    if (isSequentialProcessor(plugin)) {
+    if (isFileListProcessor(plugin)) {
       // Add all the parallel plugins that have been grouped together so far
       if (buildPhase) {
         buildPhases.push(buildPhase);

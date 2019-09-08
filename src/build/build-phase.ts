@@ -1,13 +1,13 @@
 // tslint:disable: max-classes-per-file
 import { File, FileList } from "../files";
-import { ParallelProcessor, PluginContext } from "../plugins";
+import { FileProcessor, PluginContext } from "../plugins";
 
 
 /**
  * The initial build phase, during which each file is processed in parallel for maximum performance.
  */
 export class InitialBuildPhase {
-  public readonly plugins: ParallelProcessor[] = [];
+  public readonly plugins: FileProcessor[] = [];
   private readonly _promises: Array<Promise<void>> = [];
 
   /**
@@ -33,7 +33,7 @@ export class InitialBuildPhase {
  * the file list in parallel.
  */
 export class SubsequentBuildPhase {
-  public readonly plugins: ParallelProcessor[] = [];
+  public readonly plugins: FileProcessor[] = [];
 
   /**
    * Process the list of files in parallel.
@@ -47,7 +47,7 @@ export class SubsequentBuildPhase {
 /**
  * Process the given file through all the specified plugins.
  */
-async function processFile(plugins: ParallelProcessor[], file: File, context: PluginContext): Promise<void> {
+async function processFile(plugins: FileProcessor[], file: File, context: PluginContext): Promise<void> {
   for (let plugin of plugins) {
     await plugin.processFile(file, context);
   }

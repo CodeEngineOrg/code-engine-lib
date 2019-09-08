@@ -2,9 +2,9 @@ import { ono } from "ono";
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
-import { ParallelPluginMethod } from "../plugins";
+import { WorkerPluginMethod } from "../plugins";
 import { awaitOnline } from "./await-online";
-import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
+import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadWorkerPluginInfo, PendingMessage, PostMessage, WorkerConfig, WorkerEvent, WorkerPluginSignature } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
 let workerCounter = 0;
@@ -41,16 +41,16 @@ export class CodeEngineWorker extends WorkerBase {
   }
 
   /**
-   * Loads the specified `ParallelPlugin` in the worker thread.
+   * Loads the specified `WorkerPlugin` in the worker thread.
    */
-  public async loadParallelPlugin(module: LoadParallelPluginInfo): Promise<ParallelPluginSignature> {
+  public async loadWorkerPlugin(module: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
     return this.postMessage({ event: WorkerEvent.LoadPlugin, data: module });
   }
 
   /**
    * Executes the specified plugin method on the worker thread via the `Executor`.
    */
-  public async execPlugin<T>(pluginId: number, method: ParallelPluginMethod,  args: unknown[]): Promise<T> {
+  public async execPlugin<T>(pluginId: number, method: WorkerPluginMethod,  args: unknown[]): Promise<T> {
     let data: ExecPluginData = { pluginId, method, args };
     return this.postMessage({ event: WorkerEvent.ExecPlugin, data });
   }

@@ -27,12 +27,12 @@ export function isFileSource(plugin: Plugin): plugin is FileSource {
 /**
  * A plugin that implements the `processFile()` method.
  */
-export type ParallelProcessor = Plugin & Required<Pick<Plugin, "processFile">>;
+export type FileProcessor = Plugin & Required<Pick<Plugin, "processFile">>;
 
 /**
  * Determines whether the given Plugin implements the `processFile()` method
  */
-export function isParallelProcessor(plugin: Plugin): plugin is ParallelProcessor {
+export function isFileProcessor(plugin: Plugin): plugin is FileProcessor {
   return !!plugin.processFile;
 }
 
@@ -40,12 +40,12 @@ export function isParallelProcessor(plugin: Plugin): plugin is ParallelProcessor
 /**
  * A plugin that implements the `processAllFiles()` method.
  */
-export type SequentialProcessor = Plugin & Required<Pick<Plugin, "processAllFiles">>;
+export type FileListProcessor = Plugin & Required<Pick<Plugin, "processAllFiles">>;
 
 /**
  * Determines whether the given Plugin implements the `processAllFiles()` method
  */
-export function isSequentialProcessor(plugin: Plugin): plugin is SequentialProcessor {
+export function isFileListProcessor(plugin: Plugin): plugin is FileListProcessor {
   return !!plugin.processAllFiles;
 }
 
