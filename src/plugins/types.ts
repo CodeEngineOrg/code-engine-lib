@@ -78,6 +78,7 @@ export interface Plugin extends BasePlugin {
   clean?(context: PluginContext): void | Promise<void>;
 }
 
+
 /**
  * A plugin that implements the `find()` method.
  */
@@ -158,3 +159,24 @@ export interface PluginContext {
    */
   logger: Logger;
 }
+
+
+/**
+ * Extracts the method names of the given type.
+ */
+type MethodNames<T> = {
+  // tslint:disable-next-line: ban-types
+  [k in keyof T]-?: T[k] extends Function | undefined ? k : never;
+}[keyof T];
+
+
+/**
+ * The name of a `Plugin` method.
+ */
+export type PluginMethod = MethodNames<Plugin>;
+
+
+/**
+ * The name of a `ParallelPlugin` method.
+ */
+export type ParallelPluginMethod = MethodNames<ParallelPlugin>;
