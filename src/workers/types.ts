@@ -70,6 +70,7 @@ export enum WorkerEvent {
   Online = "online",
   Terminated = "terminated",
   LoadPlugin = "loadPlugin",
+  ExecPlugin = "execPlugin",
 }
 
 
@@ -138,3 +139,24 @@ export interface LoadParallelPluginInfo extends ParallelPluginModule {
 export type ParallelPluginSignature = {
   [k in keyof ParallelPlugin]-?: k extends ParallelPluginMethod ? boolean : ParallelPlugin[k];
 };
+
+
+/**
+ * The data that is passed from the `CodeEngineWorker` to the `Executor` for the `ExecPlugin` event.
+ */
+export interface ExecPluginData {
+  /**
+   * The unique ID of the plugin to execute
+   */
+  pluginId: number;
+
+  /**
+   * The plugin method to execute
+   */
+  method: ParallelPluginMethod;
+
+  /**
+   * The arguments to pass to the method
+   */
+  args: unknown[];
+}

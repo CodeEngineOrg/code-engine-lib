@@ -9,23 +9,23 @@ import { ParallelPlugin, PluginContext } from "./types";
 export class CodeEngineParallelPlugin implements ParallelPlugin {
   public readonly id: number;
   public readonly name: string;
-  public readonly processFile?: (file: File, context: PluginContext) => Promise<void>;
   private _workerPool: WorkerPool;
 
   public constructor(id: number, signature: ParallelPluginSignature, workerPool: WorkerPool) {
-    this._workerPool = workerPool;
     this.id = id;
     this.name = signature.name;
+    this._workerPool = workerPool;
 
-    if (signature.processFile) {
-      this.processFile = this._processFile;
+    // Remove any methods that aren't in the plugin signature
+    if (!signature.processFile) {
+      this.processFile = undefined;
     }
   }
 
   /**
    * Processes the given file on a `CodeEngineWorker`.
    */
-  private async _processFile(file: File, context: PluginContext): Promise<void> {
-    return this._workerPool.processFile(this.id, file, context);
+  public async processFile?(file: File, context: PluginContext): Promise<void> {
+    return this._workerPool.execPlugin(this.id, "processFile", file, context);
   }
 }

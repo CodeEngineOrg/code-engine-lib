@@ -2,8 +2,8 @@ import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
 import { MessagePort, parentPort } from "worker_threads";
-import { isPlugin, ParallelPlugin, ParallelPluginFactory } from "../plugins";
-import { ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, WorkerEvent } from "./types";
+import { isPlugin, ParallelPlugin, ParallelPluginFactory, ParallelPluginMethod } from "../plugins";
+import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, WorkerEvent } from "./types";
 
 /**
  * Executes commands in a worker thread that are sent by a corresponding `CodeEngineWorker` running on the main thread.
@@ -51,6 +51,15 @@ export class Executor {
   }
 
   /**
+   * Executes the specified plugin method.
+   */
+  public async execPlugin<T>(pluginId: number, method: ParallelPluginMethod,  args: unknown[]): Promise<T> {
+    let plugin = this._plugins.get(pluginId)!;
+    let pluginMethod = plugin[method]! as (...args: unknown[]) => void | T | Promise<T>;
+    return pluginMethod.call(plugin, ...args) as Promise<T>;
+  }
+
+  /**
    * Handles and responds to messages from the `CodeEngineWorker`.
    */
   private async _handleMessage(message: ExecutorRequest) {
@@ -60,6 +69,11 @@ export class Executor {
       switch (message.event) {
         case WorkerEvent.LoadPlugin:
           response.value = await this.loadParallelPlugin(message.data as LoadParallelPluginInfo);
+          break;
+
+        case WorkerEvent.ExecPlugin:
+          let { pluginId, method, args } = message.data as ExecPluginData;
+          response.value = await this.execPlugin(pluginId, method, args);
           break;
 
         default:

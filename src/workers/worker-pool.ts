@@ -1,12 +1,12 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { File } from "../files";
-import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginModule, PluginContext } from "../plugins";
+import { CodeEngineParallelPlugin, ParallelPlugin, ParallelPluginMethod, ParallelPluginModule } from "../plugins";
 import { LoadParallelPluginInfo, WorkerPoolConfig } from "./types";
 import { CodeEngineWorker } from "./worker";
 
 let pluginCounter = 0;
+let roundRobinCounter = 0;
 
 /**
  * Manages the CodeEngine worker threads.
@@ -57,11 +57,14 @@ export class WorkerPool {
   }
 
   /**
-   * Processes the given file on a `CodeEngineWorker` in the pool.
+   * Executes the specified plugin method on a `CodeEngineWorker` in the pool.
    */
-  public async processFile(pluginId: number, file: File, context: PluginContext): Promise<void> {
-    // TODO
-    await Promise.reject(new Error("Not Implemented"));
+  public async execPlugin<T>(pluginId: number, method: ParallelPluginMethod,  ...args: unknown[]): Promise<T> {
+    // Choose which worker should execute the plugin.
+    // NOTE: For now, we just use a simple round-robin strategy, but we may employ a more advanced selection strategy later
+    let worker = this._workers[roundRobinCounter++ % this._workers.length];
+
+    return worker.execPlugin<T>(pluginId, method, args);
   }
 
   /**

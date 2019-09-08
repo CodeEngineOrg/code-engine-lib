@@ -2,8 +2,9 @@ import { ono } from "ono";
 import * as path from "path";
 import { Worker as WorkerBase } from "worker_threads";
 import { CodeEngine } from "../code-engine";
+import { ParallelPluginMethod } from "../plugins";
 import { awaitOnline } from "./await-online";
-import { ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
+import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadParallelPluginInfo, ParallelPluginSignature, PendingMessage, PostMessage, WorkerConfig, WorkerEvent } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
 let workerCounter = 0;
@@ -44,6 +45,14 @@ export class CodeEngineWorker extends WorkerBase {
    */
   public async loadParallelPlugin(module: LoadParallelPluginInfo): Promise<ParallelPluginSignature> {
     return this.postMessage({ event: WorkerEvent.LoadPlugin, data: module });
+  }
+
+  /**
+   * Executes the specified plugin method on the worker thread via the `Executor`.
+   */
+  public async execPlugin<T>(pluginId: number, method: ParallelPluginMethod,  args: unknown[]): Promise<T> {
+    let data: ExecPluginData = { pluginId, method, args };
+    return this.postMessage({ event: WorkerEvent.ExecPlugin, data });
   }
 
   /**
