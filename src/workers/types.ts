@@ -1,6 +1,6 @@
 import { ErrorPOJO } from "ono";
 import { CodeEngine } from "../code-engine";
-import { ParallelPlugin, ParallelPluginModule } from "../plugins";
+import { ParallelPlugin, ParallelPluginMethod, ParallelPluginModule } from "../plugins";
 
 /**
  * Configuration for a `WorkerPool`.
@@ -136,8 +136,5 @@ export interface LoadParallelPluginInfo extends ParallelPluginModule {
  * An object that indicates which methods are implemented by a `ParallelPlugin`.
  */
 export type ParallelPluginSignature = {
-  // Make all properties required
-  [k in keyof ParallelPlugin]-?:
-    // Copy primitive properties (i.e. `name`) as-is, but convert everything else (i.e. methods) to booleans
-    ParallelPlugin[k] extends string | number | boolean ? ParallelPlugin[k] : boolean;
+  [k in keyof ParallelPlugin]-?: k extends ParallelPluginMethod ? boolean : ParallelPlugin[k];
 };
