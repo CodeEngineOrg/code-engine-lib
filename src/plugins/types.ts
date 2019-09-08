@@ -80,36 +80,6 @@ export interface Plugin extends BasePlugin {
 
 
 /**
- * A plugin that implements the `find()` method.
- */
-export type FileSource = Plugin & Required<Pick<Plugin, "find">>;
-
-
-/**
- * A plugin that implements the `processFile()` method.
- */
-export type ParallelProcessor = Plugin & Required<Pick<Plugin, "processFile">>;
-
-
-/**
- * A plugin that implements the `processAllFiles()` method.
- */
-export type SequentialProcessor = Plugin & Required<Pick<Plugin, "processAllFiles">>;
-
-
-/**
- * A plugin that implements the `write()` method.
- */
-export type FileDestination = Plugin & Required<Pick<Plugin, "write">>;
-
-
-/**
- * A plugin that implements the `clean()` method.
- */
-export type DestinationCleaner = Plugin & Required<Pick<Plugin, "clean">>;
-
-
-/**
  * A CodeEngine plugin that runs on a worker thread.
  */
 export interface ParallelPlugin extends BasePlugin {
