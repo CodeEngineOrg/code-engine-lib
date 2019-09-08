@@ -1,9 +1,12 @@
 import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
-import { MessagePort, parentPort } from "worker_threads";
-import { isPlugin, WorkerPlugin, WorkerPluginFactory, WorkerPluginMethod } from "../plugins";
-import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, LoadWorkerPluginInfo, WorkerEvent, WorkerPluginSignature } from "./types";
+import { parentPort } from "worker_threads";
+import { File } from "../files";
+import { isPlugin, PluginContext, WorkerPlugin, WorkerPluginFactory } from "../plugins";
+import { ExecutorConfig } from "./config";
+import { Messenger, Request } from "./messenger";
+import { LoadWorkerPluginInfo, ProcessFileData, WorkerEvent, WorkerPluginSignature } from "./types";
 
 /**
  * Executes commands in a worker thread that are sent by a corresponding `CodeEngineWorker` running on the main thread.
@@ -11,14 +14,13 @@ import { ExecPluginData, ExecutorConfig, ExecutorRequest, ExecutorResponse, Load
 export class Executor {
   public readonly id: number;
   private readonly _cwd: string;
-  private readonly _port: MessagePort;
+  private readonly _messenger: Messenger;
   private readonly _plugins = new Map<number, WorkerPlugin>();
 
   public constructor({ id, cwd }: ExecutorConfig) {
     this.id = id;
     this._cwd = cwd;
-    this._port = parentPort!;
-    this._port.on("message", this._handleMessage.bind(this));
+    this._messenger = new Messenger(parentPort!, this._handleMessage.bind(this));
   }
 
   /**
@@ -62,29 +64,17 @@ export class Executor {
   /**
    * Handles and responds to messages from the `CodeEngineWorker`.
    */
-  private async _handleMessage(message: ExecutorRequest) {
-    let response: ExecutorResponse = { id: message.id };
+  private async _handleMessage(request: Request) {
+    switch (request.event) {
+      case WorkerEvent.LoadPlugin:
+        return this.loadWorkerPlugin(request.data as LoadWorkerPluginInfo);
 
-    try {
-      switch (message.event) {
-        case WorkerEvent.LoadPlugin:
-          response.value = await this.loadWorkerPlugin(message.data as LoadWorkerPluginInfo);
-          break;
+      case WorkerEvent.ProcessFile:
+        let { pluginId, file, context } = request.data as ProcessFileData;
+        return this.processFile(pluginId, file, context);
 
-        case WorkerEvent.ExecPlugin:
-          let { pluginId, method, args } = message.data as ExecPluginData;
-          response.value = await this.execPlugin(pluginId, method, args);
-          break;
-
-        default:
-          throw ono(`Unknown worker event: ${message.event}`);
-      }
-
-      this._port.postMessage(response);
-    }
-    catch (error) {
-      response.error = ono(error as Error).toJSON();
-      this._port.postMessage(response);
+      default:
+        throw ono(`Unknown worker event: ${request.event}`);
     }
   }
 }
