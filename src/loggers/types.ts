@@ -44,3 +44,14 @@ export enum LogLevel {
   Warning = "warning",
   Error = "error",
 }
+
+
+/**
+ * The data that is emitted for a "log" event.
+ */
+export interface LogEventData {
+  level: LogLevel;
+  message: string;
+  error?: Error;
+  [key: string]: unknown;
+}

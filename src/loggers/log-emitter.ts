@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { env } from "../env";
 import { Event } from "../types";
-import { Logger, LogLevel } from "./types";
+import { LogEventData, Logger, LogLevel } from "./types";
 
 const _internal = Symbol("Internal CodeEngine Properties");
 
@@ -23,7 +23,8 @@ export class LogEmitter implements Logger {
    * Emits a log event with a message and possibly additional data.
    */
   public log(message: string, data?: object | undefined): void {
-    this[_internal].emitter.emit(Event.Log, { ...data, message, level: LogLevel.Info });
+    let logEventData: LogEventData = { ...data, message, level: LogLevel.Info };
+    this[_internal].emitter.emit(Event.Log, logEventData);
   }
 
   /**
@@ -31,7 +32,8 @@ export class LogEmitter implements Logger {
    */
   public debug(message: string, data?: object | undefined): void {
     if (env.isDebug) {
-      this[_internal].emitter.emit(Event.Log, { ...data, message, level: LogLevel.Debug });
+      let logEventData: LogEventData = { ...data, message, level: LogLevel.Debug };
+      this[_internal].emitter.emit(Event.Log, logEventData);
     }
   }
 
@@ -39,14 +41,16 @@ export class LogEmitter implements Logger {
    * Emits a log event with a warning message and possibly additional data.
    */
   public warn(warning: string | Error, data?: object | undefined): void {
-    this[_internal].emitter.emit(Event.Log, { ...data, ...splitErrorMessage(warning), level: LogLevel.Warning });
+    let logEventData: LogEventData = { ...data, ...splitErrorMessage(warning), level: LogLevel.Warning };
+    this[_internal].emitter.emit(Event.Log, logEventData);
   }
 
   /**
    * Emits a log event with an error message and possibly additional data.
    */
   public error(error: string | Error, data?: object | undefined): void {
-    this[_internal].emitter.emit(Event.Log, { ...data, ...splitErrorMessage(error), level: LogLevel.Error });
+    let logEventData: LogEventData = { ...data, ...splitErrorMessage(error), level: LogLevel.Error };
+    this[_internal].emitter.emit(Event.Log, logEventData);
   }
 }
 
