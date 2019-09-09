@@ -5,7 +5,7 @@ import { parentPort } from "worker_threads";
 import { File } from "../files";
 import { isPlugin, PluginContext, WorkerPlugin, WorkerPluginFactory } from "../plugins";
 import { ExecutorConfig } from "./config";
-import { Messenger, Request } from "./messenger";
+import { Messenger } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, WorkerEvent, WorkerPluginSignature } from "./types";
 
 /**
@@ -20,15 +20,16 @@ export class Executor {
   public constructor({ id, cwd }: ExecutorConfig) {
     this.id = id;
     this._cwd = cwd;
-    this._messenger = new Messenger(parentPort!, this._handleMessage.bind(this));
+    this._messenger = new Messenger(parentPort!, {
+      [WorkerEvent.LoadPlugin]: this.loadWorkerPlugin.bind(this),
+      [WorkerEvent.ProcessFile]: this.processFile.bind(this),
+    });
   }
 
   /**
    * Loads the specified `WorkerPlugin` and returns its signature.
    */
-  public async loadWorkerPlugin(info: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
-    let { pluginId, moduleId, data } = info;
-
+  public async loadWorkerPlugin({ pluginId, moduleId, data }: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
     // Import the plugin module
     let exports = await importLocalOrGlobal(moduleId, this._cwd);
 

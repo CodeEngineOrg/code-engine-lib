@@ -10,27 +10,29 @@ let requestCounter = 0;
  */
 export class Messenger {
   private _port: MessengerPort;
-  private _requestHandler?: RequestHandler;
+  private _requestHandlers: RequestHandlers;
   private readonly _pending = new Map<number, PendingRequest>();
 
-  public constructor(port: MessengerPort, handleRequest?: RequestHandler) {
+  public constructor(port: MessengerPort, requestHandlers?: RequestHandlers) {
     this._port = port;
-    this._requestHandler = handleRequest;
+    this._requestHandlers = requestHandlers || {};
     port.on("message", this._handleMessage.bind(this));
   }
 
   /**
    * Sends a request to the `Executor` and awaits a response.
    */
-  public async sendRequest<T>(req: Omit<OriginalRequest, "type" | "id">): Promise<T> {
-    let request = req as OriginalRequest;
-    request.type = MessageType.Request;
-    request.id = ++requestCounter;
+  public async sendRequest<T>({ event, data, ...subRequestHandlers }: SendRequestArgs): Promise<T> {
+    let request: Request = {
+      type: MessageType.Request,
+      id: ++requestCounter,
+      event,
+      data,
+    };
 
     return new Promise<T>((resolve, reject) => {
       this._port.postMessage(request);
-      this._pending.set(request.id,
-        { event: request.event, handleSubRequest: request.handleSubRequest, resolve, reject });
+      this._pending.set(request.id, { event: request.event, subRequestHandlers, resolve, reject });
     });
   }
 
@@ -75,17 +77,25 @@ export class Messenger {
     let result, error;
 
     try {
+      let handler: RequestHandler | undefined;
+
       if ("originalRequestId" in request) {
-        // This is a sub-request from the executor, so find the original request that it relates to
+        // This is a sub-request, so find the original request that it relates to
         let originalRequest = this._pending.get(request.originalRequestId)!;
 
-        // Allow the original request to handle the sub-request
-        result = await originalRequest.handleSubRequest!(request);
+        // Call the corresponding sub-request handler of the original request
+        handler = originalRequest.subRequestHandlers[request.event];
       }
       else {
-        // This is an original request, so allow the parent class to handle it
-        result = await this._requestHandler!(request);
+        // This is an original request, so call the corresponding request handler
+        handler = this._requestHandlers[request.event];
       }
+
+      if (!handler) {
+        throw ono(`Unexpected event: ${request.event}`, { event: request.event });
+      }
+
+      result = await (handler(request.data) as Promise<unknown>);
     }
     catch (err) {
       // An error occurred while handling the request, so respond with the error.
@@ -104,10 +114,8 @@ export class Messenger {
    */
   private _handleResponse(response: Response) {
     try {
-      // The executor is responding to a request
-      let request = this._pending.get(response.requestId)!;
-
       // Delete the request, now that it's done
+      let request = this._pending.get(response.requestId)!;
       this._pending.delete(response.requestId);
 
       if (response.error) {
@@ -133,9 +141,17 @@ export type MessengerPort = EventEmitter & Pick<MessagePort, "postMessage">;
 
 
 /**
- * Handles incoming messages from across the thread boundary.
+ * Handles incoming requests from across the thread boundary.
  */
-export type RequestHandler = (request: Request) => Promise<unknown>;
+export type RequestHandlers = {
+  [event in WorkerEvent]?: RequestHandler;
+};
+
+
+/**
+ * Handles incoming requests from across the thread boundary.
+ */
+export type RequestHandler = (data?: unknown) => unknown;
 
 
 /**
@@ -170,18 +186,15 @@ export interface Response {
 
 
 /**
- * A request sent between a `CodeEngineWorker` and `Executor` to perform a new operation.
+ * The arguments for the `Messenger.sendRequest()` method.  Basically, it's a `Request` object
+ * (minus the fields that are set internally by `Messenger.sendRequest()`) and optional sub-request
+ * handlers.
  */
-export interface OriginalRequest extends Request {
-  /**
-   * An optional function to handle sub=requests sent while processing the request.
-   */
-  handleSubRequest?: RequestHandler;
-}
+export type SendRequestArgs = Omit<Request, "type" | "id"> & RequestHandlers;
 
 
 /**
- * A request for additional information that is needed to fulfill an `OriginalRequest`.
+ * A request for additional information that is needed to fulfill a previous request.
  */
 export interface SubRequest extends Request {
   originalRequestId: number;
@@ -198,9 +211,9 @@ export interface PendingRequest {
   event: WorkerEvent;
 
   /**
-   * An optional function to handle sub=requests sent while processing the request.
+   * Optional functions to handle sub=requests sent while processing the request.
    */
-  handleSubRequest?: RequestHandler;
+  subRequestHandlers: RequestHandlers;
 
   /**
    * Resolves the pending Promise when the `Executor` responds.

@@ -6,7 +6,7 @@ import { File } from "../files";
 import { CodeEngineWorkerPlugin, PluginContext } from "../plugins";
 import { awaitOnline } from "./await-online";
 import { ExecutorConfig, WorkerConfig } from "./config";
-import { Messenger, OriginalRequest } from "./messenger";
+import { Messenger } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, WorkerEvent, WorkerPluginSignature } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
