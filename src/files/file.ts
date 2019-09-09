@@ -1,6 +1,6 @@
 import { ono } from "ono";
 import * as path from "path";
-import { File, FileInfo } from "./types";
+import { File, FileInfo, FileMetadata } from "./types";
 
 const _internal = Symbol("Internal CodeEngine Properties");
 
@@ -8,7 +8,7 @@ const _internal = Symbol("Internal CodeEngine Properties");
  * The internal CodeEngine implementation of the `File` interface.
  */
 export class CodeEngineFile implements File {
-  public metadata: Record<string, unknown> = {};
+  public metadata: FileMetadata = {};
   public dir!: string;
   private readonly [_internal]: {
     name: string;

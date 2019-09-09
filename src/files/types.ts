@@ -3,9 +3,16 @@
  */
 export interface FileInfo {
   path: string;
-  metadata?: Record<string, unknown>;
+  metadata?: FileMetadata;
   contents?: string | Buffer;
 }
+
+
+/**
+ * Arbitrary file metadata that can be added by plugins.
+ */
+export type FileMetadata = Record<string, unknown>;
+
 
 /**
  * A CodeEngine file. This does not necessarily correspond to a file on disk.
@@ -16,7 +23,7 @@ export interface File {
   /**
    * Arbitrary metadata that can be added by plugins.
    */
-  metadata: Record<string, unknown>;
+  metadata: FileMetadata;
 
   /**
    * The directory path, relative to the destination.
