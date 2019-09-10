@@ -35,6 +35,21 @@ export interface Logger {
   error(error: string | Error, data?: object): void;
 }
 
+
+/**
+ * A convenience type that allows `Logger` methods to be dynamically referenced.
+ */
+export interface LoggerMethods {
+  [method: string]: LoggerMethod;
+}
+
+
+/**
+ * The signautre of a `Logger` method.
+ */
+export type LoggerMethod = (message: string, data?: object) => void;
+
+
 /**
  * The possible severity levels of a log message.
  */
