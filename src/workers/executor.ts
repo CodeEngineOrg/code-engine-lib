@@ -36,15 +36,15 @@ export class Executor {
     // Make sure the default export is a function
     let factory = (exports || (exports as { default: unknown }).default) as WorkerPluginFactory;
     if (typeof factory !== "function") {
-      throw ono.type(
-        `Error loading module "${moduleId}". CodeEngine plugin modules must export a function.`, { workerId: this.id });
+      throw ono.type({ workerId: this.id },
+        `Error loading module "${moduleId}". CodeEngine plugin modules must export a function.`);
     }
 
     // Call the exported function to get the plugin
     let plugin = await factory(data);
     if (!isPlugin(plugin)) {
-      throw ono.type(
-        `Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`, { workerId: this.id });
+      throw ono.type({ workerId: this.id },
+        `Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`);
     }
 
     this._plugins.set(pluginId, plugin);
@@ -86,8 +86,8 @@ async function importLocalOrGlobal<T>(moduleId: string, cwd?: string): Promise<T
   let modulePath = resolveFrom.silent(cwd || __dirname, moduleId) || resolveGlobal.silent(moduleId);
 
   if (!modulePath) {
-    throw ono(
-      `Cannot find module "${moduleId}" in the local path or as a globally-installed package.`, { workerId: threadId });
+    throw ono({ workerId: threadId },
+      `Cannot find module "${moduleId}" in the local path or as a globally-installed package.`);
   }
 
   return import(moduleId);

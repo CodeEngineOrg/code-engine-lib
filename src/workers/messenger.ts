@@ -91,7 +91,7 @@ export class Messenger {
       }
 
       if (!handler) {
-        throw ono(`Unexpected event: ${request.event}`, { event: request.event });
+        throw ono({ event: request.event }, `Unexpected event: ${request.event}`);
       }
 
       let result = await (handler(request.data) as Promise<unknown>);
