@@ -2,12 +2,13 @@ import { ono } from "ono";
 import * as path from "path";
 import { Worker } from "worker_threads";
 import { CodeEngine } from "../code-engine";
-import { File } from "../files";
-import { CodeEngineWorkerPlugin, PluginContext } from "../plugins";
+import { File, FileClone } from "../files";
+import { LogEventData, LoggerMethods, LogLevel } from "../loggers";
+import { CodeEngineWorkerPlugin, PluginContext, PluginContextClone } from "../plugins";
 import { awaitOnline } from "./await-online";
 import { ExecutorConfig, WorkerConfig } from "./config";
 import { Messenger } from "./messenger";
-import { LoadWorkerPluginInfo, ProcessFileData, WorkerEvent, WorkerPluginSignature } from "./types";
+import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
 let workerCounter = 0;
@@ -43,15 +44,31 @@ export class CodeEngineWorker extends Worker {
    * Loads the specified `WorkerPlugin` in the worker thread.
    */
   public async loadWorkerPlugin(module: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
-    return this._sendRequest({ event: WorkerEvent.LoadPlugin, data: module });
+    await this._waitUntilOnline;
+    return this._messenger.sendRequest({ event: WorkerEvent.LoadPlugin, data: module });
   }
 
   /**
-   * Executes the specified plugin method on the worker thread via the `Executor`.
+   * Processes the given file in the worker thread.
    */
-  public async execPlugin<T>(pluginId: number, method: WorkerPluginMethod,  args: unknown[]): Promise<T> {
-    let data: ExecPluginData = { pluginId, method, args };
-    return this.postMessage({ event: WorkerEvent.ExecPlugin, data });
+  public async processFile(plugin: CodeEngineWorkerPlugin, file: File, context: PluginContext): Promise<void> {
+    await this._waitUntilOnline;
+    this._debug(WorkerEvent.ProcessFile, `CodeEngine worker #${this.id} is processing ${file}`, { file });
+
+    let data: ProcessFileData = {
+      pluginId: plugin.id,
+      file: FileClone.serialize(file),
+      context: PluginContextClone.serialize(context),
+    };
+
+    function log({ level, message, ...other }: LogEventData) {
+      let logger = context.logger as unknown as LoggerMethods;
+      let method = level === LogLevel.Info ? "log" : level;
+      logger[method](message, other);
+    }
+
+    let results: ProcessFileResults = await this._messenger.sendRequest({ event: WorkerEvent.ProcessFile, data, log });
+    FileClone.update(file, results.file);
   }
 
   /**
@@ -102,13 +119,5 @@ export class CodeEngineWorker extends Worker {
    */
   private _debug(event: WorkerEvent, message: string, data?: object) {
     this._engine.logger.debug(message, { ...data, event, workerId: this.id });
-  }
-
-  /**
-   * Sends a request to the `Executor` and awaits a response.
-   */
-  private async _sendRequest<T>(req: Omit<OriginalRequest, "type" | "id">): Promise<T> {
-    await this._waitUntilOnline;
-    return this._messenger.sendRequest(req);
   }
 }

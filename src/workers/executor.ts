@@ -2,11 +2,11 @@ import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
 import { parentPort } from "worker_threads";
-import { File } from "../files";
-import { isPlugin, PluginContext, WorkerPlugin, WorkerPluginFactory } from "../plugins";
+import { FileClone } from "../files";
+import { isPlugin, PluginContextClone, WorkerPlugin, WorkerPluginFactory } from "../plugins";
 import { ExecutorConfig } from "./config";
 import { Messenger } from "./messenger";
-import { LoadWorkerPluginInfo, ProcessFileData, WorkerEvent, WorkerPluginSignature } from "./types";
+import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
 /**
  * Executes commands in a worker thread that are sent by a corresponding `CodeEngineWorker` running on the main thread.
@@ -54,29 +54,19 @@ export class Executor {
   }
 
   /**
-   * Executes the specified plugin method.
+   * Processes a file using the specified plugin.
    */
-  public async execPlugin<T>(pluginId: number, method: WorkerPluginMethod,  args: unknown[]): Promise<T> {
-    let plugin = this._plugins.get(pluginId)!;
-    let pluginMethod = plugin[method]! as (...args: unknown[]) => void | T | Promise<T>;
-    return pluginMethod.call(plugin, ...args) as Promise<T>;
-  }
+  public async processFile(data: ProcessFileData): Promise<ProcessFileResults> {
+    // Create clones of the File and PluginContext
+    let file = new FileClone(data.file, this._messenger);
+    let context = new PluginContextClone(data.context, this._messenger);
 
-  /**
-   * Handles and responds to messages from the `CodeEngineWorker`.
-   */
-  private async _handleMessage(request: Request) {
-    switch (request.event) {
-      case WorkerEvent.LoadPlugin:
-        return this.loadWorkerPlugin(request.data as LoadWorkerPluginInfo);
+    // Process the file using the specified plugin
+    let plugin = this._plugins.get(data.pluginId)!;
+    await plugin.processFile!(file, context);
 
-      case WorkerEvent.ProcessFile:
-        let { pluginId, file, context } = request.data as ProcessFileData;
-        return this.processFile(pluginId, file, context);
-
-      default:
-        throw ono(`Unknown worker event: ${request.event}`);
-    }
+    // Return any changes to the file
+    return { file: FileClone.serialize(file) };
   }
 }
 

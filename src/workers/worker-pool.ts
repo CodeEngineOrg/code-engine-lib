@@ -1,8 +1,9 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { CodeEngineWorkerPlugin, WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
-import { LoadWorkerPluginInfo, WorkerPoolConfig } from "./types";
+import { CodeEngineWorkerPlugin, WorkerPlugin, WorkerPluginModule } from "../plugins";
+import { WorkerPoolConfig } from "./config";
+import { LoadWorkerPluginInfo } from "./types";
 import { CodeEngineWorker } from "./worker";
 
 let pluginCounter = 0;
@@ -57,14 +58,12 @@ export class WorkerPool {
   }
 
   /**
-   * Executes the specified plugin method on a `CodeEngineWorker` in the pool.
+   * Selects a `CodeEngineWorker` from the pool to perform a task.
    */
-  public async execPlugin<T>(pluginId: number, method: WorkerPluginMethod,  ...args: unknown[]): Promise<T> {
-    // Choose which worker should execute the plugin.
-    // NOTE: For now, we just use a simple round-robin strategy, but we may employ a more advanced selection strategy later
-    let worker = this._workers[roundRobinCounter++ % this._workers.length];
-
-    return worker.execPlugin<T>(pluginId, method, args);
+  public select(): CodeEngineWorker {
+    // For now, we just use a simple round-robin strategy,
+    // but we may employ a more advanced selection strategy later
+    return this._workers[roundRobinCounter++ % this._workers.length];
   }
 
   /**

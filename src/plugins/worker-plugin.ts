@@ -26,6 +26,8 @@ export class CodeEngineWorkerPlugin implements WorkerPlugin {
    * Processes the given file on a `CodeEngineWorker`.
    */
   public async processFile?(file: File, context: PluginContext): Promise<void> {
-    return this._workerPool.execPlugin(this.id, "processFile", file, context);
+    // Get a worker from the pool
+    let worker = this._workerPool.select();
+    return worker.processFile(this, file, context);
   }
 }

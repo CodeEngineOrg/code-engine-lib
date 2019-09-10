@@ -1,5 +1,5 @@
-import { File } from "../files";
-import { PluginContext, WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
+import { SerializedFile } from "../files";
+import { SerializedPluginContext, WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
 
 /**
  * Events that occur on a `CodeEngineWorker` or `Executor`.
@@ -38,6 +38,15 @@ export type WorkerPluginSignature = {
  */
 export interface ProcessFileData {
   pluginId: number;
-  file: File;
-  context: PluginContext;
+  file: SerializedFile;
+  context: SerializedPluginContext;
+}
+
+
+/**
+ * The data that is passed from the `Executor` back to the `CodeEngineWorker` after executing
+ * a plugin's `processFile()` method.
+ */
+export interface ProcessFileResults {
+  file: SerializedFile;
 }

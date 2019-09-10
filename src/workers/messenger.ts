@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { ErrorPOJO, ono } from "ono";
 import { MessagePort } from "worker_threads";
+import { serialize } from "./serialization";
 import { WorkerEvent } from "./types";
 
 let requestCounter = 0;
@@ -74,8 +75,6 @@ export class Messenger {
    * Handles incoming requests from the message port.
    */
   private async _handleRequest(request: Request | SubRequest) {
-    let result, error;
-
     try {
       let handler: RequestHandler | undefined;
 
@@ -95,18 +94,13 @@ export class Messenger {
         throw ono(`Unexpected event: ${request.event}`, { event: request.event });
       }
 
-      result = await (handler(request.data) as Promise<unknown>);
+      let result = await (handler(request.data) as Promise<unknown>);
+      this._sendResponse({ requestId: request.id, result });
     }
     catch (err) {
       // An error occurred while handling the request, so respond with the error.
-      error = ono(err as Error).toJSON();
+      this._sendResponse({ requestId: request.id, error: serialize(err) as ErrorPOJO });
     }
-
-    this._sendResponse({
-      requestId: request.id,
-      value: result,
-      error,
-    });
   }
 
   /**
@@ -122,7 +116,7 @@ export class Messenger {
         request.reject(response.error);
       }
       else {
-        request.resolve(response.value);
+        request.resolve(response.result);
       }
     }
     catch (error) {
@@ -181,7 +175,7 @@ export interface Response {
   type: MessageType.Response;
   requestId: number;
   error?: ErrorPOJO;
-  value?: unknown;
+  result?: unknown;
 }
 
 
@@ -218,7 +212,7 @@ export interface PendingRequest {
   /**
    * Resolves the pending Promise when the `Executor` responds.
    */
-  resolve(value: unknown): void;
+  resolve(result?: unknown): void;
 
   /**
    * Rejects the pending Promise when an error occurs or the thread is terminated.
