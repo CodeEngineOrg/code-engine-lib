@@ -1,4 +1,3 @@
-import { CodeEngine } from "../code-engine";
 import { Logger } from "../loggers";
 import { PluginContext } from "./types";
 
@@ -8,8 +7,8 @@ import { PluginContext } from "./types";
 export class CodeEnginePluginContext implements PluginContext {
   public logger: Logger;
 
-  public constructor(engine: CodeEngine) {
-    this.logger = engine.logger;
+  public constructor({ logger }: PluginContext) {
+    this.logger = logger;
   }
 
   /**
