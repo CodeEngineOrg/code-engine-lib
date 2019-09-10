@@ -48,11 +48,6 @@ export interface WorkerConfig {
  */
 export interface ExecutorConfig {
   /**
-   * A unique ID assigned to each worker.
-   */
-  id: number;
-
-  /**
    * The directory used to resolve all relative paths.
    *
    * Defaults to `process.cwd()`.

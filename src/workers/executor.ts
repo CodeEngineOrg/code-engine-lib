@@ -1,7 +1,7 @@
 import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
-import { parentPort } from "worker_threads";
+import { parentPort, threadId } from "worker_threads";
 import { FileClone } from "../files";
 import { isPlugin, PluginContextClone, WorkerPlugin, WorkerPluginFactory } from "../plugins";
 import { ExecutorConfig } from "./config";
@@ -17,8 +17,8 @@ export class Executor {
   private readonly _messenger: Messenger;
   private readonly _plugins = new Map<number, WorkerPlugin>();
 
-  public constructor({ id, cwd }: ExecutorConfig) {
-    this.id = id;
+  public constructor({ cwd }: ExecutorConfig) {
+    this.id = threadId;
     this._cwd = cwd;
     this._messenger = new Messenger(parentPort!, {
       [WorkerEvent.LoadPlugin]: this.loadWorkerPlugin.bind(this),
@@ -36,13 +36,15 @@ export class Executor {
     // Make sure the default export is a function
     let factory = (exports || (exports as { default: unknown }).default) as WorkerPluginFactory;
     if (typeof factory !== "function") {
-      throw ono.type(`Error loading module "${moduleId}". CodeEngine plugin modules must export a function.`);
+      throw ono.type(
+        `Error loading module "${moduleId}". CodeEngine plugin modules must export a function.`, { workerId: this.id });
     }
 
     // Call the exported function to get the plugin
     let plugin = await factory(data);
     if (!isPlugin(plugin)) {
-      throw ono.type(`Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`);
+      throw ono.type(
+        `Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`, { workerId: this.id });
     }
 
     this._plugins.set(pluginId, plugin);
@@ -84,7 +86,8 @@ async function importLocalOrGlobal<T>(moduleId: string, cwd?: string): Promise<T
   let modulePath = resolveFrom.silent(cwd || __dirname, moduleId) || resolveGlobal.silent(moduleId);
 
   if (!modulePath) {
-    throw ono(`Cannot find module "${moduleId}" in the local path or as a globally-installed package.`);
+    throw ono(
+      `Cannot find module "${moduleId}" in the local path or as a globally-installed package.`, { workerId: threadId });
   }
 
   return import(moduleId);

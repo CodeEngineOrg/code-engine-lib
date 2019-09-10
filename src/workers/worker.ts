@@ -11,25 +11,20 @@ import { Messenger } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
 const workerScript = path.join(__dirname, "main.js");
-let workerCounter = 0;
 
 /**
  * Controls an `Executor` instance running on a worker thread.
  */
 export class CodeEngineWorker extends Worker {
-  public id: number;
   private _engine: CodeEngine;
   private _isTerminated: boolean;
   private _waitUntilOnline: Promise<void>;
   private readonly _messenger: Messenger;
 
   public constructor({ cwd, engine }: WorkerConfig) {
-    let id = ++workerCounter;
-    let workerData: ExecutorConfig = { id, cwd };
-
+    let workerData: ExecutorConfig = { cwd };
     super(workerScript, { workerData });
 
-    this.id = id;
     this._engine = engine;
     this._isTerminated = false;
     this._waitUntilOnline = awaitOnline(this);
@@ -53,7 +48,7 @@ export class CodeEngineWorker extends Worker {
    */
   public async processFile(plugin: CodeEngineWorkerPlugin, file: File, context: PluginContext): Promise<void> {
     await this._waitUntilOnline;
-    this._debug(WorkerEvent.ProcessFile, `CodeEngine worker #${this.id} is processing ${file}`, { file });
+    this._debug(WorkerEvent.ProcessFile, `CodeEngine worker #${this.threadId} is processing ${file}`, { file });
 
     let data: ProcessFileData = {
       pluginId: plugin.id,
@@ -82,7 +77,7 @@ export class CodeEngineWorker extends Worker {
     this._isTerminated = true;
     this._messenger.rejectAllPending(ono(`CodeEngine is terminating.`));
     let exitCode = await super.terminate();
-    this._debug(WorkerEvent.Terminated, `CodeEngine worker #${this.id} has terminated`, { exitCode });
+    this._debug(WorkerEvent.Terminated, `CodeEngine worker #${this.threadId} has terminated`, { exitCode });
     return exitCode;
   }
 
@@ -90,7 +85,7 @@ export class CodeEngineWorker extends Worker {
    * Logs a debug message when the worker thread comes online.
    */
   private _handleOnline() {
-    this._debug(WorkerEvent.Online, `CodeEngine worker #${this.id} is online`);
+    this._debug(WorkerEvent.Online, `CodeEngine worker #${this.threadId} is online`);
   }
 
   /**
@@ -99,7 +94,7 @@ export class CodeEngineWorker extends Worker {
   private async _handleExit(exitCode: number) {
     if (!this._isTerminated) {
       // The worker crashed or exited unexpectedly
-      await this._handleError(ono(`CodeEngine worker #${this.id} unexpectedly exited with code ${exitCode}`));
+      await this._handleError(ono(`CodeEngine worker #${this.threadId} unexpectedly exited with code ${exitCode}`));
     }
   }
 
@@ -118,6 +113,6 @@ export class CodeEngineWorker extends Worker {
    * Logs a debug message for this worker.
    */
   private _debug(event: WorkerEvent, message: string, data?: object) {
-    this._engine.logger.debug(message, { ...data, event, workerId: this.id });
+    this._engine.logger.debug(message, { ...data, event, workerId: this.threadId });
   }
 }
