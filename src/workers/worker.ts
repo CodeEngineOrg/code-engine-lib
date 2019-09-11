@@ -58,7 +58,7 @@ export class CodeEngineWorker extends Worker {
 
     function log({ level, message, ...other }: LogEventData) {
       let logger = context.logger as unknown as LoggerMethods;
-      let method = level === LogLevel.Info ? "log" : level;
+      let method = level === LogLevel.Info ? "log" : LogLevel.Warning ? "warn" : level;
       logger[method](message, other);
     }
 

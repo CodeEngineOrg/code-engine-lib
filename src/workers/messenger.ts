@@ -95,24 +95,28 @@ export class Messenger {
   private async _handleRequest(request: Request | SubRequest) {
     try {
       let handler: RequestHandler | undefined;
+      let sendSubRequest: SendSubRequest;
+      let { originalRequestId } = request as SubRequest;
 
-      if ("originalRequestId" in request) {
+      if (originalRequestId) {
         // This is a sub-request, so find the original request that it relates to
-        let originalRequest = this._pending.get(request.originalRequestId)!;
+        let originalRequest = this._pending.get(originalRequestId)!;
 
         // Call the corresponding sub-request handler of the original request
         handler = originalRequest.subRequestHandlers[request.event];
+        sendSubRequest = (req) => this.sendSubRequest({ ...req, originalRequestId });
       }
       else {
         // This is an original request, so call the corresponding request handler
         handler = this._requestHandlers[request.event];
+        sendSubRequest = (req) => this.sendSubRequest({ ...req, originalRequestId: request.id });
       }
 
       if (!handler) {
         throw ono({ event: request.event }, `Unexpected event: ${request.event}`);
       }
 
-      let result = await (handler(request.data) as Promise<unknown>);
+      let result = await (handler(request.data, sendSubRequest) as Promise<unknown>);
       this._sendResponse({ requestId: request.id, result });
     }
     catch (err) {
@@ -163,7 +167,14 @@ export type RequestHandlers = {
 /**
  * Handles incoming requests from across the thread boundary.
  */
-export type RequestHandler = (data?: unknown) => unknown;
+export type RequestHandler = (data: unknown, sendSubRequest: SendSubRequest) => unknown;
+
+
+/**
+ * A callback that allows a `RequestHandler` to send a sub-request for additional information
+ * that is needed to fulfill the request.
+ */
+export type SendSubRequest = (request: Omit<SendSubRequestArgs, "originalRequestId">) => Promise<unknown>;
 
 
 /**

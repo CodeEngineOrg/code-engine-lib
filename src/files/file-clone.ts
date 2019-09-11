@@ -1,5 +1,4 @@
-import { serialize, update } from "../workers";
-import { Messenger } from "../workers/messenger";
+import { SendSubRequest, serialize, update } from "../workers";
 import { CodeEngineFile } from "./file";
 import { File, FileMetadata } from "./types";
 
@@ -11,12 +10,12 @@ const _internal = Symbol("Internal CodeEngine Properties");
  */
 export class FileClone extends CodeEngineFile {
   private readonly [_internal]!: {
-    messenger: Messenger;
+    sendSubRequest: SendSubRequest;
   };
 
-  public constructor(serialized: SerializedFile, messenger: Messenger) {
+  public constructor(serialized: SerializedFile, sendSubRequest: SendSubRequest) {
     super(serialized);
-    Object.defineProperty(this, _internal, { value: { messenger }});
+    Object.defineProperty(this, _internal, { value: { sendSubRequest }});
   }
 
   /**

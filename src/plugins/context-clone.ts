@@ -1,5 +1,5 @@
 import { LoggerClone, SerializedLogger } from "../loggers";
-import { Messenger } from "../workers/messenger";
+import { SendSubRequest } from "../workers";
 import { CodeEnginePluginContext } from "./context";
 import { PluginContext } from "./types";
 
@@ -8,8 +8,8 @@ import { PluginContext } from "./types";
  * to the main thread when needed.
  */
 export class PluginContextClone extends CodeEnginePluginContext {
-  public constructor(serialized: SerializedPluginContext, messenger: Messenger) {
-    let logger = new LoggerClone(serialized.logger, messenger);
+  public constructor(serialized: SerializedPluginContext, sendSubRequest: SendSubRequest) {
+    let logger = new LoggerClone(serialized.logger, sendSubRequest);
     super({ logger });
   }
 
