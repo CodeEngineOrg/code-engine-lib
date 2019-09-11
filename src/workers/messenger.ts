@@ -21,20 +21,17 @@ export class Messenger {
   }
 
   /**
-   * Sends a request to the `Executor` and awaits a response.
+   * Sends a request and awaits a response.
    */
-  public async sendRequest<T>({ event, data, ...subRequestHandlers }: SendRequestArgs): Promise<T> {
-    let request: Request = {
-      type: MessageType.Request,
-      id: ++requestCounter,
-      event,
-      data,
-    };
+  public async sendRequest<T>(request: SendRequestArgs): Promise<T> {
+    return this._sendRequest(request);
+  }
 
-    return new Promise<T>((resolve, reject) => {
-      this._port.postMessage(request);
-      this._pending.set(request.id, { event: request.event, subRequestHandlers, resolve, reject });
-    });
+  /**
+   * Sends a sub-request for additional information that is needed to fulfill a previous request.
+   */
+  public async sendSubRequest<T>(request: SendSubRequestArgs): Promise<T> {
+    return this._sendRequest(request);
   }
 
   /**
@@ -50,7 +47,28 @@ export class Messenger {
   }
 
   /**
-   * Sends a response to the `Executor`.
+   * Sends a request and awaits a response.
+   */
+  private async _sendRequest<T>(request: SendRequestArgs): Promise<T>;
+  private async _sendRequest<T>(arg: SendRequestArgs & SendSubRequestArgs): Promise<T> {
+    let { originalRequestId, event, data, ...subRequestHandlers } = arg;
+
+    let request: SubRequest = {
+      type: MessageType.Request,
+      id: ++requestCounter,
+      originalRequestId,
+      event,
+      data,
+    };
+
+    return new Promise<T>((resolve, reject) => {
+      this._port.postMessage(request);
+      this._pending.set(request.id, { event: request.event, subRequestHandlers, resolve, reject });
+    });
+  }
+
+  /**
+   * Sends a response to a request
    */
   private _sendResponse(res: Omit<Response, "type">): void {
     let response = res as Response;
@@ -169,6 +187,14 @@ export interface Request {
 
 
 /**
+ * A request for additional information that is needed to fulfill a previous request.
+ */
+export interface SubRequest extends Request {
+  originalRequestId: number;
+}
+
+
+/**
  * A message sent between a `CodeEngineWorker` and `Executor` that ends a request/response cycle.
  */
 export interface Response {
@@ -188,11 +214,10 @@ export type SendRequestArgs = Omit<Request, "type" | "id"> & RequestHandlers;
 
 
 /**
- * A request for additional information that is needed to fulfill a previous request.
+ * The arguments for the `Messenger.sendRequest()` method.  Basically, it's a `SubRequest` object
+ * (minus the fields that are set internally by `Messenger.sendSubRequest()`).
  */
-export interface SubRequest extends Request {
-  originalRequestId: number;
-}
+export type SendSubRequestArgs = Omit<SubRequest, "type" | "id">;
 
 
 /**
