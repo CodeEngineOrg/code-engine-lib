@@ -5,7 +5,7 @@ import { parentPort, threadId } from "worker_threads";
 import { FileClone } from "../files";
 import { isPlugin, PluginContextClone, WorkerPlugin, WorkerPluginFactory } from "../plugins";
 import { ExecutorConfig } from "./config";
-import { Messenger, SendSubRequest } from "./messenger";
+import { Messenger, RequestHandlerCallbacks } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
 /**
@@ -58,10 +58,10 @@ export class Executor {
   /**
    * Processes a file using the specified plugin.
    */
-  public async processFile(data: ProcessFileData, sendSubRequest: SendSubRequest): Promise<ProcessFileResults> {
+  public async processFile(data: ProcessFileData, callbacks: RequestHandlerCallbacks): Promise<ProcessFileResults> {
     // Create clones of the File and PluginContext
-    let file = new FileClone(data.file, sendSubRequest);
-    let context = new PluginContextClone(data.context, sendSubRequest);
+    let file = new FileClone(data.file, callbacks);
+    let context = new PluginContextClone(data.context, callbacks);
 
     // Process the file using the specified plugin
     let plugin = this._plugins.get(data.pluginId)!;

@@ -1,4 +1,4 @@
-import { ono } from "ono";
+import { Ono } from "ono";
 
 type POJO = Record<string, unknown>;
 
@@ -12,7 +12,7 @@ export function serialize(value: unknown, depth = 2): unknown {
   }
 
   if (value instanceof Error) {
-    return ono(value).toJSON();
+    return Ono.toJSON(value);
   }
 
   if (Array.isArray(value)) {

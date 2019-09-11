@@ -13,6 +13,7 @@ export class Messenger {
   private _port: MessengerPort;
   private _requestHandlers: RequestHandlers;
   private readonly _pending = new Map<number, PendingRequest>();
+  private readonly _completed: number[] = [];
 
   public constructor(port: MessengerPort, requestHandlers?: RequestHandlers) {
     this._port = port;
@@ -38,10 +39,11 @@ export class Messenger {
    * Rejects all pending messages between the `CodeEngineWorker` and the `Executor`.
    */
   public rejectAllPending(error: Error): void {
-    let currentlyPending = [...this._pending.values()];
+    let currentlyPending = [...this._pending.entries()];
     this._pending.clear();
 
-    for (let pending of currentlyPending) {
+    for (let [requestId, pending] of currentlyPending) {
+      this._completed.push(requestId);
       pending.reject(error);
     }
   }
@@ -95,7 +97,6 @@ export class Messenger {
   private async _handleRequest(request: Request | SubRequest) {
     try {
       let handler: RequestHandler | undefined;
-      let sendSubRequest: SendSubRequest;
       let { originalRequestId } = request as SubRequest;
 
       if (originalRequestId) {
@@ -104,19 +105,26 @@ export class Messenger {
 
         // Call the corresponding sub-request handler of the original request
         handler = originalRequest.subRequestHandlers[request.event];
-        sendSubRequest = (req) => this.sendSubRequest({ ...req, originalRequestId });
       }
       else {
         // This is an original request, so call the corresponding request handler
         handler = this._requestHandlers[request.event];
-        sendSubRequest = (req) => this.sendSubRequest({ ...req, originalRequestId: request.id });
+        originalRequestId = request.id;
       }
 
       if (!handler) {
         throw ono({ event: request.event }, `Unexpected event: ${request.event}`);
       }
 
-      let result = await (handler(request.data, sendSubRequest) as Promise<unknown>);
+      // Create callback functions that allow the handler to send a sub-request or throw an error
+      let sendSubRequest = (req: SubRequest) =>
+        this.sendSubRequest({ ...req, originalRequestId });
+
+      let error = (err: Error) =>
+        this._sendResponse({ requestId: request.id, error: serialize(err) as ErrorPOJO });
+
+      // Call the handler
+      let result = await (handler(request.data, { sendSubRequest, error }) as Promise<unknown>);
       this._sendResponse({ requestId: request.id, result });
     }
     catch (err) {
@@ -134,12 +142,21 @@ export class Messenger {
       let request = this._pending.get(response.requestId)!;
       this._pending.delete(response.requestId);
 
-      if (response.error) {
-        request.reject(response.error);
+      if (request) {
+        this._completed.push(response.requestId);
+
+        if (response.error) {
+          request.reject(response.error);
+        }
+        else {
+          request.resolve(response.result);
+        }
       }
-      else {
-        request.resolve(response.result);
+      else if (!this._completed.includes(response.requestId)) {
+        // The specified request ID is neither pending nor completed
+        throw ono({ requestId: response.requestId }, `Invalid request ID: ${response.requestId}`);
       }
+
     }
     catch (error) {
       // Something went wrong while handling the response.
@@ -167,14 +184,23 @@ export type RequestHandlers = {
 /**
  * Handles incoming requests from across the thread boundary.
  */
-export type RequestHandler = (data: unknown, sendSubRequest: SendSubRequest) => unknown;
+export type RequestHandler = (data: unknown, callbacks: RequestHandlerCallbacks) => unknown;
 
 
 /**
- * A callback that allows a `RequestHandler` to send a sub-request for additional information
- * that is needed to fulfill the request.
+ * Callback functions that allows a `RequestHandler` to request additional information or throw an error.
  */
-export type SendSubRequest = (request: Omit<SendSubRequestArgs, "originalRequestId">) => Promise<unknown>;
+export interface RequestHandlerCallbacks {
+  /**
+   * Sends a sub-request for additional information that is needed to fulfill the original request.
+   */
+  sendSubRequest(request: Omit<SendSubRequestArgs, "originalRequestId">): Promise<unknown>;
+
+  /**
+   * Rejects the original request when an error occurs.
+   */
+  error(error: Error | unknown): void;
+}
 
 
 /**

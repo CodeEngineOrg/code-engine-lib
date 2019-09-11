@@ -1,4 +1,4 @@
-import { SendSubRequest, serialize, update } from "../workers";
+import { RequestHandlerCallbacks, serialize, update } from "../workers";
 import { CodeEngineFile } from "./file";
 import { File, FileMetadata } from "./types";
 
@@ -10,12 +10,12 @@ const _internal = Symbol("Internal CodeEngine Properties");
  */
 export class FileClone extends CodeEngineFile {
   private readonly [_internal]!: {
-    sendSubRequest: SendSubRequest;
+    callbacks: RequestHandlerCallbacks;
   };
 
-  public constructor(serialized: SerializedFile, sendSubRequest: SendSubRequest) {
+  public constructor(serialized: SerializedFile, callbacks: RequestHandlerCallbacks) {
     super(serialized);
-    Object.defineProperty(this, _internal, { value: { sendSubRequest }});
+    Object.defineProperty(this, _internal, { value: { callbacks }});
   }
 
   /**

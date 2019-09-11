@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { LogEventData } from ".";
-import { SendSubRequest, serialize, WorkerEvent } from "../workers";
+import { RequestHandlerCallbacks, serialize, WorkerEvent } from "../workers";
 import { LogEmitter } from "./log-emitter";
 import { Logger } from "./types";
 
@@ -9,13 +9,19 @@ import { Logger } from "./types";
  * to the main thread when needed.
  */
 export class LoggerClone extends LogEmitter {
-  public constructor(serialized: SerializedLogger, sendSubRequest: SendSubRequest) {
+  public constructor(serialized: SerializedLogger, callbacks: RequestHandlerCallbacks) {
     let emitter = new EventEmitter();
     super(emitter);
 
     // Forward "log" events across the thread boundary
-    emitter.on(WorkerEvent.Log, (logEventData: LogEventData) =>
-      sendSubRequest({ event: WorkerEvent.Log, data: serialize(logEventData) }));
+    emitter.on(WorkerEvent.Log, async (logEventData: LogEventData) => {
+      try {
+        await callbacks.sendSubRequest({ event: WorkerEvent.Log, data: serialize(logEventData) });
+      }
+      catch (err) {
+        callbacks.error(err);
+      }
+    });
   }
 
   /**
