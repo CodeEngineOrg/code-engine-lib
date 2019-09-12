@@ -65,7 +65,7 @@ export class CodeEngineFile implements File {
    */
   public set path(value: string) {
     if (path.isAbsolute(value)) {
-      throw ono(`Expected a relative path, but got an absolute path: ${value}`);
+      throw ono({ path: value }, `Expected a relative path, but got an absolute path: ${value}`);
     }
 
     let { dir, base } = path.parse(path.normalize(value));

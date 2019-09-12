@@ -1,4 +1,5 @@
 // tslint:disable: max-classes-per-file
+import { ono } from "ono";
 import { File, FileList } from "../files";
 import { FileProcessor, PluginContext } from "../plugins";
 
@@ -49,6 +50,11 @@ export class SubsequentBuildPhase {
  */
 async function processFile(plugins: FileProcessor[], file: File, context: PluginContext): Promise<void> {
   for (let plugin of plugins) {
-    await plugin.processFile(file, context);
+    try {
+      await plugin.processFile(file, context);
+    }
+    catch (error) {
+      throw ono(error, { path: file.path }, `${plugin.name} threw an error while processing ${file}`);
+    }
   }
 }
