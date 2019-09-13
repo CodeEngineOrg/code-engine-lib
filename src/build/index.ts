@@ -15,8 +15,7 @@ export async function build(plugins: Plugin[], context: PluginContext): Promise<
   let [initialPhase, subsequentPhases] = createBuildPhases(plugins);
 
   // Iterate through each source file, processing each file in parallel for maximum performance.
-  for await (let fileInfo of find(plugins, context)) {
-    let file = new CodeEngineFile(fileInfo);
+  for await (let [source, fileInfo] of find(plugins, context)) {
     files.add(file);
     initialPhase.processFile(file, context);
   }
@@ -40,7 +39,7 @@ export async function build(plugins: Plugin[], context: PluginContext): Promise<
 /**
  * Calls the `find()` method of all file source plugins, and returns an iterator of all the files.
  */
-function find(plugins: Plugin[], context: PluginContext): AsyncIterableIterator<FileInfo> {
+function find(plugins: Plugin[], context: PluginContext): AsyncIterableIterator<[FileSource, FileInfo]> {
   // Find all the file sources
   let sources = plugins.filter(isFileSource);
 
@@ -48,6 +47,5 @@ function find(plugins: Plugin[], context: PluginContext): AsyncIterableIterator<
     throw ono("At least one file source is required.");
   }
 
-  let iterators = sources.map((plugin) => plugin.find(context));
-  return iterateMultiple(iterators);
+  return iterateMultiple(sources, (source) => source.find(context));
 }

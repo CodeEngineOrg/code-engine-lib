@@ -1,56 +1,74 @@
 import { ono } from "ono";
 import { AnyIterator, CanIterate } from "../plugins";
 
-type IteratorAndResult<T> = [AnyIterator<T>, IteratorResult<T>];
+/**
+ * A function that returns an iterable list of results from a source.
+ */
+export type Mapper<TSource, TResult> = (source: TSource) => CanIterate<TResult>;
 
 /**
  * Combines multiple async iterators into a single one that returns all the combined results
  * in first-available order.
+ *
+ * @param sources - The sources that will provide the iterators
+ * @param mapper - A function that gets the iterator for each source
+ *
+ * @returns - An async iterator that yields tuples of each result and its corresponding source
  */
-export function iterateMultiple<T>(iterables: Array<CanIterate<T>>): AsyncIterableIterator<T> {
-  let pending = new Map<AnyIterator<T>, Promise<IteratorAndResult<T>>>();
+export function iterateMultiple<TSource, TResult>(sources: TSource[], mapper: Mapper<TSource, TResult>)
+: AsyncIterableIterator<[TSource, TResult]> {
+  let pending = new Map<TSource, Promise<SourceIteratorResult<TSource, TResult>>>();
 
   return {
     [Symbol.asyncIterator]() {
       // Start iterating over all of the iterables
-      for (let iterable of iterables) {
+      let iterables = sources.map(mapper);
+      for (let [index, iterable] of iterables.entries()) {
+        let source = sources[index];
         let iterator = getIterator(iterable);
-        pending.set(iterator, next(iterator));
+        pending.set(source, next(source, iterator));
       }
 
       return this;
     },
 
-    async next(): Promise<IteratorResult<T>> {
+    async next(): Promise<IteratorResult<[TSource, TResult]>> {
       while (pending.size > 0) {
-        let [iterator, result] = await Promise.race(pending.values());
+        let result = await Promise.race(pending.values());
 
         if (result.done) {
           // Remove this iterator from the pending list
-          pending.delete(iterator);
+          pending.delete(result.source);
         }
         else {
           // Start fetching the next result
-          pending.set(iterator, next(iterator));
+          pending.set(result.source, next(result.source, result.iterator));
 
           // Return the current result
-          return result;
+          return {
+            value: [result.source, result.value]
+          };
         }
       }
 
       // All of the iterators are done
-      return ({ done: true, value: undefined as unknown as T });
+      return ({ done: true, value: undefined as unknown as TResult });
     }
   };
 }
 
+type SourceIteratorResult<TSource, TResult> = IteratorResult<TResult> & {
+  source: TSource;
+  iterator: AnyIterator<TResult>;
+};
+
 /**
  * Returns the iterator for the given iterable.
  */
-function getIterator<T>(canIterate: CanIterate<T>): AnyIterator<T> {
-  let iterator = canIterate as AnyIterator<T>;
-  let syncIterable = canIterate as Iterable<T>;
-  let asyncIterable = canIterate as AsyncIterable<T>;
+function getIterator<TResult>(canIterate: CanIterate<TResult>): AnyIterator<TResult> {
+  let iterator = canIterate as AnyIterator<TResult>;
+  let syncIterable = canIterate as Iterable<TResult>;
+  let asyncIterable = canIterate as AsyncIterable<TResult>;
 
   if (typeof asyncIterable[Symbol.asyncIterator] === "function") {
     return asyncIterable[Symbol.asyncIterator]();
@@ -69,7 +87,10 @@ function getIterator<T>(canIterate: CanIterate<T>): AnyIterator<T> {
 /**
  * Returns the next result from the given async iterator, along with the iterator itself.
  */
-async function next<T>(iterator: AnyIterator<T>): Promise<IteratorAndResult<T>> {
-  let result = await iterator.next();
-  return [iterator, result];
+async function next<TSource, TResult>(source: TSource, iterator: AnyIterator<TResult>)
+: Promise<SourceIteratorResult<TSource, TResult>> {
+  let result = await iterator.next() as SourceIteratorResult<TSource, TResult>;
+  result.source = source;
+  result.iterator = iterator;
+  return result;
 }
