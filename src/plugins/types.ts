@@ -1,31 +1,6 @@
 import { File, FileInfo, FileList } from "../files";
 import { Logger } from "../loggers";
 
-/**
- * A plugin for CodeEngine to use. Can be a `Plugin` object that runs on the main thread,
- * or a JavaScript module to load a `WorkerPlugin` that runs on worker threads.
- */
-export type UsePlugin = Plugin | WorkerPluginModule | string;
-
-
-/**
- * A synchronous or asynchronous iterable.
- */
-export type AnyIterable<T> = Iterable<T> | AsyncIterable<T>;
-
-
-/**
- * A synchronous or asynchronous iterator.
- */
-export type AnyIterator<T> = Iterator<T> | AsyncIterator<T>;
-
-
-/**
- * CodeEngine plugins can return files as arrays, Sets, Maps, generators, async generators, or
- * anything else that can be iterated.
- */
-export type CanIterate<T> = AnyIterable<T> | AnyIterator<T>;
-
 
 /**
  * The common properties that can exist on all CodeEngine plugins
@@ -48,9 +23,14 @@ export interface Plugin extends BasePlugin {
   find?(context: PluginContext): CanIterate<FileInfo>;
 
   /**
+   * Reads the contents of a file from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
+   */
+  read?(file: File, context: PluginContext): undefined | string | Buffer | Promise<undefined | string | Buffer>;
+
+  /**
    * Watches source files and notifies CodeEngine when changes are detected.
    */
-  watch?(context: PluginContext): CanIterate<FileInfo[]>;
+  watch?(context: PluginContext): CanIterate<FileInfo>;
 
   /**
    * Processes a file. Depending on the plugin, this may alter the file's path or metadata,
@@ -118,6 +98,32 @@ export interface WorkerPluginModule {
  * @param data - The `WorkerPluginModule.data` value
  */
 export type WorkerPluginFactory = (data: unknown) => WorkerPlugin | Promise<WorkerPlugin>;
+
+
+/**
+ * A plugin for CodeEngine to use. Can be a `Plugin` object that runs on the main thread,
+ * or a JavaScript module to load a `WorkerPlugin` that runs on worker threads.
+ */
+export type UsePlugin = Plugin | WorkerPluginModule | string;
+
+
+/**
+ * A synchronous or asynchronous iterable.
+ */
+export type AnyIterable<T> = Iterable<T> | AsyncIterable<T>;
+
+
+/**
+ * A synchronous or asynchronous iterator.
+ */
+export type AnyIterator<T> = Iterator<T> | AsyncIterator<T>;
+
+
+/**
+ * CodeEngine plugins can return files as arrays, Sets, Maps, generators, async generators, or
+ * anything else that can be iterated.
+ */
+export type CanIterate<T> = AnyIterable<T> | AnyIterator<T>;
 
 
 /**

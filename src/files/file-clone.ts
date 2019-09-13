@@ -1,21 +1,22 @@
-import { RequestHandlerCallbacks, serialize, update } from "../workers";
+import { RequestHandlerCallbacks, serialize, update, WorkerEvent } from "../workers";
 import { CodeEngineFile } from "./file";
 import { File, FileMetadata } from "./types";
-
-const _internal = Symbol("Internal CodeEngine Properties");
 
 /**
  * A clone of a `File` object. The clone exists in a worker thread and proxies calls back to the
  * main thread when needed.
  */
 export class FileClone extends CodeEngineFile {
-  private readonly [_internal]!: {
-    callbacks: RequestHandlerCallbacks;
-  };
-
   public constructor(serialized: SerializedFile, callbacks: RequestHandlerCallbacks) {
-    super(serialized);
-    Object.defineProperty(this, _internal, { value: { callbacks }});
+    super({
+      path: serialized.path,
+      metadata: serialized.metadata,
+      contents: Buffer.from(serialized.contents),
+    });
+
+    async function read() {
+      return callbacks.sendSubRequest({ event: WorkerEvent.ReadFile }) as Promise<string | Buffer>;
+    }
   }
 
   /**
@@ -25,6 +26,7 @@ export class FileClone extends CodeEngineFile {
     return {
       path: file.path,
       metadata: serialize(file.metadata) as FileMetadata,
+      contents: file.contents,
     };
   }
 
@@ -37,6 +39,7 @@ export class FileClone extends CodeEngineFile {
     }
 
     update(file.metadata, serialized.metadata);
+    file.contents = Buffer.from(serialized.contents);
     return file;
   }
 }
@@ -49,4 +52,5 @@ export class FileClone extends CodeEngineFile {
 export interface SerializedFile {
   path: string;
   metadata: FileMetadata;
+  contents: Uint8Array;
 }

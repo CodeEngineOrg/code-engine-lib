@@ -26,6 +26,16 @@ export interface File {
   metadata: FileMetadata;
 
   /**
+   * Returns the complete path and file name.
+   *
+   * @example
+   *  index.html
+   *  css/styles.min.css
+   *  img/logos/vector.svg
+   */
+  path: string;
+
+  /**
    * The directory path, relative to the destination.
    *
    * @example
@@ -56,15 +66,11 @@ export interface File {
   extension: string;
 
   /**
-   * Returns the complete path and file name.
-   *
-   * @example
-   *  index.html
-   *  css/styles.min.css
-   *  img/logos/vector.svg
+   * The file's contents.
    */
-  path: string;
+  contents: Buffer;
 }
+
 
 /**
  * An unordered list of unique `File` objects.

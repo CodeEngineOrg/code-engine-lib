@@ -11,6 +11,7 @@ export class CodeEngineFile implements File {
   public metadata: FileMetadata = {};
   public dir!: string;
   public extension!: string;
+  public contents!: Buffer;
   private readonly [_internal]: {
     baseName: string;
   };
@@ -22,6 +23,7 @@ export class CodeEngineFile implements File {
 
     this.path = props.path;
     Object.assign(this.metadata, props.metadata);
+    setContents(this, props.contents);
   }
 
   public get name(): string {
@@ -47,9 +49,10 @@ export class CodeEngineFile implements File {
       throw ono({ path: value }, `Expected a relative path, but got an absolute path: ${value}`);
     }
 
-    let { dir, base } = path.parse(path.normalize(value));
+    let { dir, name, ext } = path.parse(path.normalize(value));
     this.dir = dir;
-    this[_internal].name = base;
+    this.extension = ext;
+    this[_internal].baseName = name;
   }
 
   /**
@@ -64,5 +67,24 @@ export class CodeEngineFile implements File {
    */
   public get [Symbol.toStringTag](): string {
     return "File";
+  }
+}
+
+/**
+ * Determines whether the given value is valid File contents.
+ */
+export function isContents(contents?: string | Buffer): contents is string | Buffer {
+  return contents !== undefined && contents !== null;
+}
+
+/**
+ * Replaces the contents of the file, if necessary.
+ */
+export function setContents(file: File, contents?: string | Buffer): void {
+  if (isContents(contents)) {
+    file.contents = typeof contents === "string" ? Buffer.from(contents) : contents;
+  }
+  else if (!file.contents) {
+    file.contents = Buffer.alloc(0);
   }
 }
