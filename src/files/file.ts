@@ -10,13 +10,14 @@ const _internal = Symbol("Internal CodeEngine Properties");
 export class CodeEngineFile implements File {
   public metadata: FileMetadata = {};
   public dir!: string;
+  public extension!: string;
   private readonly [_internal]: {
-    name: string;
+    baseName: string;
   };
 
   public constructor(props: FileInfo) {
     Object.defineProperty(this, _internal, { value: {
-      name: "",
+      baseName: "",
     }});
 
     this.path = props.path;
@@ -24,40 +25,18 @@ export class CodeEngineFile implements File {
   }
 
   public get name(): string {
-    return this[_internal].name;
+    return this[_internal].baseName + this.extension;
   }
 
   public set name(value: string) {
-    this[_internal].name = value;
-  }
-
-  public get extension(): string {
-    return path.extname(this[_internal].name);
-  }
-
-  /**
-   * Changes the current file extension
-   */
-  public set extension(value: string) {
-    let currentExtension = path.extname(this[_internal].name);
-    let currentBaseName = path.basename(this[_internal].name, currentExtension);
-
-    if (!value) {
-      this[_internal].name = currentBaseName;
-    }
-    else if (value[0] === ".") {
-      this[_internal].name = currentBaseName + value;
-    }
-    else {
-      this[_internal].name = currentBaseName + "." + value;
-    }
+    this.extension = path.extname(value);
+    this[_internal].baseName = value.slice(0, -(this.extension.length));
   }
 
   public get path(): string {
     // NOTE: This getter is called A LOT, so we use simple concatenation rather than
     // calling `path.join()` to improve performance
-    let { name } = this[_internal];
-    return this.dir.length > 0 ? this.dir + path.sep + name : name;
+    return this.dir.length > 0 ? this.dir + path.sep + this.name : this.name;
   }
 
   /**
