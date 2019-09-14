@@ -27,13 +27,6 @@ export class WorkerPool {
   }
 
   /**
-   * The number of workers in the pool.
-   */
-  public get size(): number {
-    return this._workers.length;
-  }
-
-  /**
    * Loads the specified `WorkerPlugin` into all worker threads, and returns a facade that
    * allows it to be used from the main thread like a normal plugin.
    */
