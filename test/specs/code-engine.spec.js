@@ -1,7 +1,7 @@
 "use strict";
 
 const { CodeEngine } = require("../../lib");
-const { expect } = require("chai");
+const { assert, expect } = require("chai");
 
 describe("CodeEngine class", () => {
 
@@ -71,6 +71,29 @@ describe("CodeEngine class", () => {
       engine && await engine.dispose();
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (disposed)");
+    }
+  });
+
+  it("should ignore multiple dispose() calls", async () => {
+    let engine = new CodeEngine();
+    expect(engine.isDisposed).to.be.false;
+    await engine.dispose();
+    expect(engine.isDisposed).to.be.true;
+    await engine.dispose();
+    expect(engine.isDisposed).to.be.true;
+  });
+
+  it("should throw an error if used after dispose()", async () => {
+    let engine = new CodeEngine();
+    await engine.dispose();
+
+    try {
+      await engine.use({ moduleId: "some-file.js" });
+      assert.fail("CodeEngine should have thrown an error");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error.message).to.equal("CodeEngine cannot be used after it has been disposed.");
     }
   });
 

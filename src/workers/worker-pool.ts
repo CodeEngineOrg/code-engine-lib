@@ -89,7 +89,7 @@ export class WorkerPool {
    */
   private _assertNotDisposed() {
     if (this._isDisposed) {
-      throw ono(`CodeEngine cannot be used once it has been disposed.`);
+      throw ono(`CodeEngine cannot be used after it has been disposed.`);
     }
   }
 }
