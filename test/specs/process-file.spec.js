@@ -133,13 +133,13 @@ describe("Plugin.processFile()", () => {
     let processor1 = {
       name: "File Processor 1",
       processFile: sinon.spy(function processor1_procesFile ({ metadata: { fileId }}) {
-        return delay(fileId === 1 ? 100 : fileId === 2 ? 40 : 10);
+        return delay(fileId === 1 ? 500 : fileId === 2 ? 100 : 10);
       })
     };
     let processor2 = {
       name: "File Processor 2",
       processFile: sinon.spy(function processor2_processFile ({ metadata: { fileId }}) {
-        return delay(fileId === 1 ? 10 : fileId === 2 ? 100 : 10);
+        return delay(fileId === 1 ? 10 : fileId === 2 ? 500 : 10);
       })
     };
     let processor3 = {
@@ -220,8 +220,8 @@ describe("Plugin.processFile()", () => {
       data: {
         processorId: 1,
         delays: {
-          "file1.txt": 100,
-          "file2.txt": 40,
+          "file1.txt": 500,
+          "file2.txt": 100,
           "file3.txt": 10,
         },
       }
@@ -232,7 +232,7 @@ describe("Plugin.processFile()", () => {
         processorId: 2,
         delays: {
           "file1.txt": 10,
-          "file2.txt": 100,
+          "file2.txt": 500,
           "file3.txt": 10,
         },
       }
