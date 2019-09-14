@@ -194,7 +194,12 @@ describe("Plugin.processFile()", () => {
         return {
           name: "File Processor " + processorId,
           async processFile (file, context) {
-            let callId = Date.now();  // callId is used by Sinon to determine call order
+            // Mimic a Sinon spy call
+            let call = {
+              callId: Date.now(),
+              args: [file.toString()],
+              proxy: { displayName: "processFile" },
+            };
 
             let delay = delays[file.path];
             await new Promise((resolve) => setTimeout(resolve, delay));
@@ -203,7 +208,7 @@ describe("Plugin.processFile()", () => {
             context.logger.warn("This is a warning", { foo: "bar", now: new Date("2018-05-15T19:35:45.123Z") })
 
             let array = JSON.parse(String(file.contents));
-            array.push({ processorId, callId });
+            array.push({ processorId, ...call });
             file.contents = Buffer.from(JSON.stringify(array));
           }
         };
