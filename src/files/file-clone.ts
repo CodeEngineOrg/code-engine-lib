@@ -1,4 +1,4 @@
-import { RequestHandlerCallbacks, serialize, update } from "../workers";
+import { RequestHandlerCallbacks, serialize } from "../workers";
 import { CodeEngineFile } from "./file";
 import { File, FileMetadata } from "./types";
 
@@ -36,7 +36,7 @@ export class FileClone extends CodeEngineFile {
       file.path = serialized.path;
     }
 
-    update(file.metadata, serialized.metadata);
+    Object.assign(file.metadata, serialized.metadata);
     file.contents = Buffer.from(serialized.contents);
     return file;
   }

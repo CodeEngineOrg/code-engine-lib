@@ -27,9 +27,6 @@ describe("Worker serialization", () => {
 
     let [serialized, mutated] = await testSerialization(originalData, mutate);
 
-    // The original data is unchanged, and the serialized data is an exact copy
-    expect(serialized).not.to.equal(originalData);
-    expect(serialized).to.deep.equal(originalData);
     expect(serialized).to.deep.equal({
       nil: null,
       notDefined: undefined,
@@ -77,6 +74,7 @@ describe("Worker serialization", () => {
     });
   });
 
+
   it("should serialize cloneable types", async () => {
     let originalData = {
       bool: new Boolean(),
@@ -94,9 +92,6 @@ describe("Worker serialization", () => {
 
     let [serialized, mutated] = await testSerialization(originalData, mutate);
 
-    // The original data is unchanged, and the serialized data is an exact copy
-    expect(serialized).not.to.equal(originalData);
-    expect(serialized).to.deep.equal(originalData);
     expect(serialized).to.deep.equal({
       bool: new Boolean(),
       string: new String(),
@@ -157,6 +152,7 @@ describe("Worker serialization", () => {
     });
   });
 
+
   it("should serialize non-cloneable objects as POJOs", async () => {
     class Foo {
       constructor () {
@@ -183,10 +179,9 @@ describe("Worker serialization", () => {
 
     let [serialized, mutated] = await testSerialization(originalData, mutate);
 
-    // The original data has been mutated, so it no longer matches the serialized data,
-    // which was a snapshot that was taken before the mutation
-    expect(serialized).not.to.equal(originalData);
-    expect(serialized).not.to.deep.equal(originalData);
+    // The objects were serialized as POJOs, not class instances
+    expect(serialized.foo).not.to.be.an.instanceof(Foo);
+    expect(serialized.url).not.to.be.an.instanceof(URL);
 
     expect(serialized).to.deep.equal({
       foo: {
@@ -214,47 +209,44 @@ describe("Worker serialization", () => {
 
     // Mutate properties of the data object. Note that we're able to modify read-only properties
     // here because they're copied across the thread boundary as normal writable fields.
-    // But only the writeable values will be updated on the original data.
     function mutate (data) {
       data.foo.instanceProperty = 100;
       data.foo.getter = 200;
       data.foo.protoProperty = 300;
       data.foo.protoField = 400;
       data.foo.protoGetter = 500;
-
-      data.url.protocol = "ftp:";
-      data.url.hostname = "abc.org";
-      data.url.port = 1234;
-      data.url.pathname = "/fizz/buzz";
-      data.url.hash = "#different-hash";
+      data.url = new URL("ftp://admin:letmein@abc.org:2121/subdir/file.txt");
     }
 
-    // The original data and the mutated data refernece the same object properties,
-    expect(mutated).not.to.equal(originalData);
-    expect(mutated).to.deep.equal(originalData);
+    // The objects were serialized as POJOs, not class instances
+    expect(mutated.foo).not.to.be.an.instanceof(Foo);
+    expect(mutated.url).not.to.be.an.instanceof(URL);
 
-    // Not all mutations were able to be applied across the thread boundary,
-    // because some properties are read-only.
-    expect(mutated.foo.instanceProperty).to.equal(100);
-    expect(mutated.foo.getter).to.equal(102);
-    expect(mutated.foo.protoProperty).to.equal(300);
-    expect(mutated.foo.protoField).to.equal(4);
-    expect(mutated.foo.protoGetter).to.equal(105);
-
-    // Notice that the URL class updates correctly, updating fields like `origin` and `href`,
-    // even though they weren't specifically set on the worker thread
-    expect(mutated.url.protocol).to.equal("ftp:");
-    expect(mutated.url.username).to.equal("");
-    expect(mutated.url.password).to.equal("");
-    expect(mutated.url.hostname).to.equal("abc.org");
-    expect(mutated.url.host).to.equal("abc.org:1234");
-    expect(mutated.url.port).to.equal("1234");
-    expect(mutated.url.origin).to.equal("ftp://abc.org:1234");
-    expect(mutated.url.pathname).to.equal("/fizz/buzz");
-    expect(mutated.url.search).to.equal("?baz=true");
-    expect(mutated.url.hash).to.equal("#different-hash");
-    expect(mutated.url.href).to.equal("ftp://abc.org:1234/fizz/buzz?baz=true#different-hash");
+    expect(mutated).to.deep.equal({
+      foo: {
+        instanceProperty: 100,
+        getter: 200,
+        protoProperty: 300,
+        protoField: 400,
+        protoGetter: 500,
+      },
+      url: {
+        protocol: "ftp:",
+        username: "admin",
+        password: "letmein",
+        hostname: "abc.org",
+        host: "abc.org:2121",
+        port: "2121",
+        origin: "ftp://abc.org:2121",
+        pathname: "/subdir/file.txt",
+        search: "",
+        searchParams: {},
+        hash: "",
+        href: "ftp://admin:letmein@abc.org:2121/subdir/file.txt",
+      }
+    });
   });
+
 
   it("should serialize errors as POJOs", async () => {
     let originalData = {
@@ -273,9 +265,10 @@ describe("Worker serialization", () => {
     let [serialized] = await testSerialization(originalData);
 
     // Errors cannot be cloned, so they are serialized as POJOs.
-    // So the serialized data does not match the original data.
-    expect(serialized).not.to.equal(originalData);
-    expect(serialized).not.to.deep.equal(originalData);
+    expect(serialized.err).not.to.be.an.instanceof(Error);
+    expect(serialized.typeError).not.to.be.an.instanceof(Error);
+    expect(serialized.errWithProps).not.to.be.an.instanceof(Error);
+    expect(serialized.onoError).not.to.be.an.instanceof(Error);
 
     expect(serialized.err).to.deep.equal({
       name: "Error",
@@ -315,6 +308,50 @@ describe("Worker serialization", () => {
       foo: false,
       bar: [1, 2, 3],
     });
+  });
+
+
+  it("should maintain object references when cloning", async () => {
+    let foo = { name: "foo" };
+    let bar = { name: "bar" };
+
+    let originalData = {
+      foo,
+      bar,
+      array: [foo, bar],
+      set: new Set([foo, bar]),
+      map: new Map([["foo", foo], ["bar", bar]]),
+    };
+
+    let [serialized, mutated] = await testSerialization(originalData, mutate);
+
+    // The same `foo` and `bar` instances should be in each list
+    expect(serialized.foo).not.to.equal(foo);
+    expect(serialized.foo).to.deep.equal(foo);
+    expect(serialized.bar).not.to.equal(bar);
+    expect(serialized.bar).to.deep.equal(bar);
+    expect(serialized.array[0]).to.equal(serialized.foo);
+    expect(serialized.array[1]).to.equal(serialized.bar);
+    expect(serialized.set.has(serialized.foo)).to.equal(true);
+    expect(serialized.set.has(serialized.bar)).to.equal(true);
+    expect(serialized.map.get("foo")).to.equal(serialized.foo);
+    expect(serialized.map.get("bar")).to.equal(serialized.bar);
+
+    // Changing the names of the objects in the Map should also change them everywhere else
+    function mutate (data) {
+      data.map.get("foo").name = "fooooo";
+      data.map.get("bar").name = "barrrrr";
+    }
+
+    // The same `foo` and `bar` instances should be in each list
+    expect(mutated.foo).to.deep.equal({ name: "fooooo" });
+    expect(mutated.bar).to.deep.equal({ name: "barrrrr" });
+    expect(mutated.array[0]).to.equal(mutated.foo);
+    expect(mutated.array[1]).to.equal(mutated.bar);
+    expect(mutated.set.has(mutated.foo)).to.equal(true);
+    expect(mutated.set.has(mutated.bar)).to.equal(true);
+    expect(mutated.map.get("foo")).to.equal(mutated.foo);
+    expect(mutated.map.get("bar")).to.equal(mutated.bar);
   });
 
 });
