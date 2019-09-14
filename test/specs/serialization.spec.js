@@ -248,6 +248,47 @@ describe("Worker serialization", () => {
   });
 
 
+  it("should serialize lists of non-cloneable objects", async () => {
+    class Foo {
+      constructor (value) {
+        this.instanceProperty = value;
+      }
+
+      get getter () {
+        return this.instanceProperty + 1;
+      }
+    }
+
+    let originalData = {
+      array: [new Foo(1), new Foo(2)],
+      set: new Set([new Foo(3), new Foo(4)]),
+      map: new Map([["five", new Foo(5)], ["six", new Foo(6)]]),
+    };
+
+    let [serialized, mutated] = await testSerialization(originalData, mutate);
+
+    expect(serialized).to.deep.equal({
+      array: [{ instanceProperty: 1, getter: 2 }, { instanceProperty: 2, getter: 3 }],
+      set: new Set([{ instanceProperty: 3, getter: 4 }, { instanceProperty: 4, getter: 5 }]),
+      map: new Map([["five", { instanceProperty: 5, getter: 6 }], ["six", { instanceProperty: 6, getter: 7 }]]),
+    });
+
+    function mutate (data) {
+      data.array[0].instanceProperty = 2;
+      data.array[1].instanceProperty = 3;
+      data.set.forEach((obj) => obj.instanceProperty += 1);
+      data.map.get("five").instanceProperty = 6;
+      data.map.get("six").instanceProperty = 7;
+    }
+
+    expect(mutated).to.deep.equal({
+      array: [{ instanceProperty: 2, getter: 2 }, { instanceProperty: 3, getter: 3 }],
+      set: new Set([{ instanceProperty: 4, getter: 4 }, { instanceProperty: 5, getter: 5 }]),
+      map: new Map([["five", { instanceProperty: 6, getter: 6 }], ["six", { instanceProperty: 7, getter: 7 }]]),
+    });
+  });
+
+
   it("should serialize errors as POJOs", async () => {
     let originalData = {
       err: new Error("Boom!"),
