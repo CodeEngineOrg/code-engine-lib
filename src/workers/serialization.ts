@@ -1,13 +1,15 @@
 import { Ono } from "ono";
 
 const objectPrototype = Object.getPrototypeOf({});
+const defaultDepth = 5;
+
 type POJO = Record<string, unknown>;
 
 /**
  * Returns the best equivalent of the given value that can be cloned across the thread boundary.
  */
-export function serialize(value: unknown, depth = 5): unknown {
-  if (isCloneable(value)) {
+export function serialize(value: unknown, depth = defaultDepth): unknown {
+  if (isCloneable(value, depth)) {
     // This value is natively cloneable. So just return it as-is.
     return value;
   }
@@ -37,18 +39,11 @@ export function serialize(value: unknown, depth = 5): unknown {
   }
 
   if (typeof value === "object") {
-    let obj = value as POJO;
     let copy: POJO = {};
-    let proto = value as POJO;
 
-    // Crawl the prototype chain, copying all properties
-    while (proto && proto !== objectPrototype) {
-      for (let key of Object.getOwnPropertyNames(proto)) {
-        if (typeof obj[key] !== "function") {
-          copy[key] = depth > 0 ? serialize(obj[key], depth - 1) : undefined;
-        }
-      }
-      proto = Object.getPrototypeOf(proto) as POJO;
+    for (let key of getPropertyNames(value)) {
+      let prop = (value as POJO)[key];
+      copy[key] = depth > 0 ? serialize(prop, depth - 1) : undefined;
     }
 
     return copy;
@@ -59,9 +54,9 @@ export function serialize(value: unknown, depth = 5): unknown {
 /**
  * Recursively updates the properties of the target object to match the source object.
  */
-export function update(target: POJO, source: POJO): POJO {
+export function update(target: POJO, source: POJO, depth = defaultDepth): POJO {
   for (let key of Object.keys(source)) {
-    let value = getUpdatedValue(target[key], source[key]);
+    let value = getUpdatedValue(target[key], source[key], depth);
 
     try {
       target[key] = value;
@@ -78,8 +73,8 @@ export function update(target: POJO, source: POJO): POJO {
 /**
  * Either returns the old value, updates the old value, or returns the new value.
  */
-function getUpdatedValue(oldValue: unknown, newValue: unknown): unknown {
-  if (isCloneable(oldValue)) {
+function getUpdatedValue(oldValue: unknown, newValue: unknown, depth: number): unknown {
+  if (isCloneable(oldValue, depth)) {
     /**
      * The old value was cloneable, which means either:
      *  A) The new value is the same type, so it can be used as-is
@@ -100,7 +95,7 @@ function getUpdatedValue(oldValue: unknown, newValue: unknown): unknown {
     oldValue.splice(0, oldValue.length);
 
     for (let i = 0; i < newValue.length; i++) {
-      oldValue.push(getUpdatedValue(oldItems[i], newValue[i]));
+      oldValue.push(getUpdatedValue(oldItems[i], newValue[i], depth));
     }
 
     return oldValue;
@@ -139,7 +134,7 @@ function getUpdatedValue(oldValue: unknown, newValue: unknown): unknown {
     }
 
     // The new value is also an object, so update each of its properties
-    return update(oldValue as POJO, newValue as POJO);
+    return update(oldValue as POJO, newValue as POJO, depth - 1);
   }
 
   // This is a type that we can't update. So leave the value as-is.
@@ -157,7 +152,7 @@ const cloneable = [
  * Determines whether the given value can be cloned natively, meaning that we don't have to
  * serialize it ourselves.
  */
-function isCloneable(value: unknown): boolean | undefined {
+function isCloneable(value: unknown, depth: number): boolean | undefined {
   if (!value
   || primitives.includes(typeof value)
   || cloneable.some((type) => value instanceof type)) {
@@ -166,16 +161,55 @@ function isCloneable(value: unknown): boolean | undefined {
   }
 
   if (Array.isArray(value)) {
-    return value.every(isCloneable);
+    return value.every((item) => isCloneable(item, depth));
   }
 
   if (value instanceof Set) {
-    let values = [...value];
-    return values.every(isCloneable);
+    return [...value].every((item) => isCloneable(item, depth));
   }
 
   if (value instanceof Map) {
-    let entries = [...value];
-    return entries.every(([k, v]) => isCloneable(k) && isCloneable(v));
+    return [...value].every(([k, v]) => isCloneable(k, depth) && isCloneable(v, depth));
   }
+
+  if (typeof value === "object") {
+    let proto = Object.getPrototypeOf(value);
+    if (proto !== null && proto !== objectPrototype) {
+      // This isn't a POJO
+      return false;
+    }
+
+    if (depth > 0) {
+      for (let key of getPropertyNames(value)) {
+        if (!isCloneable((value as POJO)[key], depth - 1)) {
+          return false;
+        }
+      }
+
+      // All properties of this object are cloneable
+      return true;
+    }
+  }
+}
+
+/**
+ * Returns the own and inherited property names of the given object.
+ */
+function getPropertyNames(obj: object | null): string[] {
+  let keys = [];
+  let proto = obj;
+
+  // Crawl the prototype chain to get all keys
+  while (proto && proto !== objectPrototype) {
+    for (let key of Object.getOwnPropertyNames(proto)) {
+      // Ignore methods, since functions aren't cloneable
+      if (typeof (obj as POJO)[key] !== "function") {
+        keys.push(key);
+      }
+    }
+
+    proto = Object.getPrototypeOf(proto) as object | null;
+  }
+
+  return keys;
 }

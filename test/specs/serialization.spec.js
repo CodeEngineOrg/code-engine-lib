@@ -1,3 +1,4 @@
+/* eslint-disable no-new-wrappers, no-new-object */
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
@@ -9,13 +10,13 @@ const ono = require("ono");
 describe("Worker serialization", () => {
 
   it("should serialize primitives", async () => {
-    let input = {
+    let originalData = {
       nil: null,
       notDefined: undefined,
       notANumber: NaN,
       bool: true,
       falseBool: false,
-      string: "Hello, world!",
+      string: "Hello, world",
       emptyString: "",
       integer: 42,
       float: 3.14159,
@@ -24,19 +25,64 @@ describe("Worker serialization", () => {
       infinity: Infinity,
     };
 
-    let output = await testSerialization(input);
-    expect(output).to.deep.equal(input);
+    let [serialized, mutated] = await testSerialization(originalData, mutate);
 
-    // Make sure it has all the same keys, even null/undefined/falsy ones
-    expect(output).to.have.same.keys(Object.keys(input));
+    // The original data is unchanged, and the serialized data is an exact copy
+    expect(serialized).not.to.equal(originalData);
+    expect(serialized).to.deep.equal(originalData);
+    expect(serialized).to.deep.equal({
+      nil: null,
+      notDefined: undefined,
+      notANumber: NaN,
+      bool: true,
+      falseBool: false,
+      string: "Hello, world",
+      emptyString: "",
+      integer: 42,
+      float: 3.14159,
+      negative: -42,
+      zero: 0,
+      infinity: Infinity,
+    });
+
+    // Mutate every property of the data object
+    function mutate (data) {
+      data.nil = NaN;
+      data.notDefined = null;
+      data.notANumber = undefined;
+      data.bool = 1;
+      data.falseBool = 0;
+      data.string += "!!!";
+      data.emptyString += " ";
+      data.integer += 1;
+      data.float -= 1;
+      data.negative -= 1;
+      data.zero += 1;
+      data.infinity = -Infinity;
+    }
+
+    expect(mutated).to.deep.equal({
+      nil: NaN,
+      notDefined: null,
+      notANumber: undefined,
+      bool: 1,
+      falseBool: 0,
+      string: "Hello, world!!!",
+      emptyString: " ",
+      integer: 43,
+      float: 2.14159,
+      negative: -43,
+      zero: 1,
+      infinity: -Infinity,
+    });
   });
 
   it("should serialize cloneable types", async () => {
-    let input = {
-      bool: new Boolean(),      // eslint-disable-line no-new-wrappers
-      string: new String(),     // eslint-disable-line no-new-wrappers
-      obj: new Object(),        // eslint-disable-line no-new-object
-      date: new Date(),
+    let originalData = {
+      bool: new Boolean(),
+      string: new String(),
+      obj: new Object(),
+      date: new Date("2005-05-05T05:05:05.005Z"),
       regex: new RegExp(/foo/),
       array: new Array(5),
       intArray: new Int32Array([-5, -4, -3]),
@@ -46,23 +92,69 @@ describe("Worker serialization", () => {
       map: new Map([["one", 1], ["two", 2], ["three", 3]]),
     };
 
-    let output = await testSerialization(input);
-    expect(output).to.deep.equal(input);
+    let [serialized, mutated] = await testSerialization(originalData, mutate);
+
+    // The original data is unchanged, and the serialized data is an exact copy
+    expect(serialized).not.to.equal(originalData);
+    expect(serialized).to.deep.equal(originalData);
+    expect(serialized).to.deep.equal({
+      bool: new Boolean(),
+      string: new String(),
+      obj: new Object(),
+      date: new Date("2005-05-05T05:05:05.005Z"),
+      regex: new RegExp(/foo/),
+      array: new Array(5),
+      intArray: new Int32Array([-5, -4, -3]),
+      uintArray: new Uint16Array([1, 2, 3, 4, 5]),
+      floatArray: new Float64Array([Math.PI, Math.E]),
+      set: new Set([1, 2, 3, 4, 5]),
+      map: new Map([["one", 1], ["two", 2], ["three", 3]]),
+    });
 
     // Make sure these didn't get converted to primitives
-    expect(output.bool).to.be.an.instanceOf(Boolean).and.not.false;
-    expect(output.string).to.be.an.instanceOf(String).and.not.equal("");
+    expect(serialized.bool).to.be.an.instanceOf(Boolean).and.not.false;
+    expect(serialized.string).to.be.an.instanceOf(String).and.not.equal("");
 
     // Make sure the array has a length of 5, even though no values were ever set
-    expect(output.array).to.be.an.instanceOf(Array).with.lengthOf(5);
+    expect(serialized.array).to.be.an.instanceOf(Array).with.lengthOf(5);
 
     // Make sure the Map and Set have the correct keys/values
-    expect(output.map.get("one")).to.equal(1);
-    expect(output.map.get("two")).to.equal(2);
-    expect(output.map.get("three")).to.equal(3);
-    expect(output.set.has(1)).to.be.true;
-    expect(output.set.has(3)).to.be.true;
-    expect(output.set.has(6)).to.be.false;
+    expect(serialized.map.get("one")).to.equal(1);
+    expect(serialized.map.get("two")).to.equal(2);
+    expect(serialized.map.get("three")).to.equal(3);
+    expect(serialized.set.has(1)).to.be.true;
+    expect(serialized.set.has(3)).to.be.true;
+    expect(serialized.set.has(6)).to.be.false;
+
+    // Mutate every property of the data object. Some properties are immutable (boolean, string, RegExp)
+    // so they are replaced entirely. But all other properties are modified in-place.
+    function mutate (data) {
+      data.bool = new Boolean(true);
+      data.string = new String("Hello, world");
+      data.obj.foo = "bar";
+      data.date.setUTCFullYear(1999);
+      data.regex = new RegExp(/not foo/);
+      data.array[3] = "value";
+      data.intArray[1] = 100;
+      data.uintArray[3] = 100;
+      data.floatArray[1] = 4.2;
+      data.set.add(4).add(5).add(6);
+      data.map.set("two", 222).set("four", 444);
+    }
+
+    expect(mutated).to.deep.equal({
+      bool: new Boolean(true),
+      string: new String("Hello, world"),
+      obj: new Object({ foo: "bar" }),
+      date: new Date("1999-05-05T05:05:05.005Z"),
+      regex: new RegExp(/not foo/),
+      array: [,,, "value",, ],   // eslint-disable-line
+      intArray: new Int32Array([-5, 100, -3]),
+      uintArray: new Uint16Array([1, 2, 3, 100, 5]),
+      floatArray: new Float64Array([Math.PI, 4.2]),
+      set: new Set([1, 2, 3, 4, 5, 6]),
+      map: new Map([["one", 1], ["two", 222], ["three", 3], ["four", 444]]),
+    });
   });
 
   it("should serialize non-cloneable objects as POJOs", async () => {
@@ -84,13 +176,19 @@ describe("Worker serialization", () => {
       get () { return this.instanceProperty + 5; }
     });
 
-    let input = {
+    let originalData = {
       foo: new Foo(),
       url: new URL("http://example.com/foo/bar?baz=true#hash"),
     };
 
-    let output = await testSerialization(input);
-    expect(output).to.deep.equal({
+    let [serialized, mutated] = await testSerialization(originalData, mutate);
+
+    // The original data has been mutated, so it no longer matches the serialized data,
+    // which was a snapshot that was taken before the mutation
+    expect(serialized).not.to.equal(originalData);
+    expect(serialized).not.to.deep.equal(originalData);
+
+    expect(serialized).to.deep.equal({
       foo: {
         instanceProperty: 1,
         getter: 3,
@@ -113,10 +211,53 @@ describe("Worker serialization", () => {
         href: "http://example.com/foo/bar?baz=true#hash",
       }
     });
+
+    // Mutate properties of the data object. Note that we're able to modify read-only properties
+    // here because they're copied across the thread boundary as normal writable fields.
+    // But only the writeable values will be updated on the original data.
+    function mutate (data) {
+      data.foo.instanceProperty = 100;
+      data.foo.getter = 200;
+      data.foo.protoProperty = 300;
+      data.foo.protoField = 400;
+      data.foo.protoGetter = 500;
+
+      data.url.protocol = "ftp:";
+      data.url.hostname = "abc.org";
+      data.url.port = 1234;
+      data.url.pathname = "/fizz/buzz";
+      data.url.hash = "#different-hash";
+    }
+
+    // The original data and the mutated data refernece the same object properties,
+    expect(mutated).not.to.equal(originalData);
+    expect(mutated).to.deep.equal(originalData);
+
+    // Not all mutations were able to be applied across the thread boundary,
+    // because some properties are read-only.
+    expect(mutated.foo.instanceProperty).to.equal(100);
+    expect(mutated.foo.getter).to.equal(102);
+    expect(mutated.foo.protoProperty).to.equal(300);
+    expect(mutated.foo.protoField).to.equal(4);
+    expect(mutated.foo.protoGetter).to.equal(105);
+
+    // Notice that the URL class updates correctly, updating fields like `origin` and `href`,
+    // even though they weren't specifically set on the worker thread
+    expect(mutated.url.protocol).to.equal("ftp:");
+    expect(mutated.url.username).to.equal("");
+    expect(mutated.url.password).to.equal("");
+    expect(mutated.url.hostname).to.equal("abc.org");
+    expect(mutated.url.host).to.equal("abc.org:1234");
+    expect(mutated.url.port).to.equal("1234");
+    expect(mutated.url.origin).to.equal("ftp://abc.org:1234");
+    expect(mutated.url.pathname).to.equal("/fizz/buzz");
+    expect(mutated.url.search).to.equal("?baz=true");
+    expect(mutated.url.hash).to.equal("#different-hash");
+    expect(mutated.url.href).to.equal("ftp://abc.org:1234/fizz/buzz?baz=true#different-hash");
   });
 
   it("should serialize errors as POJOs", async () => {
-    let input = {
+    let originalData = {
       err: new Error("Boom!"),
       typeError: new TypeError("Bad Type!"),
       errWithProps: (() => {
@@ -129,21 +270,27 @@ describe("Worker serialization", () => {
       onoError: ono.syntax({ foo: false, bar: [1, 2, 3]}, "Bad Syntax!"),
     };
 
-    let output = await testSerialization(input);
-    expect(output.err).to.deep.equal({
+    let [serialized] = await testSerialization(originalData);
+
+    // Errors cannot be cloned, so they are serialized as POJOs.
+    // So the serialized data does not match the original data.
+    expect(serialized).not.to.equal(originalData);
+    expect(serialized).not.to.deep.equal(originalData);
+
+    expect(serialized.err).to.deep.equal({
       name: "Error",
       message: "Boom!",
-      stack: input.err.stack,
+      stack: originalData.err.stack,
     });
-    expect(output.typeError).to.deep.equal({
+    expect(serialized.typeError).to.deep.equal({
       name: "TypeError",
       message: "Bad Type!",
-      stack: input.typeError.stack,
+      stack: originalData.typeError.stack,
     });
-    expect(output.errWithProps).to.deep.equal({
+    expect(serialized.errWithProps).to.deep.equal({
       name: "Error",
       message: "Boom",
-      stack: input.errWithProps.stack,
+      stack: originalData.errWithProps.stack,
       foo: 42,
       bar: /regex/,
       baz: {
@@ -161,10 +308,10 @@ describe("Worker serialization", () => {
         href: "http://example.com/foo/bar?baz=true#hash",
       }
     });
-    expect(output.onoError).to.deep.equal({
+    expect(serialized.onoError).to.deep.equal({
       name: "SyntaxError",
       message: "Bad Syntax!",
-      stack: input.onoError.stack,
+      stack: originalData.onoError.stack,
       foo: false,
       bar: [1, 2, 3],
     });
@@ -173,15 +320,16 @@ describe("Worker serialization", () => {
 });
 
 /**
- * Sends the given data across the worker thread boundary and back, then returns it.
+ * Sends the given data across the worker thread boundary, mutates it, and then updates the original
+ * data with the mutated values.
  */
-async function testSerialization (data) {
+async function testSerialization (data, mutate = () => undefined) {
   let engine = CodeEngine.create();
   await engine.use(
     {
       name: "File Source",
       *find () {
-        yield { path: "file1.txt", metadata: data };
+        yield { path: "file1.txt", metadata: data };            // <--- the original data
       },
     },
     {
@@ -190,7 +338,8 @@ async function testSerialization (data) {
           return {
             name: "Worker Plugin",
             processFile (file, { logger }) {
-              logger.log("data", { data: file.metadata });
+              logger.log("data", { data: file.metadata });      // <--- the serialized data
+              (${mutate.toString()})(file.metadata);            // <--- mutate the data
             }
           };
         };
@@ -200,8 +349,10 @@ async function testSerialization (data) {
 
   let log = sinon.spy();
   engine.on("log", log);
-  await engine.build();
+  let [file] = await engine.build();
 
   sinon.assert.calledOnce(log);
-  return log.firstCall.args[0].data;
+  let serialized = log.firstCall.args[0].data;                  // <--- the un-mutated serialized data
+  let mutated = file.metadata;                                  // <--- the mutated serialized data
+  return [serialized, mutated];
 }
