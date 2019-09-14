@@ -3,6 +3,8 @@
  */
 export interface FileInfo {
   path: string;
+  createdAt?: Date;
+  modifiedAt?: Date;
   metadata?: FileMetadata;
   contents?: string | Buffer;
 }
@@ -20,11 +22,6 @@ export type FileMetadata = Record<string, unknown>;
  * come from a database, a CMS, an RSS feed, or any other source.
  */
 export interface File {
-  /**
-   * Arbitrary metadata that can be added by plugins.
-   */
-  metadata: FileMetadata;
-
   /**
    * Returns the complete path and file name.
    *
@@ -64,6 +61,21 @@ export interface File {
    *  img/logos/vector.svg  =>  .svg
    */
   extension: string;
+
+  /**
+   * The date and time that the file was first created at its source.
+   */
+  createdAt: Date;
+
+  /**
+   * The date and time that the file was last modified at its source.
+   */
+  modifiedAt: Date;
+
+  /**
+   * Arbitrary metadata that can be added by plugins.
+   */
+  metadata: FileMetadata;
 
   /**
    * The file's contents.

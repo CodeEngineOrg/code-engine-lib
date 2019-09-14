@@ -1,4 +1,4 @@
-import { RequestHandlerCallbacks, serialize, update, WorkerEvent } from "../workers";
+import { RequestHandlerCallbacks, serialize, update } from "../workers";
 import { CodeEngineFile } from "./file";
 import { File, FileMetadata } from "./types";
 
@@ -13,10 +13,6 @@ export class FileClone extends CodeEngineFile {
       metadata: serialized.metadata,
       contents: Buffer.from(serialized.contents),
     });
-
-    async function read() {
-      return callbacks.sendSubRequest({ event: WorkerEvent.ReadFile }) as Promise<string | Buffer>;
-    }
   }
 
   /**
@@ -25,6 +21,8 @@ export class FileClone extends CodeEngineFile {
   public static serialize(file: File): SerializedFile {
     return {
       path: file.path,
+      createdAt: file.createdAt,
+      modifiedAt: file.modifiedAt,
       metadata: serialize(file.metadata) as FileMetadata,
       contents: file.contents,
     };
@@ -51,6 +49,8 @@ export class FileClone extends CodeEngineFile {
  */
 export interface SerializedFile {
   path: string;
+  createdAt: Date;
+  modifiedAt: Date;
   metadata: FileMetadata;
   contents: Uint8Array;
 }

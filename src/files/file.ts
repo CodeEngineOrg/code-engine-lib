@@ -8,9 +8,11 @@ const _internal = Symbol("Internal CodeEngine Properties");
  * The internal CodeEngine implementation of the `File` interface.
  */
 export class CodeEngineFile implements File {
-  public metadata: FileMetadata = {};
   public dir!: string;
   public extension!: string;
+  public createdAt: Date;
+  public modifiedAt: Date;
+  public metadata: FileMetadata = {};
   public contents!: Buffer;
   private readonly [_internal]: {
     baseName: string;
@@ -22,6 +24,8 @@ export class CodeEngineFile implements File {
     }});
 
     this.path = props.path;
+    this.createdAt = props.createdAt || new Date();
+    this.modifiedAt = props.modifiedAt || new Date();
     Object.assign(this.metadata, props.metadata);
     setContents(this, props.contents);
   }
