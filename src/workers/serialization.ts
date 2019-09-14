@@ -1,18 +1,19 @@
 import { Ono } from "ono";
 
+const objectPrototype = Object.getPrototypeOf({});
 type POJO = Record<string, unknown>;
 
 /**
  * Returns the best equivalent of the given value that can be cloned across the thread boundary.
  */
-export function serialize(value: unknown, depth = 2): unknown {
+export function serialize(value: unknown, depth = 5): unknown {
   if (isCloneable(value)) {
     // This value is natively cloneable. So just return it as-is.
     return value;
   }
 
   if (value instanceof Error) {
-    return Ono.toJSON(value);
+    return serialize(Ono.toJSON(value));
   }
 
   if (Array.isArray(value)) {
@@ -38,12 +39,16 @@ export function serialize(value: unknown, depth = 2): unknown {
   if (typeof value === "object") {
     let obj = value as POJO;
     let copy: POJO = {};
+    let proto = value as POJO;
 
-    if (depth >= 0) {
-      // tslint:disable-next-line: no-for-in forin
-      for (let key in obj) {
-        copy[key] = serialize(obj[key], depth - 1);
+    // Crawl the prototype chain, copying all properties
+    while (proto && proto !== objectPrototype) {
+      for (let key of Object.getOwnPropertyNames(proto)) {
+        if (typeof obj[key] !== "function") {
+          copy[key] = depth > 0 ? serialize(obj[key], depth - 1) : undefined;
+        }
       }
+      proto = Object.getPrototypeOf(proto) as POJO;
     }
 
     return copy;
@@ -56,14 +61,13 @@ export function serialize(value: unknown, depth = 2): unknown {
  */
 export function update(target: POJO, source: POJO): POJO {
   for (let key of Object.keys(source)) {
+    let value = getUpdatedValue(target[key], source[key]);
+
     try {
-      target[key] = getUpdatedValue(target[key], source[key]);
+      target[key] = value;
     }
     catch (error) {
       // Ignroe errors from trying to set read-only properties
-      if ((error as Error).message !== "not writeable") {
-        throw error;
-      }
     }
   }
 
