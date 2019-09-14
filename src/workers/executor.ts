@@ -1,10 +1,9 @@
 import { ono } from "ono";
 import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
-import { parentPort, threadId } from "worker_threads";
+import { MessagePort, threadId } from "worker_threads";
 import { FileClone } from "../files";
 import { isPlugin, PluginContextClone, WorkerPlugin, WorkerPluginFactory } from "../plugins";
-import { ExecutorConfig } from "./config";
 import { Messenger, RequestHandlerCallbacks } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
@@ -13,14 +12,12 @@ import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent,
  */
 export class Executor {
   public readonly id: number;
-  private readonly _cwd: string;
   private readonly _messenger: Messenger;
   private readonly _plugins = new Map<number, WorkerPlugin>();
 
-  public constructor({ cwd }: ExecutorConfig) {
-    this.id = threadId;
-    this._cwd = cwd;
-    this._messenger = new Messenger(parentPort!, {
+  public constructor(id: number, port: MessagePort) {
+    this.id = id;
+    this._messenger = new Messenger(port, {
       [WorkerEvent.LoadPlugin]: this.loadWorkerPlugin.bind(this),
       [WorkerEvent.ProcessFile]: this.processFile.bind(this),
     });
@@ -29,9 +26,11 @@ export class Executor {
   /**
    * Loads the specified `WorkerPlugin` and returns its signature.
    */
-  public async loadWorkerPlugin({ pluginId, moduleId, data }: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
+  public async loadWorkerPlugin(info: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
+    let { pluginId, moduleId, data, cwd } = info;
+
     // Import the plugin module
-    let exports = await importLocalOrGlobal(moduleId, this._cwd);
+    let exports = await importLocalOrGlobal(moduleId, cwd);
 
     // Make sure the default export is a function
     let factory = (exports || (exports as { default: unknown }).default) as WorkerPluginFactory;

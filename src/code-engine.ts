@@ -4,7 +4,7 @@ import { build } from "./build";
 import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
 import { Logger } from "./loggers/types";
-import { CodeEnginePluginContext, isDestinationCleaner, isPlugin, Plugin, UsePlugin } from "./plugins";
+import { CodeEnginePluginContext, isDestinationCleaner, isPlugin, Plugin, PluginContext, UsePlugin } from "./plugins";
 import { Config, Event } from "./types";
 import { WorkerPool } from "./workers";
 
@@ -14,23 +14,29 @@ const _internal = Symbol("Internal CodeEngine Properties");
  * The main CodeEngine class.
  */
 export class CodeEngine extends EventEmitter {
+  public readonly cwd: string;
+  public readonly dev: boolean;
+  public readonly debug: boolean;
   public readonly logger: Logger;
   private readonly [_internal]: {
     plugins: Plugin[];
+    readonly context: PluginContext;
     readonly workerPool: WorkerPool;
   };
 
-  public constructor({ cwd, concurrency }: Config = {}) {
+  public constructor(config: Config = {}) {
     super();
 
-    cwd = cwd || process.cwd();
+    this.cwd = config.cwd || process.cwd();
+    this.dev = config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev;
+    this.debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
+    this.logger = new LogEmitter(this, this.debug);
 
     Object.defineProperty(this, _internal, { value: {
+      context,
       plugins: [],
-      workerPool: new WorkerPool({ cwd, concurrency, engine: this }),
+      workerPool: new WorkerPool(this, config.concurrency),
     }});
-
-    this.logger = new LogEmitter(this);
   }
 
   /**

@@ -1,7 +1,7 @@
 import { ono } from "ono";
 import * as os from "os";
+import { CodeEngine } from "../code-engine";
 import { CodeEngineWorkerPlugin, WorkerPlugin, WorkerPluginModule } from "../plugins";
-import { WorkerPoolConfig } from "./config";
 import { LoadWorkerPluginInfo } from "./types";
 import { CodeEngineWorker } from "./worker";
 
@@ -12,14 +12,16 @@ let roundRobinCounter = 0;
  * Manages the CodeEngine worker threads.
  */
 export class WorkerPool {
+  private _engine: CodeEngine;
   private _workers: CodeEngineWorker[] = [];
   private _isDisposed = false;
 
-  public constructor({ cwd, concurrency, engine }: WorkerPoolConfig) {
+  public constructor(engine: CodeEngine, concurrency?: number) {
+    this._engine = engine;
     concurrency = concurrency || os.cpus().length;
 
     for (let i = 0; i < concurrency; i++) {
-      let worker = new CodeEngineWorker({ cwd, engine });
+      let worker = new CodeEngineWorker(engine);
       this._workers.push(worker);
     }
   }
@@ -45,6 +47,7 @@ export class WorkerPool {
     let info: LoadWorkerPluginInfo = {
       ...module,
       pluginId: ++pluginCounter,
+      cwd: this._engine.cwd,
     };
 
     let signatures = await Promise.all(

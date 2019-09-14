@@ -1,7 +1,7 @@
 "use strict";
 
 const commonJSExport = require("../../");
-const { default: defaultExport, CodeEngine: namedExport, env, Event, LogLevel } = require("../../");
+const { default: defaultExport, CodeEngine: namedExport, Event, LogLevel } = require("../../");
 const { expect } = require("chai");
 
 describe("@code-engine/lib package exports", () => {
@@ -21,11 +21,6 @@ describe("@code-engine/lib package exports", () => {
     expect(namedExport).to.equal(commonJSExport);
   });
 
-  it("should export the env object as a named export", () => {
-    expect(env).to.be.an("object");
-    expect(env).to.have.keys("isDev", "isDebug", "isWindows");
-  });
-
   it("should export the Events enumeration as a named export", () => {
     expect(Event).to.be.an("object");
     expect(Event).to.have.keys("Error", "Log");
@@ -40,7 +35,6 @@ describe("@code-engine/lib package exports", () => {
     expect(commonJSExport).to.have.keys(
       "default",
       "CodeEngine",
-      "env",
       "Event",
       "LogLevel",
     );

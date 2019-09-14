@@ -21,6 +21,11 @@ export interface LoadWorkerPluginInfo extends WorkerPluginModule {
    * A unique ID that is assigned to each plugin so they can be referenced across thread boundaries.
    */
   pluginId: number;
+
+  /**
+   * The directory path to use when resolving relative modules.
+   */
+  cwd: string;
 }
 
 

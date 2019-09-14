@@ -6,7 +6,6 @@ import { File, FileClone } from "../files";
 import { LogEventData, LoggerMethods, LogLevel } from "../loggers";
 import { CodeEngineWorkerPlugin, PluginContext, PluginContextClone } from "../plugins";
 import { awaitOnline } from "./await-online";
-import { ExecutorConfig, WorkerConfig } from "./config";
 import { Messenger } from "./messenger";
 import { LoadWorkerPluginInfo, ProcessFileData, ProcessFileResults, WorkerEvent, WorkerPluginSignature } from "./types";
 
@@ -21,9 +20,8 @@ export class CodeEngineWorker extends Worker {
   private _waitUntilOnline: Promise<void>;
   private readonly _messenger: Messenger;
 
-  public constructor({ cwd, engine }: WorkerConfig) {
-    let workerData: ExecutorConfig = { cwd };
-    super(workerScript, { workerData });
+  public constructor(engine: CodeEngine) {
+    super(workerScript);
 
     this._engine = engine;
     this._isTerminated = false;

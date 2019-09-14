@@ -9,8 +9,10 @@ import { PluginContext } from "./types";
  */
 export class PluginContextClone extends CodeEnginePluginContext {
   public constructor(serialized: SerializedPluginContext, callbacks: RequestHandlerCallbacks) {
-    let logger = new LoggerClone(serialized.logger, callbacks);
-    super({ logger });
+    super({
+      ...serialized,
+      logger: new LoggerClone(serialized, callbacks),
+    });
   }
 
   /**
@@ -18,7 +20,8 @@ export class PluginContextClone extends CodeEnginePluginContext {
    */
   public static serialize(context: PluginContext): SerializedPluginContext {
     return {
-      logger: LoggerClone.serialize(context.logger)
+      ...context,
+      logger: LoggerClone.serialize(context.logger),
     };
   }
 }
@@ -30,4 +33,7 @@ export class PluginContextClone extends CodeEnginePluginContext {
  */
 export interface SerializedPluginContext {
   logger: SerializedLogger;
+  cwd: string;
+  dev: boolean;
+  debug: boolean;
 }

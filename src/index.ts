@@ -1,6 +1,5 @@
 import { CodeEngine } from "./code-engine";
 
-export { env, Environment } from "./env";
 export * from "./files/types";
 export * from "./loggers/types";
 export * from "./plugins/types";

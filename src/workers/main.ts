@@ -1,5 +1,4 @@
-import { workerData } from "worker_threads";
-import { ExecutorConfig } from "./config";
+import { parentPort, threadId } from "worker_threads";
 import { Executor } from "./executor";
 
-let self = new Executor(workerData as ExecutorConfig);
+let self = new Executor(threadId, parentPort!);
