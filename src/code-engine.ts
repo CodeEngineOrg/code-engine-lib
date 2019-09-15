@@ -1,10 +1,9 @@
 import { EventEmitter } from "events";
-import { ono } from "ono";
 import { build } from "./build";
 import { FileList } from "./files";
 import { LogEmitter } from "./loggers";
 import { Logger } from "./loggers/types";
-import { CodeEnginePluginContext, isDestinationCleaner, isPlugin, Plugin, PluginContext, UsePlugin } from "./plugins";
+import { CodeEnginePlugin, CodeEnginePluginContext, isDestinationCleaner, PluginContext, UsePlugin } from "./plugins";
 import { Config, Event } from "./types";
 import { WorkerPool } from "./workers";
 
@@ -19,7 +18,7 @@ export class CodeEngine extends EventEmitter {
   public readonly debug: boolean;
   public readonly logger: Logger;
   private readonly [_internal]: {
-    plugins: Plugin[];
+    plugins: CodeEnginePlugin[];
     readonly context: PluginContext;
     readonly workerPool: WorkerPool;
   };
@@ -53,24 +52,13 @@ export class CodeEngine extends EventEmitter {
   public async use(...plugins: UsePlugin[]): Promise<void>;
   public async use(plugins: UsePlugin[]): Promise<void>;
   public async use(...arg1: Array<UsePlugin | UsePlugin[]>): Promise<void> {
-    let plugins: UsePlugin[] = arg1.flat();
+    let { plugins, workerPool } = this[_internal];
+    let pluginsOrModules: UsePlugin[] = arg1.flat();
 
-    for (let plugin of plugins) {
-      let defaultName = `Plugin ${this[_internal].plugins.length + 1}`;
-
-      if (typeof plugin === "string" || "moduleId" in plugin) {
-        // This is a worker plugin, so load it into the worker threads
-        plugin = await this[_internal].workerPool.loadWorkerPlugin(plugin, defaultName);
-      }
-      else {
-        plugin.name = plugin.name || defaultName;
-      }
-
-      if (!isPlugin(plugin)) {
-        throw ono.type(`${plugin} is not a valid CodeEngine plugin.`);
-      }
-
-      this[_internal].plugins.push(plugin);
+    for (let pluginOrModule of pluginsOrModules) {
+      let defaultName = `Plugin ${plugins.length + 1}`;
+      let plugin = await CodeEnginePlugin.load(pluginOrModule, workerPool, defaultName);
+      plugins.push(plugin);
     }
   }
 

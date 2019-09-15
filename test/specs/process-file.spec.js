@@ -2,7 +2,7 @@
 
 const CodeEngine = require("../utils/code-engine");
 const { testThreadConsistency } = require("../utils/utils");
-const { expect } = require("chai");
+const { assert, expect } = require("chai");
 const sinon = require("sinon");
 
 describe("Plugin.processFile()", () => {
@@ -215,6 +215,74 @@ describe("Plugin.processFile()", () => {
           "Incorrect call order.  Actual order was:\n  " +
           calls.map(({ path, processorId, now }) => `${now} processor${processorId}(${path})`).join("\n  ")
         );
+      }
+    });
+
+    it("should re-throw synchronous errors", async () => {
+      let source = {
+        name: "File Source",
+        *find () {
+          yield { path: "file1.txt" };
+          yield { path: "file2.txt" };
+          yield { path: "file3.txt" };
+        },
+      };
+
+      let plugin = await createPlugin(() => ({
+        name: "Synchronous Error Test",
+        processFile (file) {
+          if (file.path === "file2.txt") {
+            throw new SyntaxError("Boom!");
+          }
+        }
+      }));
+
+      let engine = CodeEngine.create();
+      await engine.use(source, plugin);
+
+      try {
+        await engine.build();
+        assert.fail("CodeEngine should have re-thrown the error");
+      }
+      catch (error) {
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error).not.to.be.an.instanceOf(SyntaxError);
+        expect(error.message).to.equal("An error occurred in Synchronous Error Test while processing file2.txt. \nBoom!");
+      }
+    });
+
+    it("should re-throw asynchronous errors", async () => {
+      let source = {
+        name: "File Source",
+        *find () {
+          yield { path: "file1.txt" };
+          yield { path: "file2.txt" };
+          yield { path: "file3.txt" };
+        },
+      };
+
+      let plugin = await createPlugin(() => ({
+        processFile (file) {
+          if (file.path === "file3.txt") {
+            return Promise.reject(new TypeError("Boom!"));
+          }
+          else {
+            return Promise.resolve();
+          }
+        }
+      }));
+
+      let engine = CodeEngine.create();
+      await engine.use(source, plugin);
+
+      try {
+        await engine.build();
+        assert.fail("CodeEngine should have re-thrown the error");
+      }
+      catch (error) {
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error).not.to.be.an.instanceOf(TypeError);
+        expect(error.message).to.equal("An error occurred in Plugin 2 while processing file3.txt. \nBoom!");
       }
     });
 

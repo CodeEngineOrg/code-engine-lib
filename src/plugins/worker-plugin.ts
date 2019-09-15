@@ -1,33 +1,27 @@
-import { File } from "../files";
 import { WorkerPluginSignature, WorkerPool } from "../workers";
-import { PluginContext, WorkerPlugin } from "./types";
+import { CodeEnginePlugin } from "./plugin";
+import { Plugin } from "./types";
 
 /**
  * The internal CodeEngine implementation of the `WorkerPlugin` interface.
  * This class runs a plugin in parallel across many worker threads.
  */
-export class CodeEngineWorkerPlugin implements WorkerPlugin {
+export class CodeEngineWorkerPlugin extends CodeEnginePlugin {
   public readonly id: number;
-  public readonly name: string;
   private _workerPool: WorkerPool;
 
   public constructor(id: number, signature: WorkerPluginSignature, workerPool: WorkerPool) {
-    this.id = id;
-    this.name = signature.name;
-    this._workerPool = workerPool;
+    let plugin: Plugin = {};
 
-    // Remove any methods that aren't in the plugin signature
-    if (!signature.processFile) {
-      this.processFile = undefined;
+    if (signature.processFile) {
+      plugin.processFile = (file, context) => {
+        let worker = this._workerPool.select();
+        return worker.processFile(this, file, context);
+      };
     }
-  }
 
-  /**
-   * Processes the given file on a `CodeEngineWorker`.
-   */
-  public async processFile?(file: File, context: PluginContext): Promise<void> {
-    // Get a worker from the pool
-    let worker = this._workerPool.select();
-    return worker.processFile(this, file, context);
+    super(plugin, signature.name);
+    this.id = id;
+    this._workerPool = workerPool;
   }
 }

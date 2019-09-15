@@ -1,10 +1,9 @@
-import { ono } from "ono";
-import { AnyIterator, CanIterate } from "../plugins";
+import { AnyIterator } from "../plugins";
 
 /**
  * A function that returns an iterable list of results from a source.
  */
-export type Mapper<TSource, TResult> = (source: TSource) => CanIterate<TResult>;
+export type Mapper<TSource, TResult> = (source: TSource) => AnyIterator<TResult>;
 
 /**
  * Combines multiple async iterators into a single one that returns all the combined results
@@ -22,10 +21,9 @@ export function iterateMultiple<TSource, TResult>(sources: TSource[], mapper: Ma
   return {
     [Symbol.asyncIterator]() {
       // Start iterating over all of the iterables
-      let iterables = sources.map(mapper);
-      for (let [index, iterable] of iterables.entries()) {
+      let iterators = sources.map(mapper);
+      for (let [index, iterator] of iterators.entries()) {
         let source = sources[index];
-        let iterator = getIterator(iterable);
         pending.set(source, next(source, iterator));
       }
 
@@ -61,28 +59,6 @@ type SourceIteratorResult<TSource, TResult> = IteratorResult<TResult> & {
   source: TSource;
   iterator: AnyIterator<TResult>;
 };
-
-/**
- * Returns the iterator for the given iterable.
- */
-function getIterator<TResult>(canIterate: CanIterate<TResult>): AnyIterator<TResult> {
-  let iterator = canIterate as AnyIterator<TResult>;
-  let syncIterable = canIterate as Iterable<TResult>;
-  let asyncIterable = canIterate as AsyncIterable<TResult>;
-
-  if (typeof asyncIterable[Symbol.asyncIterator] === "function") {
-    return asyncIterable[Symbol.asyncIterator]();
-  }
-  else if (typeof syncIterable[Symbol.iterator] === "function") {
-    return syncIterable[Symbol.iterator]();
-  }
-  else if (typeof iterator.next === "function") {
-    return iterator;
-  }
-  else {
-    throw ono.type(`CodeEngine requires an iterable, such as an array, Map, Set, or generator.`);
-  }
-}
 
 /**
  * Returns the next result from the given async iterator, along with the iterator itself.

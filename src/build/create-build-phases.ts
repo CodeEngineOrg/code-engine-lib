@@ -1,11 +1,11 @@
-import { isFileListProcessor, isFileProcessor, Plugin } from "../plugins";
+import { CodeEnginePlugin, isFileListProcessor, isFileProcessor } from "../plugins";
 import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phase";
 
 /**
  * Splits the plugin list into separate build phases, based on which plugins are capable of running
  * in parallal, and which ones must be run sequentially.
  */
-export function createBuildPhases(plugins: Plugin[]): [InitialBuildPhase, SubsequentBuildPhase[]] {
+export function createBuildPhases(plugins: CodeEnginePlugin[]): [InitialBuildPhase, SubsequentBuildPhase[]] {
   let [index, initialPhase] = createInitialBuildPhase(plugins);
   let subsequentPhases = createSubsequentBuildPhases(plugins.slice(index));
   return [initialPhase, subsequentPhases];
@@ -15,7 +15,7 @@ export function createBuildPhases(plugins: Plugin[]): [InitialBuildPhase, Subseq
 /**
  * Creates the initial build phase, which consists of all the parallel plugins, up to the first sequential plugin.
  */
-function createInitialBuildPhase(plugins: Plugin[]): [number, InitialBuildPhase] {
+function createInitialBuildPhase(plugins: CodeEnginePlugin[]): [number, InitialBuildPhase] {
   let initialPhase = new InitialBuildPhase();
   let index = 0;
 
@@ -40,7 +40,7 @@ function createInitialBuildPhase(plugins: Plugin[]): [number, InitialBuildPhase]
  * Creates the subsequent build phases, each of which may consist of a single sequential plugin,
  * or multiple parallel plugins.
  */
-function createSubsequentBuildPhases(plugins: Plugin[]): SubsequentBuildPhase[] {
+function createSubsequentBuildPhases(plugins: CodeEnginePlugin[]): SubsequentBuildPhase[] {
   let buildPhases: SubsequentBuildPhase[] = [];
   let buildPhase: SubsequentBuildPhase | undefined;
 

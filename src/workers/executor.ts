@@ -41,13 +41,13 @@ export class Executor {
 
     // Call the exported function to get the plugin
     let plugin = await factory(data);
-    plugin.name = plugin.name || defaultName;
 
     if (!isPlugin(plugin)) {
       throw ono.type({ workerId: this.id, moduleId },
         `Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`);
     }
 
+    plugin.name = plugin.name || defaultName;
     this._plugins.set(pluginId, plugin);
 
     return {
@@ -66,13 +66,7 @@ export class Executor {
 
     // Process the file using the specified plugin
     let plugin = this._plugins.get(data.pluginId)!;
-
-    try {
-      await plugin.processFile!(file, context);
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `${plugin.name} threw an error while processing ${file}`);
-    }
+    await plugin.processFile!(file, context);
 
     // Return any changes to the file
     return { file: FileClone.serialize(file) };

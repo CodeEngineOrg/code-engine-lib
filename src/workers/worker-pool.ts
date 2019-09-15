@@ -1,7 +1,7 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { CodeEngineWorkerPlugin, WorkerPlugin, WorkerPluginModule } from "../plugins";
+import { CodeEngineWorkerPlugin, WorkerPluginModule } from "../plugins";
 import { LoadWorkerPluginInfo } from "./types";
 import { CodeEngineWorker } from "./worker";
 
@@ -30,7 +30,8 @@ export class WorkerPool {
    * Loads the specified `WorkerPlugin` into all worker threads, and returns a facade that
    * allows it to be used from the main thread like a normal plugin.
    */
-  public async loadWorkerPlugin(module: WorkerPluginModule | string, defaultName: string): Promise<WorkerPlugin> {
+  public async loadWorkerPlugin(module: WorkerPluginModule | string, defaultName: string)
+  : Promise<CodeEngineWorkerPlugin> {
     this._assertNotDisposed();
 
     if (typeof module === "string") {

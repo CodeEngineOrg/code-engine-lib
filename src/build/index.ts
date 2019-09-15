@@ -1,13 +1,13 @@
 import { ono } from "ono";
 import { CodeEngineFileList, FileInfo, FileList } from "../files";
-import { FileSource, isFileDestination, isFileSource, Plugin, PluginContext } from "../plugins";
+import { CodeEnginePlugin, FileSource, isFileDestination, isFileSource, PluginContext } from "../plugins";
 import { createBuildPhases } from "./create-build-phases";
 import { iterateMultiple } from "./iterate-multiple";
 
 /**
  * Runs the given build pipeline
  */
-export async function build(plugins: Plugin[], context: PluginContext): Promise<FileList> {
+export async function build(plugins: CodeEnginePlugin[], context: PluginContext): Promise<FileList> {
   let files = new CodeEngineFileList();
 
   // Split the build into phases,
@@ -39,7 +39,7 @@ export async function build(plugins: Plugin[], context: PluginContext): Promise<
 /**
  * Calls the `find()` method of all file source plugins, and returns an iterator of all the files.
  */
-function find(plugins: Plugin[], context: PluginContext): AsyncIterableIterator<[FileSource, FileInfo]> {
+function find(plugins: CodeEnginePlugin[], context: PluginContext): AsyncIterableIterator<[FileSource, FileInfo]> {
   // Find all the file sources
   let sources = plugins.filter(isFileSource);
 

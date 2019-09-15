@@ -1,5 +1,4 @@
 // tslint:disable: max-classes-per-file
-import { ono } from "ono";
 import { CodeEngineFile, File, FileInfo, FileList, isContents, setContents } from "../files";
 import { FileProcessor, FileSource, PluginContext } from "../plugins";
 
@@ -59,13 +58,8 @@ export class SubsequentBuildPhase {
  * Reads the file's contents from its source
  */
 async function readFile(source: FileSource, file: File, context: PluginContext): Promise<void> {
-  try {
-    let contents = await source.read!(file, context);
-    setContents(file, contents);
-  }
-  catch (error) {
-    throw ono(error, { path: file.path }, `${source.name} threw an error while reading ${file}.`);
-  }
+  let contents = await source.read!(file, context);
+  setContents(file, contents);
 }
 
 
@@ -74,11 +68,6 @@ async function readFile(source: FileSource, file: File, context: PluginContext):
  */
 async function processFile(plugins: FileProcessor[], file: File, context: PluginContext): Promise<void> {
   for (let plugin of plugins) {
-    try {
-      await plugin.processFile(file, context);
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `${plugin.name} threw an error while processing ${file}.`);
-    }
+    await plugin.processFile(file, context);
   }
 }

@@ -164,8 +164,11 @@ describe("Plugin.find()", () => {
       assert.fail("CodeEngine should have thrown an error");
     }
     catch (error) {
-      expect(error).to.be.an.instanceOf(TypeError);
-      expect(error.message).to.equal("CodeEngine requires an iterable, such as an array, Map, Set, or generator.");
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error.message).to.equal(
+        "An error occurred in Plugin 1 while searching for source files. \n" +
+        "CodeEngine requires an iterable, such as an array, Map, Set, or generator."
+      );
     }
   });
 
@@ -194,6 +197,40 @@ describe("Plugin.find()", () => {
     catch (error) {
       expect(error.message).to.equal("Duplicate file path: " + path.normalize("path/to/file1.txt"));
     }
+  });
+
+  it("should not throw an error if files with the same initial path have different paths after initial processing", async () => {
+    let plugin = {
+      name: "Plugin",
+      find () {
+        return [
+          { path: "file1.txt" },
+          { path: "path/to/file1.txt" },
+          { path: "path/to/file1.html" },
+          { path: "path/to/another/file1.txt" },
+          { path: "path/to/another/file1.xml" },
+          { path: "path/to/file1.txt" },
+        ];
+      },
+      counter: 0,
+      processFile (file) {
+        file.name += ++this.counter;
+      }
+    };
+
+    let engine = CodeEngine.create();
+    await engine.use(plugin);
+    let files = await engine.build();
+    let fileNames = files.map((file) => file.name);
+
+    expect(fileNames).to.have.members([
+      "file1.txt1",
+      "file1.txt2",
+      "file1.html3",
+      "file1.txt4",
+      "file1.xml5",
+      "file1.txt6",
+    ]);
   });
 
   it("should throw an error if multiple sources return files with the same path", async () => {

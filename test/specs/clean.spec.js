@@ -55,18 +55,19 @@ describe("Plugin.clean()", () => {
     }
     catch (error) {
       expect(error).to.be.an.instanceOf(Error);
-      expect(error.message).to.equal("Boom!");
+      expect(error).not.to.be.an.instanceOf(SyntaxError);
+      expect(error.message).to.equal("An error occurred in Plugin 2 while cleaning the destination. \nBoom!");
     }
 
     sinon.assert.calledOnce(plugin1.clean);
     sinon.assert.calledOnce(plugin2.clean);
-    sinon.assert.notCalled(plugin3.clean);
+    sinon.assert.calledOnce(plugin3.clean);
   });
 
   it("should re-throw asynchronous errors", async () => {
-    let plugin1 = { name: "Plugin 1", clean: sinon.stub().returns(Promise.resolve()) };
-    let plugin2 = { name: "Plugin 2", clean: sinon.stub().returns(Promise.reject("Boom!")) };
-    let plugin3 = { name: "Plugin 2", clean: sinon.stub().returns(Promise.resolve()) };
+    let plugin1 = { name: "Plugin A", clean: sinon.stub().returns(Promise.resolve()) };
+    let plugin2 = { name: "Plugin B", clean: sinon.stub().returns(Promise.reject(new TypeError("Boom!"))) };
+    let plugin3 = { name: "Plugin A", clean: sinon.stub().returns(Promise.resolve()) };
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2, plugin3);
@@ -76,7 +77,9 @@ describe("Plugin.clean()", () => {
       assert.fail("CodeEngine should have re-thrown the Promise failure.");
     }
     catch (error) {
-      expect(error).to.equal("Boom!");
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error).not.to.be.an.instanceOf(TypeError);
+      expect(error.message).to.equal("An error occurred in Plugin B while cleaning the destination. \nBoom!");
     }
 
     sinon.assert.calledOnce(plugin1.clean);
