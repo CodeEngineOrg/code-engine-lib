@@ -12,10 +12,8 @@ export class CodeEngineFileList implements FileList {
     files: File[];
   };
 
-  public constructor() {
-    Object.defineProperty(this, _internal, { value: {
-      files: []
-    }});
+  public constructor(files: File[] = []) {
+    Object.defineProperty(this, _internal, { value: { files }});
   }
 
   public get size(): number {
@@ -89,8 +87,9 @@ export class CodeEngineFileList implements FileList {
     return this[_internal].files.map((file) => mapper.call(thisArg, file, this));
   }
 
-  public filter<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): File[] {
-    return this[_internal].files.filter((file) => predicate.call(thisArg, file, this));
+  public filter<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): FileList {
+    let files = this[_internal].files.filter((file) => predicate.call(thisArg, file, this));
+    return new CodeEngineFileList(files);
   }
 
   public reduce<U>(reducer: (accumulator: U, file: File, files: FileList) => U, initialValue?: U): U {

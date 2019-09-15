@@ -167,12 +167,7 @@ export interface FileList extends Iterable<File> {
   /**
    * Returns the files that satisfy the specified test.
    */
-  filter<S extends File, T = void>(predicate: (this: T, file: File, files: FileList) => file is S, thisArg?: T): S[];
-
-  /**
-   * Returns the files that satisfy the specified test.
-   */
-  filter<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): T[];
+  filter<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): FileList;
 
   /**
    * Reduces the file list to a single result.
