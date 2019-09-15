@@ -1,15 +1,17 @@
 // tslint:disable: completed-docs
+import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { File, FileInfo, FileList } from "../files";
 import { WorkerPool } from "../workers";
 import { isPlugin, pluginMethods } from "./internal-types";
-import { AnyIterator, CanIterate, Plugin, PluginContext, UsePlugin } from "./types";
+import { AnyIterator, CanIterate, FilterFunction, Plugin, PluginContext, UsePlugin } from "./types";
 
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
  */
 export class CodeEnginePlugin implements Plugin {
   public readonly name: string;
+  public readonly filter?: FilterFunction;
   private readonly _plugin: Plugin;
 
   public constructor(plugin: Plugin, defaultName: string) {
@@ -24,6 +26,15 @@ export class CodeEnginePlugin implements Plugin {
       if (!plugin[method]) {
         this[method] = undefined;
       }
+    }
+
+    try {
+      if (plugin.filter !== undefined) {
+        this.filter = createFilter({ map }, plugin.filter);
+      }
+    }
+    catch (error) {
+      throw ono(error, `Error in ${this}.`);
     }
   }
 
@@ -71,6 +82,10 @@ export class CodeEnginePlugin implements Plugin {
 
   public async processFile?(file: File, context: PluginContext): Promise<void> {
     try {
+      if (this.filter && !this.filter(file, context)) {
+        return;
+      }
+
       await this._plugin.processFile!(file, context);
     }
     catch (error) {
@@ -80,6 +95,10 @@ export class CodeEnginePlugin implements Plugin {
 
   public async processAllFiles?(files: FileList, context: PluginContext): Promise<void> {
     try {
+      if (this.filter) {
+        files = files.filter((file) => this.filter!(file, context));
+      }
+
       await this._plugin.processAllFiles!(files, context);
     }
     catch (error) {
@@ -89,6 +108,10 @@ export class CodeEnginePlugin implements Plugin {
 
   public async write?(file: File, context: PluginContext): Promise<void> {
     try {
+      if (this.filter && !this.filter(file, context)) {
+        return;
+      }
+
       await this._plugin.write!(file, context);
     }
     catch (error) {
@@ -113,6 +136,7 @@ export class CodeEnginePlugin implements Plugin {
   }
 }
 
+
 /**
  * Returns the iterator for the given iterable.
  */
@@ -133,4 +157,12 @@ function getIterator<TResult>(canIterate: CanIterate<TResult>): AnyIterator<TRes
   else {
     throw ono.type(`CodeEngine requires an iterable, such as an array, Map, Set, or generator.`);
   }
+}
+
+
+/**
+ * Maps `File` objects to paths for filtering
+ */
+function map(file: File): string {
+  return file.path;
 }

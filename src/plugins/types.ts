@@ -10,6 +10,14 @@ export interface BasePlugin {
    * The plugin name. Used for log messages.
    */
   name?: string;
+
+  /**
+   * Glob patterns, regular expressions, or filter functions that limit which files are processed
+   * by the plugin.
+   *
+   * Defaults to all files.
+   */
+  filter?: Filter;
 }
 
 
@@ -124,6 +132,48 @@ export type AnyIterator<T> = Iterator<T> | AsyncIterator<T>;
  * anything else that can be iterated.
  */
 export type CanIterate<T> = AnyIterable<T> | AnyIterator<T>;
+
+
+/**
+ * Filters files by their path.  Can be any of the following:
+ *
+ *    - A boolean to include/exclude all files
+ *    - A glob pattern
+ *    - A regular expression
+ */
+export type PathFilter = boolean | string | RegExp;
+
+
+/**
+ * Custom filter criteria for `File` objects
+ *
+ * @param file - The `File` object to be tested
+ * @param context - Contextual information
+ *
+ * @returns - A truthy value if the file should be included, or a falsy value to exclude the file
+ */
+export type FilterFunction = (file: File, context: PluginContext) => unknown;
+
+
+/**
+ * One or more `File` filter criteria
+ */
+export type FilterCriteria = PathFilter | FilterFunction | Array<PathFilter | FilterFunction>;
+
+
+/**
+ * Explicit inclusion and exclusion filter criteria.
+ */
+export interface Filters {
+  include?: FilterCriteria;
+  exclude?: FilterCriteria;
+}
+
+
+/**
+ * One or more inclusion/exclusion filter criteria for `File` objects
+ */
+export type Filter = FilterCriteria | Filters;
 
 
 /**

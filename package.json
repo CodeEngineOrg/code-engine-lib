@@ -77,6 +77,7 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
+    "file-path-filter": "^2.2.2",
     "ono": "^5.1.0",
     "resolve-from": "^5.0.0",
     "resolve-global": "^1.0.0"
