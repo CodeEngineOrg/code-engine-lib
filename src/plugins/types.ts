@@ -1,11 +1,10 @@
-import { File, FileInfo, FileList } from "../files";
-import { Logger } from "../loggers";
-
+import { File, FileInfo, FileList } from "../files/types";
+import { Logger } from "../loggers/types";
 
 /**
- * The common properties that can exist on all CodeEngine plugins
+ * A CodeEngine plugin
  */
-export interface BasePlugin {
+export interface Plugin {
   /**
    * The plugin name. Used for log messages.
    */
@@ -13,18 +12,31 @@ export interface BasePlugin {
 
   /**
    * Glob patterns, regular expressions, or filter functions that limit which files are processed
-   * by the plugin.
+   * by the plugin's `processEach()` method.
    *
    * Defaults to all files.
    */
   filter?: Filter;
-}
 
+  /**
+   * Processes a file that matches the plugin's `filter` criteria. Can be any of the following:
+   *
+   * - A function that process the file on the main thread
+   * - The path of a JavaScript module or Node package that processes the file on a worker thread
+   * - An object containing the path of a JavaScript module or Node package, as well as data to pass to it
+   *
+   */
+  processEach?: string | ModuleDefinition | FileProcessor;
 
-/**
- * A CodeEngine plugin
- */
-export interface Plugin extends BasePlugin {
+  /**
+   * Processes list of all files.
+   *
+   * NOTE: Most plugins should use `processEach()` instead, which speeds-up the build by allowing
+   * multiple files to be processed in parallel. Using `processAll()` forces CodeEngine to puase
+   * processing until all files are ready to be processed.
+   */
+  processAll?: FileProcessor;
+
   /**
    * Finds files to be built from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
    */
@@ -33,27 +45,12 @@ export interface Plugin extends BasePlugin {
   /**
    * Reads the contents of a file from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
    */
-  read?(file: File, context: PluginContext): undefined | string | Buffer | Promise<undefined | string | Buffer>;
+  read?(file: File, context: PluginContext): void | Promise<void>;
 
   /**
    * Watches source files and notifies CodeEngine when changes are detected.
    */
   watch?(context: PluginContext): CanIterate<FileInfo>;
-
-  /**
-   * Processes a file. Depending on the plugin, this may alter the file's path or metadata,
-   * edit its contents, add new files, or even delete the file.
-   */
-  processFile?(file: File, context: PluginContext): void | Promise<void>;
-
-  /**
-   * Processes the list of all files.
-   *
-   * NOTE: Most plugins should use `processFile()` instead, which speeds-up the build by allowing
-   * multiple files to be processed in parallel. Using `processAllFiles()` forces CodeEngine to
-   * puase processing until all files are ready to be processed.
-   */
-  processAllFiles?(files: FileList, context: PluginContext): void | Promise<void>;
 
   /**
    * Writes a file to a destination, such as the filesystem, a CMS, a database, an RSS feed, etc.
@@ -68,30 +65,32 @@ export interface Plugin extends BasePlugin {
 
 
 /**
- * A CodeEngine plugin that runs on a worker thread.
+ * Processes a file, either on the main thread or on a worker thread.
+ *
+ * @param files
+ * A list of files to be processed. You can modify files, delete files, or add new files to the list.
+ * For the `Plugin.processEach()` method, this list will always start with a single file.
  */
-export interface WorkerPlugin extends BasePlugin {
-  /**
-   * Processes a file. Depending on the plugin, this may alter the file's path or metadata,
-   * edit its contents, add new files, or even delete the file.
-   */
-  processFile?(file: File, context: PluginContext): void | Promise<void>;
-}
+export type FileProcessor = (files: FileList, context: PluginContext) => void | Promise<void>;
 
 
 /**
- * A JavaScript module whose default export is a function that returns a `WorkerPlugin`.
+ * A JavaScript module whose default export is a `FileProcessor` or `FileProcessorFactory`.
  */
-export interface WorkerPluginModule {
+export interface ModuleDefinition {
   /**
    * A JavaScript module ID, such as the path of a JavaScript file or the name of an NPM package.
-   * The module's default export must be a function that returns a `WorkerPlugin`.
+   * The module's default export must be a `FileProcessor` or `FileProcessorFactory`.
    */
   moduleId: string;
 
   /**
-   * Optional data to be passed when invoking the module's exported function. This data can only
-   * contain types that are compatible with the Structured Clone Algoritm.
+   * If the module's default export is a `FileProcessorFactory`, then this data will be passed when
+   * calling the factory function. This data can only contain types that are compatible with the
+   * Structured Clone Algoritm.
+   *
+   * NOTE: If `data` is `undefined`, then the module must export a `FileProcessor` directly, not
+   * a `FileProcessorFactory`.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
    */
@@ -100,19 +99,12 @@ export interface WorkerPluginModule {
 
 
 /**
- * A function that returns a `WorkerPlugin`. The default export of a `WorkerPluginModule` must
+ * A function that returns a `FileProcessor`. The default export of a `ModuleDefinition` must
  * match this signature.
  *
- * @param data - The `WorkerPluginModule.data` value
+ * @param data - The `ModuleDefinition.data` value
  */
-export type WorkerPluginFactory = (data: unknown) => WorkerPlugin | Promise<WorkerPlugin>;
-
-
-/**
- * A plugin for CodeEngine to use. Can be a `Plugin` object that runs on the main thread,
- * or a JavaScript module to load a `WorkerPlugin` that runs on worker threads.
- */
-export type UsePlugin = Plugin | WorkerPluginModule | string;
+export type FileProcessorFactory = (data: unknown) => FileProcessor | Promise<FileProcessor>;
 
 
 /**
@@ -146,13 +138,8 @@ export type PathFilter = boolean | string | RegExp;
 
 /**
  * Custom filter criteria for `File` objects
- *
- * @param file - The `File` object to be tested
- * @param context - Contextual information
- *
- * @returns - A truthy value if the file should be included, or a falsy value to exclude the file
  */
-export type FilterFunction = (file: File, context: PluginContext) => unknown;
+export type FilterFunction = (file: File, files: FileList, context: PluginContext) => unknown;
 
 
 /**

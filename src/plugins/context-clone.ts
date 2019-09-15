@@ -1,5 +1,5 @@
-import { LoggerClone, SerializedLogger } from "../loggers";
-import { RequestHandlerCallbacks } from "../workers";
+import { LoggerClone, SerializedLogger } from "../loggers/logger-clone";
+import { RequestHandlerCallbacks } from "../workers/messenger";
 import { CodeEnginePluginContext } from "./context";
 import { PluginContext } from "./types";
 

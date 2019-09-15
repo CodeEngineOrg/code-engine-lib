@@ -1,20 +1,21 @@
 // tslint:disable: completed-docs
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { File, FileInfo, FileList } from "../files";
-import { WorkerPool } from "../workers";
+import { CodeEngineFileList } from "../files/file-list";
+import { File, FileInfo, FileList } from "../files/types";
+import { WorkerPool } from "../workers/worker-pool";
 import { isPlugin, pluginMethods } from "./internal-types";
-import { AnyIterator, CanIterate, FilterFunction, Plugin, PluginContext, UsePlugin } from "./types";
+import { AnyIterator, CanIterate, FileProcessor, FilterFunction, Plugin, PluginContext } from "./types";
 
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
  */
-export class CodeEnginePlugin implements Plugin {
+export class CodeEnginePlugin {
   public readonly name: string;
   public readonly filter?: FilterFunction;
   private readonly _plugin: Plugin;
 
-  public constructor(plugin: Plugin, defaultName: string) {
+  private constructor(plugin: Plugin, defaultName: string) {
     if (!isPlugin(plugin)) {
       throw ono.type(`${plugin} is not a valid CodeEngine plugin.`);
     }
@@ -22,32 +23,36 @@ export class CodeEnginePlugin implements Plugin {
     this.name = plugin.name || defaultName;
     this._plugin = plugin;
 
+    if (plugin.filter !== undefined) {
+      this.filter = createFilter({ map }, plugin.filter);
+    }
+
     for (let method of pluginMethods) {
       if (!plugin[method]) {
         this[method] = undefined;
       }
     }
-
-    try {
-      if (plugin.filter !== undefined) {
-        this.filter = createFilter({ map }, plugin.filter);
-      }
-    }
-    catch (error) {
-      throw ono(error, `Error in ${this}.`);
-    }
   }
 
   /**
-   * Loads the given `Plugin` or `WorkerPluginModule`.
+   * Loads the given `Plugin` or `ModuleDefinition`.
    */
-  public static async load(plugin: UsePlugin, workerPool: WorkerPool, defaultName: string): Promise<CodeEnginePlugin> {
-    if (typeof plugin === "string" || (typeof plugin === "object" && "moduleId" in plugin)) {
-      // This is a worker plugin, so load it into the worker threads
-      return workerPool.loadWorkerPlugin(plugin, defaultName);
+  public static async load(pluginPOJO: Plugin, workerPool: WorkerPool, defaultName: string): Promise<CodeEnginePlugin> {
+    let plugin: CodeEnginePlugin;
+
+    try {
+      plugin = new CodeEnginePlugin(pluginPOJO, defaultName);
+
+      let { processEach } = pluginPOJO;
+      if (typeof processEach === "string" || (typeof processEach === "object" && "moduleId" in plugin)) {
+        // The processEach method is implemented as a separate module, so load the module on all worker threads.
+        plugin._plugin.processEach = await workerPool.loadModule(processEach);
+      }
+
+      return plugin;
     }
-    else {
-      return new CodeEnginePlugin(plugin, defaultName);
+    catch (error) {
+      throw ono(error, `Error in ${defaultName}.`);
     }
   }
 
@@ -61,9 +66,9 @@ export class CodeEnginePlugin implements Plugin {
     }
   }
 
-  public async read?(file: File, context: PluginContext): Promise<undefined | string | Buffer> {
+  public async read?(file: File, context: PluginContext): Promise<void> {
     try {
-      return await this._plugin.read!(file, context);
+      await this._plugin.read!(file, context);
     }
     catch (error) {
       throw ono(error, { path: file.path }, `An error occurred in ${this} while reading ${file}.`);
@@ -80,26 +85,25 @@ export class CodeEnginePlugin implements Plugin {
     }
   }
 
-  public async processFile?(file: File, context: PluginContext): Promise<void> {
+  public async processEach?(file: File, context: PluginContext): Promise<FileList> {
     try {
-      if (this.filter && !this.filter(file, context)) {
-        return;
+      let files = new CodeEngineFileList([file]);
+
+      if (this.filter && !this.filter(file, files, context)) {
+        return files;
       }
 
-      await this._plugin.processFile!(file, context);
+      await (this._plugin.processEach as FileProcessor)(files, context);
+      return files;
     }
     catch (error) {
       throw ono(error, { path: file.path }, `An error occurred in ${this} while processing ${file}.`);
     }
   }
 
-  public async processAllFiles?(files: FileList, context: PluginContext): Promise<void> {
+  public async processAll?(files: FileList, context: PluginContext): Promise<void> {
     try {
-      if (this.filter) {
-        files = files.filter((file) => this.filter!(file, context));
-      }
-
-      await this._plugin.processAllFiles!(files, context);
+      await this._plugin.processAll!(files, context);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while processing files.`);
@@ -108,10 +112,6 @@ export class CodeEnginePlugin implements Plugin {
 
   public async write?(file: File, context: PluginContext): Promise<void> {
     try {
-      if (this.filter && !this.filter(file, context)) {
-        return;
-      }
-
       await this._plugin.write!(file, context);
     }
     catch (error) {

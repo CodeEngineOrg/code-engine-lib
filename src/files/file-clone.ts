@@ -1,18 +1,20 @@
-import { RequestHandlerCallbacks, serialize } from "../workers";
+import { serialize } from "../workers/serialization";
 import { CodeEngineFile } from "./file";
-import { File, FileMetadata } from "./types";
+import { File, FileInfo, FileMetadata } from "./types";
 
 /**
- * A clone of a `File` object. The clone exists in a worker thread and proxies calls back to the
- * main thread when needed.
+ * A clone of a `File` object. The clone exists in a worker thread and mirrors a `File` that
+ * exists on the main thread.
  */
 export class FileClone extends CodeEngineFile {
-  public constructor(serialized: SerializedFile, callbacks: RequestHandlerCallbacks) {
-    super({
+  public constructor(serialized: SerializedFile) {
+    let info: FileInfo = {
       path: serialized.path,
       metadata: serialized.metadata,
       contents: Buffer.from(serialized.contents),
-    });
+    };
+
+    super(info, serialized.originalPath);
   }
 
   /**
@@ -21,6 +23,7 @@ export class FileClone extends CodeEngineFile {
   public static serialize(file: File): SerializedFile {
     return {
       path: file.path,
+      originalPath: file.originalPath,
       createdAt: file.createdAt,
       modifiedAt: file.modifiedAt,
       metadata: serialize(file.metadata) as FileMetadata,
@@ -49,6 +52,7 @@ export class FileClone extends CodeEngineFile {
  */
 export interface SerializedFile {
   path: string;
+  originalPath: string;
   createdAt: Date;
   modifiedAt: Date;
   metadata: FileMetadata;

@@ -1,6 +1,9 @@
 import { ono } from "ono";
-import { CodeEngineFileList, FileInfo, FileList } from "../files";
-import { CodeEnginePlugin, FileSource, isFileDestination, isFileSource, PluginContext } from "../plugins";
+import { CodeEngineFileList } from "../files/file-list";
+import { FileInfo, FileList } from "../files/types";
+import { FileSource, isFileDestination, isFileSource } from "../plugins/internal-types";
+import { CodeEnginePlugin } from "../plugins/plugin";
+import { PluginContext } from "../plugins/types";
 import { createBuildPhases } from "./create-build-phases";
 import { iterateMultiple } from "./iterate-multiple";
 
@@ -16,7 +19,7 @@ export async function build(plugins: CodeEnginePlugin[], context: PluginContext)
 
   // Iterate through each source file, processing each file in parallel for maximum performance.
   for await (let [source, fileInfo] of find(plugins, context)) {
-    let file = initialPhase.processFile(source, fileInfo, context);
+    let file = initialPhase.processEach(source, fileInfo, context);
     files.add(file);
   }
 
@@ -25,7 +28,7 @@ export async function build(plugins: CodeEnginePlugin[], context: PluginContext)
 
   // The remaining build phases (if any) process the full list of files
   for (let phase of subsequentPhases) {
-    await phase.processAllFiles(files, context);
+    await phase.processAll(files, context);
   }
 
   // Find all the destination plugins

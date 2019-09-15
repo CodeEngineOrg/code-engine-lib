@@ -1,5 +1,5 @@
 import { CodeEnginePlugin } from "./plugin";
-import { Plugin, WorkerPlugin } from "./types";
+import { ModuleDefinition, Plugin } from "./types";
 
 
 /**
@@ -14,19 +14,13 @@ type MethodNames<T> = {
 /**
  * The name of a `Plugin` method.
  */
-export type PluginMethod = MethodNames<Plugin>;
-
-
-/**
- * The name of a `WorkerPlugin` method.
- */
-export type WorkerPluginMethod = MethodNames<WorkerPlugin>;
+export type PluginMethodName = MethodNames<Plugin>;
 
 
 /**
  * An array of plugin method names.
  */
-export const pluginMethods: PluginMethod[] = ["find", "read", "watch", "processFile", "processAllFiles", "write", "clean"];
+export const pluginMethods: PluginMethodName[] = ["find", "read", "watch", "processAll", "write", "clean"];
 
 
 /**
@@ -37,7 +31,12 @@ export function isPlugin(value: unknown): value is Plugin {
   return plugin &&
     typeof plugin === "object" &&
     isOptionalType(plugin.name, "string") &&
-    pluginMethods.every((method) => isOptionalType(plugin[method], "function"));
+    pluginMethods.every((method) => isOptionalType(plugin[method], "function")) &&
+    (
+      isOptionalType(plugin.processEach, "string") ||
+      isOptionalType(plugin.processEach, "function") ||
+      typeof (plugin.processEach as ModuleDefinition).moduleId === "string"
+    );
 }
 
 /**
@@ -62,28 +61,28 @@ export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
 
 
 /**
- * A plugin that implements the `processFile()` method.
+ * A plugin that implements the `processEach()` method.
  */
-export type FileProcessor = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFile">>;
+export type HasProcessEach = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processEach">>;
 
 /**
- * Determines whether the given Plugin implements the `processFile()` method
+ * Determines whether the given Plugin implements the `processEach()` method
  */
-export function isFileProcessor(plugin: CodeEnginePlugin): plugin is FileProcessor {
-  return !!plugin.processFile;
+export function hasProcessEach(plugin: CodeEnginePlugin): plugin is HasProcessEach {
+  return !!plugin.processEach;
 }
 
 
 /**
- * A plugin that implements the `processAllFiles()` method.
+ * A plugin that implements the `processAll()` method.
  */
-export type FileListProcessor = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processAllFiles">>;
+export type HasProcessAll = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processAll">>;
 
 /**
- * Determines whether the given Plugin implements the `processAllFiles()` method
+ * Determines whether the given Plugin implements the `processAll()` method
  */
-export function isFileListProcessor(plugin: CodeEnginePlugin): plugin is FileListProcessor {
-  return !!plugin.processAllFiles;
+export function hasProcessAll(plugin: CodeEnginePlugin): plugin is HasProcessAll {
+  return !!plugin.processAll;
 }
 
 

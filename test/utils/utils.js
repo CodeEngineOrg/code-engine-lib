@@ -22,44 +22,47 @@ const utils = module.exports = {
 
   /**
    * Ensures that tests work consistently on both the main thread and worker threads.
-   * The test suite calls the `createPlugin()` helper function to create a plugin without knowing
-   * whether the plugin will run on the main thread or a worker thread.
+   * The test suite calls the `createModule()` function that's passed to it rather than the normal
+   * `utils.createModule()` method, so every plugin is authored as though it was a worker plugin.
    */
   testThreadConsistency (testSuite) {
-    describe("Main Thread", () => testSuite(createMainThreadPlugin));
-    describe("Worker Thread", () => testSuite(createWorkerThreadPlugin));
+    describe("Main Thread", () => testSuite(createMainThreadModule));
+    describe("Worker Thread", () => testSuite(utils.createModule));
   },
 
 
   /**
-   * Creates a temporary JavaScript file with the given name and contents.
-   * This is for testing the worker thread functionality of CodeEngine.
+   * Creates a worker module that exports the given plugin method, optionally accepting the given data.
    *
-   * @param contents {string} - The JavaScript code
-   * @returns {string} - The absolute path of the module
+   * @param method {function} - The plugin method to return in the module
+   * @param [data] {object} - The data (if any) to make available to the plugin method
+   * @returns {string|object} - A CodeEngine worker module
    */
-  async createModule (contents) {
-    let path = await new Promise((resolve, reject) =>
+  async createModule (method, data) {
+    // Create a temp file
+    let moduleId = await new Promise((resolve, reject) =>
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
-    await fs.writeFile(path, contents);
-    return path;
+
+    if (data === undefined) {
+      await fs.writeFile(moduleId, `module.exports = ${method};`);
+      return moduleId;
+    }
+    else {
+      await fs.writeFile(moduleId, `module.exports = (data) => ${method};`);
+      return { module, data };
+    }
   },
 };
 
 
 /**
- * Creates a CodeEngine plugin that runs on the main thread.
+ * Runs the given plugin method on the main thread
  */
-async function createMainThreadPlugin (pluginFactory, data) {
-  // Create the plugin on the main thread (this thread)
-  return pluginFactory(data);
-}
-
-
-/**
- * Creates a CodeEngine plugin that runs on a worker thread.
- */
-async function createWorkerThreadPlugin (pluginFactory, data) {
-  let moduleId = await utils.createModule(`module.exports = ${pluginFactory.toString()};`);
-  return { moduleId, data };
+async function createMainThreadModule (method, data) {
+  if (data === undefined) {
+    return method;
+  }
+  else {
+    return eval(method.toString()); // eslint-disable-line no-eval
+  }
 }

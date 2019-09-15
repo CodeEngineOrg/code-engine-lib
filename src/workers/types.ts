@@ -1,5 +1,6 @@
-import { SerializedFile } from "../files";
-import { SerializedPluginContext, WorkerPlugin, WorkerPluginMethod, WorkerPluginModule } from "../plugins";
+import { SerializedFileList } from "../files/file-list-clone";
+import { SerializedPluginContext } from "../plugins/context-clone";
+import { ModuleDefinition } from "../plugins/types";
 
 /**
  * Events that occur on a `CodeEngineWorker` or `Executor`.
@@ -8,25 +9,19 @@ export enum WorkerEvent {
   Online = "online",
   Terminated = "terminated",
   LoadPlugin = "loadPlugin",
-  ProcessFile = "processFile",
+  ProcessFiles = "processFiles",
   Log = "log",
 }
 
 
 /**
- * Instructs a `CodeEngineWorker` or `Executor` to load the specified `WorkerPluginModule`.
+ * the data that is passed to a `CodeEngineWorker` or `Executor` to load a module.
  */
-export interface LoadWorkerPluginInfo extends WorkerPluginModule {
+export interface LoadModuleData extends ModuleDefinition {
   /**
-   * A unique ID that is assigned to each plugin so they can be referenced across thread boundaries.
+   * A unique ID that is assigned to each module so they can be referenced across thread boundaries.
    */
-  pluginId: number;
-
-  /**
-   * The default name to use for the plugin if it doesn't have one.
-   * This will be something generic like "Plugin 3".
-   */
-  defaultName: string;
+  id: number;
 
   /**
    * The directory path to use when resolving relative modules.
@@ -36,28 +31,20 @@ export interface LoadWorkerPluginInfo extends WorkerPluginModule {
 
 
 /**
- * An object that indicates which methods are implemented by a `WorkerPlugin`.
- */
-export type WorkerPluginSignature = {
-  [k in keyof WorkerPlugin]-?: k extends WorkerPluginMethod ? boolean : WorkerPlugin[k];
-};
-
-
-/**
  * The data that is passed from the `CodeEngineWorker` to the `Executor` to execute
- * a plugin's `processFile()` method.
+ * a plugin's `processEach()` method.
  */
-export interface ProcessFileData {
-  pluginId: number;
-  file: SerializedFile;
+export interface FileProcessorData {
+  id: number;
+  files: SerializedFileList;
   context: SerializedPluginContext;
 }
 
 
 /**
  * The data that is passed from the `Executor` back to the `CodeEngineWorker` after executing
- * a plugin's `processFile()` method.
+ * a plugin's `processEach()` method.
  */
-export interface ProcessFileResults {
-  file: SerializedFile;
+export interface FileProcessorResults {
+  files: SerializedFileList;
 }

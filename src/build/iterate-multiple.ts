@@ -1,4 +1,4 @@
-import { AnyIterator } from "../plugins";
+import { AnyIterator } from "../plugins/types";
 
 /**
  * A function that returns an iterable list of results from a source.

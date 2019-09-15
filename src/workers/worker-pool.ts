@@ -1,11 +1,11 @@
 import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
-import { CodeEngineWorkerPlugin, WorkerPluginModule } from "../plugins";
-import { LoadWorkerPluginInfo } from "./types";
+import { FileProcessor, ModuleDefinition } from "../plugins/types";
+import { LoadModuleData } from "./types";
 import { CodeEngineWorker } from "./worker";
 
-let pluginCounter = 0;
+let moduleCounter = 0;
 let roundRobinCounter = 0;
 
 /**
@@ -27,29 +27,26 @@ export class WorkerPool {
   }
 
   /**
-   * Loads the specified `WorkerPlugin` into all worker threads, and returns a facade that
-   * allows it to be used from the main thread like a normal plugin.
+   * Loads the specified JavaScript module into all worker threads.
    */
-  public async loadWorkerPlugin(module: WorkerPluginModule | string, defaultName: string)
-  : Promise<CodeEngineWorkerPlugin> {
+  public async loadModule(module: ModuleDefinition | string): Promise<FileProcessor> {
     this._assertNotDisposed();
 
     if (typeof module === "string") {
       module = { moduleId: module };
     }
 
-    let info: LoadWorkerPluginInfo = {
+    let data: LoadModuleData = {
       ...module,
-      defaultName,
-      pluginId: ++pluginCounter,
+      id: ++moduleCounter,
       cwd: this._engine.cwd,
     };
 
-    let signatures = await Promise.all(
-      this._workers.map((worker) => worker.loadWorkerPlugin(info))
+    await Promise.all(
+      this._workers.map((worker) => worker.loadModule(data))
     );
 
-    return new CodeEngineWorkerPlugin(info.pluginId, signatures[0], this);
+    return this._createFileProcessor(data.id);
   }
 
   /**
@@ -80,6 +77,19 @@ export class WorkerPool {
     let workers = this._workers;
     this._workers = [];
     await Promise.all(workers.map((worker) => worker.terminate()));
+  }
+
+  /**
+   * Creates a `FileProcessor` function that marshalls to a worker in the pool.
+   */
+  private _createFileProcessor(id: number): FileProcessor {
+    return (files, context) => {
+      this._assertNotDisposed();
+
+      // Select a worker from the pool to process the files
+      let worker = this.select();
+      return worker.processFiles(id, files, context);
+    };
   }
 
   /**

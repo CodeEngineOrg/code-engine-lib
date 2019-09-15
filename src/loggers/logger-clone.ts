@@ -1,13 +1,14 @@
 import { EventEmitter } from "events";
-import { LogEventData } from ".";
-import { SerializedPluginContext } from "../plugins";
-import { RequestHandlerCallbacks, serialize, WorkerEvent } from "../workers";
+import { SerializedPluginContext } from "../plugins/context-clone";
+import { RequestHandlerCallbacks } from "../workers/messenger";
+import { serialize } from "../workers/serialization";
+import { WorkerEvent } from "../workers/types";
 import { LogEmitter } from "./log-emitter";
-import { Logger } from "./types";
+import { LogEventData, Logger } from "./types";
 
 /**
- * A clone of a `Logger` object. The clone exists in a worker thread and proxies calls back
- * to the main thread when needed.
+ * A clone of a `Logger` object. The clone exists in a worker thread and mirrors a `Logger` that
+ * exists on the main thread.
  */
 export class LoggerClone extends LogEmitter {
   public constructor(serialized: SerializedPluginContext, callbacks: RequestHandlerCallbacks) {

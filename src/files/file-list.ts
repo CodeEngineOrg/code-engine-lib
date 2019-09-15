@@ -1,6 +1,7 @@
 // tslint:disable: completed-docs
 import { ono } from "ono";
-import { File, FileList } from "./types";
+import { CodeEngineFile } from "./file";
+import { File, FileInfo, FileList, FilePathField } from "./types";
 
 const _internal = Symbol("Internal CodeEngine Properties");
 
@@ -40,31 +41,51 @@ export class CodeEngineFileList implements FileList {
     }
   }
 
-  public add(file: File): this {
-    if (this.has(file)) {
-      throw ono({ path: file.path }, `Duplicate file path: ${file}`);
+  public add(props: FileInfo): File {
+    if (this.has(props.path)) {
+      throw ono({ path: props.path }, `Duplicate file path: ${props.path}`);
     }
 
+    let file = new CodeEngineFile(props);
     this[_internal].files.push(file);
-    return this;
+    return file;
   }
 
-  public has(file: string | File): boolean {
-    let index = findIndex(this, file);
+  public has(file: string | File, compareField?: FilePathField): boolean {
+    let index = findIndex(this, file, compareField);
     return index >= 0;
   }
 
-  public get(file: string | File): File | undefined {
-    let index = findIndex(this, file);
+  public get(file: string | File, compareField?: FilePathField): File | undefined {
+    let index = findIndex(this, file, compareField);
     return index === -1 ? undefined : this[_internal].files[index];
   }
 
-  public demand(file: string | File): File {
-    let index = findIndex(this, file);
+  public demand(file: string | File, compareField?: FilePathField): File {
+    let index = findIndex(this, file, compareField);
     if (index === -1) {
       throw ono({ path: typeof file === "string" ? file : file.path }, `Could not find file: ${file}`);
     }
     return this[_internal].files[index];
+  }
+
+  public delete(file: string | File, compareField?: FilePathField): boolean {
+    let index = findIndex(this, file, compareField);
+
+    if (index === -1) {
+      return false;
+    }
+
+    this[_internal].files.splice(index, 1);
+    return true;
+  }
+
+  public clear(): void {
+    this[_internal].files = [];
+  }
+
+  public join(separator?: string): string {
+    return this[_internal].files.join(separator);
   }
 
   public find<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): File | undefined {
@@ -96,25 +117,6 @@ export class CodeEngineFileList implements FileList {
     return this[_internal].files.reduce((accumulator, file) => reducer(accumulator, file, this), initialValue as U);
   }
 
-  public join(separator?: string): string {
-    return this[_internal].files.join(separator);
-  }
-
-  public delete(file: string | File): boolean {
-    let index = findIndex(this, file);
-
-    if (index === -1) {
-      return false;
-    }
-
-    this[_internal].files.splice(index, 1);
-    return true;
-  }
-
-  public clear(): void {
-    this[_internal].files = [];
-  }
-
   /**
    * Returns a string representation of the file list.
    */
@@ -133,12 +135,12 @@ export class CodeEngineFileList implements FileList {
 /**
  * Returns the internal index of the specified file.
  */
-function findIndex(list: CodeEngineFileList, file: string | File): number {
-  let path = typeof file === "string" ? file : file.path;
+function findIndex(list: CodeEngineFileList, file: string | File, compareField: FilePathField = "path") {
+  let searchValue = typeof file === "string" ? file : file[compareField];
 
   let i = 0, files = list[_internal].files;
   for (; i < files.length; i++) {
-    if (files[i].path === path) {
+    if (files[i][compareField] === searchValue) {
       return i;
     }
   }

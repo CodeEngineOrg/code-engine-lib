@@ -13,21 +13,37 @@ export class CodeEngineFile implements File {
   public createdAt: Date;
   public modifiedAt: Date;
   public metadata: FileMetadata = {};
-  public contents!: Buffer;
+  public contents: Buffer;
   private readonly [_internal]: {
     baseName: string;
+    originalPath: string;
   };
 
-  public constructor(props: FileInfo) {
+  public constructor(props: FileInfo, originalPath?: string) {
     Object.defineProperty(this, _internal, { value: {
       baseName: "",
+      originalPath,
     }});
 
     this.path = props.path;
     this.createdAt = props.createdAt || new Date();
     this.modifiedAt = props.modifiedAt || new Date();
     Object.assign(this.metadata, props.metadata);
-    setContents(this, props.contents);
+
+    try {
+      if (props.contents === null || props.contents === undefined) {
+        this.contents = Buffer.alloc(0);
+      }
+      else if (Buffer.isBuffer(props.contents)) {
+        this.contents = props.contents;
+      }
+      else {
+        this.contents = Buffer.from(props.contents as string);
+      }
+    }
+    catch (error) {
+      throw ono(error, { path: this.path }, `Error setting file contents for ${this}`);
+    }
   }
 
   public get name(): string {
@@ -53,10 +69,16 @@ export class CodeEngineFile implements File {
       throw ono({ path: value }, `Expected a relative path, but got an absolute path: ${value}`);
     }
 
-    let { dir, name, ext } = path.parse(path.normalize(value));
+    value = path.normalize(value);
+    let { dir, name, ext } = path.parse(value);
     this.dir = dir;
     this.extension = ext;
     this[_internal].baseName = name;
+    this[_internal].originalPath = this[_internal].originalPath || value;
+  }
+
+  public get originalPath(): string {
+    return this[_internal].originalPath;
   }
 
   /**
@@ -71,24 +93,5 @@ export class CodeEngineFile implements File {
    */
   public get [Symbol.toStringTag](): string {
     return "File";
-  }
-}
-
-/**
- * Determines whether the given value is valid File contents.
- */
-export function isContents(contents?: string | Buffer): contents is string | Buffer {
-  return contents !== undefined && contents !== null;
-}
-
-/**
- * Replaces the contents of the file, if necessary.
- */
-export function setContents(file: File, contents?: string | Buffer): void {
-  if (isContents(contents)) {
-    file.contents = typeof contents === "string" ? Buffer.from(contents) : contents;
-  }
-  else if (!file.contents) {
-    file.contents = Buffer.alloc(0);
   }
 }

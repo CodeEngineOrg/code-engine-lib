@@ -1,4 +1,4 @@
-import { Logger } from "../loggers";
+import { Logger } from "../loggers/types";
 import { PluginContext } from "./types";
 
 /**

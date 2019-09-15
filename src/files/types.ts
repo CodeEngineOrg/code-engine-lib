@@ -1,22 +1,4 @@
 /**
- * The information necessary to create a `File` object.
- */
-export interface FileInfo {
-  path: string;
-  createdAt?: Date;
-  modifiedAt?: Date;
-  metadata?: FileMetadata;
-  contents?: string | Buffer;
-}
-
-
-/**
- * Arbitrary file metadata that can be added by plugins.
- */
-export type FileMetadata = Record<string, unknown>;
-
-
-/**
  * A CodeEngine file. This does not necessarily correspond to a file on disk.
  * Files are a virtual concept with a path, name, and data contents. Those values could
  * come from a database, a CMS, an RSS feed, or any other source.
@@ -63,6 +45,11 @@ export interface File {
   extension: string;
 
   /**
+   * Returns the original value of the `path` property when the file was first created.
+   */
+  readonly originalPath: string;
+
+  /**
    * The date and time that the file was first created at its source.
    */
   createdAt: Date;
@@ -82,6 +69,30 @@ export interface File {
    */
   contents: Buffer;
 }
+
+
+/**
+ * The information necessary to create a `File` object.
+ */
+export interface FileInfo {
+  path: string;
+  createdAt?: Date;
+  modifiedAt?: Date;
+  metadata?: FileMetadata;
+  contents?: string | Buffer | Uint8Array | ArrayBuffer;
+}
+
+
+/**
+ * Arbitrary file metadata that can be added by plugins.
+ */
+export type FileMetadata = Record<string, unknown>;
+
+
+/**
+ * The fields of a `File` object that can be used when searching a `FileList`.
+ */
+export type FilePathField = "path" | "originalPath";
 
 
 /**
@@ -116,22 +127,50 @@ export interface FileList extends Iterable<File> {
   /**
    * Adds the given file to the list.
    */
-  add(file: File): this;
+  add(file: FileInfo): File;
 
   /**
    * Determines whether the specified file exists in the list.
+   *
+   * @param file - The path or `File` object to check for
+   * @pram compareProperty - The property of each file in the list to compare against. Defaults to the `path` property.
    */
-  has(file: string | File): boolean;
+  has(file: string | File, compareField?: FilePathField): boolean;
 
   /**
    * Returns the specified file in the list, or `undefined` if not found.
+   *
+   * @param file - The path or `File` object to get
+   * @pram compareProperty - The property of each file in the list to compare against. Defaults to the `path` property.
    */
-  get(file: string | File): File | undefined;
+  get(file: string | File, compareField?: FilePathField): File | undefined;
 
   /**
    * Returns the specified file in the list. Throws an error if not found.
+   *
+   * @param file - The path or `File` object to get
+   * @pram compareProperty - The property of each file in the list to compare against. Defaults to the `path` property.
    */
-  demand(file: string | File): File;
+  demand(file: string | File, compareField?: FilePathField): File;
+
+  /**
+   * Removes the specified file from the list.
+   *
+   * @param file - The path or `File` object to delete
+   * @pram compareProperty - The property of each file in the list to compare against. Defaults to the `path` property.
+   * @returns `true` if the file was deleted from the list, or `false` if the file was not in the list.
+   */
+  delete(file: string | File, compareField?: FilePathField): boolean;
+
+  /**
+   * Removes all files from the list.
+   */
+  clear(): void;
+
+  /**
+   * Returns a string consisting of all the elements of the list, separated by the specified separator.
+   */
+  join(separator?: string): string;
 
   /**
    * Returns a file in the list where predicate is true, or `undefined` otherwise.
@@ -183,21 +222,4 @@ export interface FileList extends Iterable<File> {
    * Reduces the file list to a single result.
    */
   reduce<U>(reducer: (accumulator: U, file: File, files: FileList) => U, initialValue: U): U;
-
-  /**
-   * Returns a string consisting of all the elements of the list, separated by the specified separator.
-   */
-  join(separator?: string): string;
-
-  /**
-   * Removes the specified file from the list.
-   *
-   * @returns `true` if the file was deleted from the list, or `false` if the file was not in the list.
-   */
-  delete(file: string | File): boolean;
-
-  /**
-   * Removes all files from the list.
-   */
-  clear(): void;
 }

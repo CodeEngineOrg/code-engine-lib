@@ -1,11 +1,14 @@
 import { EventEmitter } from "events";
-import { build } from "./build";
-import { FileList } from "./files";
-import { LogEmitter } from "./loggers";
+import { build } from "./build/build";
+import { FileList } from "./files/types";
+import { LogEmitter } from "./loggers/log-emitter";
 import { Logger } from "./loggers/types";
-import { CodeEnginePlugin, CodeEnginePluginContext, isDestinationCleaner, PluginContext, UsePlugin } from "./plugins";
+import { CodeEnginePluginContext } from "./plugins/context";
+import { isDestinationCleaner } from "./plugins/internal-types";
+import { CodeEnginePlugin } from "./plugins/plugin";
+import { Plugin, PluginContext } from "./plugins/types";
 import { Config, Event } from "./types";
-import { WorkerPool } from "./workers";
+import { WorkerPool } from "./workers/worker-pool";
 
 const _internal = Symbol("Internal CodeEngine Properties");
 
@@ -49,15 +52,15 @@ export class CodeEngine extends EventEmitter {
   /**
    * Loads one or more CodeEngine plugins.
    */
-  public async use(...plugins: UsePlugin[]): Promise<void>;
-  public async use(plugins: UsePlugin[]): Promise<void>;
-  public async use(...arg1: Array<UsePlugin | UsePlugin[]>): Promise<void> {
+  public async use(...plugins: Plugin[]): Promise<void>;
+  public async use(plugins: Plugin[]): Promise<void>;
+  public async use(...arg1: Array<Plugin | Plugin[]>): Promise<void> {
     let { plugins, workerPool } = this[_internal];
-    let pluginsOrModules: UsePlugin[] = arg1.flat();
+    let pluginPOJOs: Plugin[] = arg1.flat();
 
-    for (let pluginOrModule of pluginsOrModules) {
+    for (let pluginPOJO of pluginPOJOs) {
       let defaultName = `Plugin ${plugins.length + 1}`;
-      let plugin = await CodeEnginePlugin.load(pluginOrModule, workerPool, defaultName);
+      let plugin = await CodeEnginePlugin.load(pluginPOJO, workerPool, defaultName);
       plugins.push(plugin);
     }
   }
