@@ -21,8 +21,8 @@ describe("Plugin.find()", () => {
     expect(files.size).to.equal(0);
   });
 
-  it("should iterate over all files from all sources", async () => {
-    let plugin1 = {
+  it("should iterate over all files from all sources of different types", async () => {
+    let iterable = {
       find () {
         return [
           { path: "file1.txt" },
@@ -30,23 +30,44 @@ describe("Plugin.find()", () => {
         ];
       }
     };
-    let plugin2 = {
+    let iterator = {
+      find () {
+        let files = [
+          { path: "file3.txt" },
+          { path: "file4.txt" },
+        ];
+        let iter = files[Symbol.iterator]();
+        iter[Symbol.iterator] = undefined;
+        return iter;
+      }
+    };
+    let generator = {
       *find () {
-        yield { path: "file3.txt" };
-        yield { path: "file4.txt" };
+        yield { path: "file5.txt" };
+        yield { path: "file6.txt" };
+      }
+    };
+    let asyncGenerator = {
+      async *find () {
+        yield { path: "file7.txt" };
+        yield { path: "file8.txt" };
       }
     };
 
     let engine = CodeEngine.create();
-    await engine.use(plugin1, plugin2);
+    await engine.use(iterable, iterator, generator, asyncGenerator);
     let files = await engine.build();
 
-    expect(files.size).to.equal(4);
+    expect(files.size).to.equal(8);
     expect([...files.keys()]).to.have.same.members([
       "file1.txt",
       "file2.txt",
       "file3.txt",
       "file4.txt",
+      "file5.txt",
+      "file6.txt",
+      "file7.txt",
+      "file8.txt",
     ]);
   });
 
