@@ -23,6 +23,12 @@ export interface LoadWorkerPluginInfo extends WorkerPluginModule {
   pluginId: number;
 
   /**
+   * The default name to use for the plugin if it doesn't have one.
+   * This will be something generic like "Plugin 3".
+   */
+  defaultName: string;
+
+  /**
    * The directory path to use when resolving relative modules.
    */
   cwd: string;

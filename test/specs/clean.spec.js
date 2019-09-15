@@ -18,8 +18,8 @@ describe("Plugin.clean()", () => {
   });
 
   it("should call the clean() method of all plugins", async () => {
-    let plugin1 = { name: "Plugin 1", clean: sinon.spy() };
-    let plugin2 = { name: "Plugin 2", clean: sinon.spy() };
+    let plugin1 = { clean: sinon.spy() };
+    let plugin2 = { clean: sinon.spy() };
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2);
@@ -30,8 +30,8 @@ describe("Plugin.clean()", () => {
   });
 
   it("should support asynchronous plugins", async () => {
-    let plugin1 = { name: "Plugin 1", clean: sinon.stub().returns(Promise.resolve()) };
-    let plugin2 = { name: "Plugin 2", clean: sinon.stub().returns(Promise.resolve()) };
+    let plugin1 = { clean: sinon.stub().returns(Promise.resolve()) };
+    let plugin2 = { clean: sinon.stub().returns(Promise.resolve()) };
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2);
@@ -42,9 +42,9 @@ describe("Plugin.clean()", () => {
   });
 
   it("should re-throw synchronous errors", async () => {
-    let plugin1 = { name: "Plugin 1", clean: sinon.stub().returns(1) };
-    let plugin2 = { name: "Plugin 2", clean: sinon.stub().throws("error", "Boom!") };
-    let plugin3 = { name: "Plugin 2", clean: sinon.stub().returns(2) };
+    let plugin1 = { clean: sinon.stub().returns(1) };
+    let plugin2 = { clean: sinon.spy(() => { throw new SyntaxError("Boom!"); }) };
+    let plugin3 = { clean: sinon.stub().returns(2) };
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2, plugin3);

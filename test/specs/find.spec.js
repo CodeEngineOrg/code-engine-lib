@@ -9,8 +9,8 @@ const { assert, expect } = require("chai");
 describe("Plugin.find()", () => {
 
   it("should call the find() method of all plugins", async () => {
-    let plugin1 = { name: "Plugin 1", find: sinon.stub().returns([]) };
-    let plugin2 = { name: "Plugin 2", find: sinon.stub().returns([]) };
+    let plugin1 = { find: sinon.stub().returns([]) };
+    let plugin2 = { find: sinon.stub().returns([]) };
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2);
@@ -23,7 +23,6 @@ describe("Plugin.find()", () => {
 
   it("should iterate over all files from all sources", async () => {
     let plugin1 = {
-      name: "Plugin 1",
       find () {
         return [
           { path: "file1.txt" },
@@ -32,7 +31,6 @@ describe("Plugin.find()", () => {
       }
     };
     let plugin2 = {
-      name: "Plugin 2",
       *find () {
         yield { path: "file3.txt" };
         yield { path: "file4.txt" };
@@ -54,7 +52,6 @@ describe("Plugin.find()", () => {
 
   it("should iterate files in first-come order", async () => {
     let plugin1 = {
-      name: "Plugin 1",
       async *find () {
         await delay(50);
         yield { path: "file1.txt" };
@@ -63,7 +60,6 @@ describe("Plugin.find()", () => {
       }
     };
     let plugin2 = {
-      name: "Plugin 2",
       async *find () {
         yield { path: "file3.txt" };
         await delay(25);
@@ -135,8 +131,8 @@ describe("Plugin.find()", () => {
   });
 
   it("should throw an error if there are no file sources", async () => {
-    let plugin1 = { name: "Plugin 1", clean: sinon.spy() };
-    let plugin2 = { name: "Plugin 2", watch: sinon.spy() };
+    let plugin1 = { clean: sinon.spy() };
+    let plugin2 = { watch: sinon.spy() };
 
     try {
       let engine = CodeEngine.create();
@@ -155,7 +151,6 @@ describe("Plugin.find()", () => {
 
   it("should throw an error if a plugin's find() method returns a non-iterable value", async () => {
     let plugin = {
-      name: "Plugin",
       find () {
         return 42;
       }
@@ -203,7 +198,6 @@ describe("Plugin.find()", () => {
 
   it("should throw an error if multiple sources return files with the same path", async () => {
     let plugin1 = {
-      name: "Plugin 1",
       find () {
         return [
           { path: "file1.txt" },
@@ -213,7 +207,6 @@ describe("Plugin.find()", () => {
       }
     };
     let plugin2 = {
-      name: "Plugin 2",
       find () {
         return [
           { path: "file4.txt" },

@@ -10,7 +10,6 @@ describe("Plugin.processFile()", () => {
 
     it("should do nothing if no plugins implement processFile", async () => {
       let plugin1 = {
-        name: "Plugin 1",
         find: sinon.stub().returns([]),
       };
       let plugin2 = await createPlugin(() => ({
@@ -26,7 +25,6 @@ describe("Plugin.processFile()", () => {
 
     it("should call the processFile() method for each file", async () => {
       let plugin1 = {
-        name: "Plugin 1",
         *find () {
           yield { path: "file1.txt" };
           yield { path: "file2.txt" };
@@ -36,7 +34,6 @@ describe("Plugin.processFile()", () => {
       };
 
       let plugin2 = await createPlugin(() => ({
-        name: "Plugin 2",
         processFile (file) {
           file.contents = Buffer.from("Plugin 2 was here");
         }
@@ -55,7 +52,6 @@ describe("Plugin.processFile()", () => {
 
     it("should call the processFile() method of all plugins", async () => {
       let plugin1 = {
-        name: "Plugin 1",
         *find () {
           yield { path: "file1.txt" };
           yield { path: "file2.txt" };
@@ -65,15 +61,12 @@ describe("Plugin.processFile()", () => {
         processFile: sinon.spy(),
       };
       let plugin2 = {
-        name: "Plugin 2",
         processFile: sinon.spy(),
       };
       let plugin3 = {
-        name: "Plugin 3",
         processFile: sinon.spy(),
       };
       let plugin4 = await createPlugin(() => ({
-        name: "Plugin 4",
         processFile (file) {
           file.contents = Buffer.from("Plugin 4 was here");
         }

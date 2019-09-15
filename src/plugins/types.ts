@@ -9,7 +9,7 @@ export interface BasePlugin {
   /**
    * The plugin name. Used for log messages.
    */
-  readonly name: string;
+  name?: string;
 }
 
 

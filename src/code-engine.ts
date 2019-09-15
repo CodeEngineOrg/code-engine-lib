@@ -56,9 +56,14 @@ export class CodeEngine extends EventEmitter {
     let plugins: UsePlugin[] = arg1.flat();
 
     for (let plugin of plugins) {
+      let defaultName = `Plugin ${this[_internal].plugins.length + 1}`;
+
       if (typeof plugin === "string" || "moduleId" in plugin) {
         // This is a worker plugin, so load it into the worker threads
-        plugin = await this[_internal].workerPool.loadWorkerPlugin(plugin);
+        plugin = await this[_internal].workerPool.loadWorkerPlugin(plugin, defaultName);
+      }
+      else {
+        plugin.name = plugin.name || defaultName;
       }
 
       if (!isPlugin(plugin)) {

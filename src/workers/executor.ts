@@ -27,7 +27,7 @@ export class Executor {
    * Loads the specified `WorkerPlugin` and returns its signature.
    */
   public async loadWorkerPlugin(info: LoadWorkerPluginInfo): Promise<WorkerPluginSignature> {
-    let { pluginId, moduleId, data, cwd } = info;
+    let { pluginId, defaultName, moduleId, data, cwd } = info;
 
     // Import the plugin module
     let exports = await importLocalOrGlobal(moduleId, cwd);
@@ -41,6 +41,8 @@ export class Executor {
 
     // Call the exported function to get the plugin
     let plugin = await factory(data);
+    plugin.name = plugin.name || defaultName;
+
     if (!isPlugin(plugin)) {
       throw ono.type({ workerId: this.id, moduleId },
         `Error loading module "${moduleId}". ${plugin} is not a valid CodeEngine plugin.`);

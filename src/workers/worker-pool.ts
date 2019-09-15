@@ -30,7 +30,7 @@ export class WorkerPool {
    * Loads the specified `WorkerPlugin` into all worker threads, and returns a facade that
    * allows it to be used from the main thread like a normal plugin.
    */
-  public async loadWorkerPlugin(module: WorkerPluginModule | string): Promise<WorkerPlugin> {
+  public async loadWorkerPlugin(module: WorkerPluginModule | string, defaultName: string): Promise<WorkerPlugin> {
     this._assertNotDisposed();
 
     if (typeof module === "string") {
@@ -39,6 +39,7 @@ export class WorkerPool {
 
     let info: LoadWorkerPluginInfo = {
       ...module,
+      defaultName,
       pluginId: ++pluginCounter,
       cwd: this._engine.cwd,
     };
