@@ -6,38 +6,35 @@ const { assert, expect } = require("chai");
 describe("CodeEngine class", () => {
 
   it("should work without any arguments", async () => {
-    let engine;
+    let engine = new CodeEngine();
 
     try {
-      engine = new CodeEngine();
       expect(engine).to.be.a("CodeEngine");
     }
     finally {
-      engine && await engine.dispose();
+      await engine.dispose();
     }
   });
 
   it("should work with an empty configuration", async () => {
-    let engine;
+    let engine = new CodeEngine({});
 
     try {
-      engine = new CodeEngine({});
       expect(engine).to.be.a("CodeEngine");
     }
     finally {
-      engine && await engine.dispose();
+      await engine.dispose();
     }
   });
 
   it("should ignore unknown configuration properties", async () => {
-    let engine;
+    let engine = new CodeEngine({ foo: true, bar: 5 });
 
     try {
-      engine = new CodeEngine({ foo: true, bar: 5 });
       expect(engine).to.be.a("CodeEngine");
     }
     finally {
-      engine && await engine.dispose();
+      await engine.dispose();
     }
   });
 
@@ -52,10 +49,9 @@ describe("CodeEngine class", () => {
   });
 
   it("should support toString()", async () => {
-    let engine;
+    let engine = new CodeEngine();
 
     try {
-      engine = new CodeEngine();
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (0 plugins)");
 
@@ -68,9 +64,39 @@ describe("CodeEngine class", () => {
       expect(engine.toString()).to.equal("CodeEngine (3 plugins)");
     }
     finally {
-      engine && await engine.dispose();
+      await engine.dispose();
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (disposed)");
+    }
+  });
+
+  it("should throw an error for invalid plugins", async () => {
+    let engine = new CodeEngine();
+
+    try {
+      // These are fine.  They just do nothing.
+      await engine.use({});
+      await engine.use({ foo: "bar" });
+
+      let invalidPlugins = [
+        12345, true, false, -1,
+        { name: 123 }, { name: true }, { name: false },
+        { find: 123 }, { read: true }, { processFile: false },
+      ];
+
+      for (let invalidPlugin of invalidPlugins) {
+        try {
+          await engine.use(invalidPlugin);
+          assert.fail("CodeEngine should have thrown an error");
+        }
+        catch (error) {
+          expect(error).to.be.an.instanceOf(TypeError);
+          expect(error.message).to.equal(`${invalidPlugin.toString()} is not a valid CodeEngine plugin.`);
+        }
+      }
+    }
+    finally {
+      await engine.dispose();
     }
   });
 

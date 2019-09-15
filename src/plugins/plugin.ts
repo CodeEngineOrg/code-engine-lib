@@ -31,7 +31,7 @@ export class CodeEnginePlugin implements Plugin {
    * Loads the given `Plugin` or `WorkerPluginModule`.
    */
   public static async load(plugin: UsePlugin, workerPool: WorkerPool, defaultName: string): Promise<CodeEnginePlugin> {
-    if (typeof plugin === "string" || "moduleId" in plugin) {
+    if (typeof plugin === "string" || (typeof plugin === "object" && "moduleId" in plugin)) {
       // This is a worker plugin, so load it into the worker threads
       return workerPool.loadWorkerPlugin(plugin, defaultName);
     }
@@ -110,13 +110,6 @@ export class CodeEnginePlugin implements Plugin {
    */
   public toString(): string {
     return this.name;
-  }
-
-  /**
-   * Returns the name to use for `Object.toString()`.
-   */
-  public get [Symbol.toStringTag](): string {
-    return "Plugin";
   }
 }
 
