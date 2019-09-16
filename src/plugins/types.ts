@@ -12,7 +12,7 @@ export interface Plugin {
 
   /**
    * Glob patterns, regular expressions, or filter functions that limit which files are processed
-   * by the plugin's `processEach()` method.
+   * by the plugin's `processFile()` and `processFiles()` methods.
    *
    * Defaults to all files.
    */
@@ -26,16 +26,16 @@ export interface Plugin {
    * - An object containing the path of a JavaScript module or Node package, as well as data to pass to it
    *
    */
-  processEach?: string | ModuleDefinition | FileProcessor;
+  processFile?: string | ModuleDefinition | FileProcessor;
 
   /**
-   * Processes list of all files.
+   * Processes all files that match the plugin's `filter` criteria.
    *
-   * NOTE: Most plugins should use `processEach()` instead, which speeds-up the build by allowing
-   * multiple files to be processed in parallel. Using `processAll()` forces CodeEngine to puase
-   * processing until all files are ready to be processed.
+   * NOTE: Most plugins should use `processFile()` (singular) instead, which speeds-up the build by
+   * allowing the files to be processed in parallel. Using `processFiles()` (plural) forces CodeEngine
+   * to wait until all files are ready to be processed.
    */
-  processAll?: FileProcessor;
+  processFiles?: FileProcessor;
 
   /**
    * Finds files to be built from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
@@ -69,7 +69,7 @@ export interface Plugin {
  *
  * @param files
  * A list of files to be processed. You can modify files, delete files, or add new files to the list.
- * For the `Plugin.processEach()` method, this list will always start with a single file.
+ * For the `Plugin.processFile()` method, this list will always start with a single file.
  */
 export type FileProcessor = (files: FileList, context: PluginContext) => void | Promise<void>;
 

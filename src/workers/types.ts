@@ -32,7 +32,7 @@ export interface LoadModuleData extends ModuleDefinition {
 
 /**
  * The data that is passed from the `CodeEngineWorker` to the `Executor` to execute
- * a plugin's `processEach()` method.
+ * a plugin's `processFile()` method.
  */
 export interface FileProcessorData {
   id: number;
@@ -43,7 +43,7 @@ export interface FileProcessorData {
 
 /**
  * The data that is passed from the `Executor` back to the `CodeEngineWorker` after executing
- * a plugin's `processEach()` method.
+ * a plugin's `processFile()` method.
  */
 export interface FileProcessorResults {
   files: SerializedFileList;

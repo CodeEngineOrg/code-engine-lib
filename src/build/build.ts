@@ -19,7 +19,7 @@ export async function build(plugins: CodeEnginePlugin[], context: PluginContext)
 
   // Iterate through each source file, processing each file in parallel for maximum performance.
   for await (let [source, fileInfo] of find(plugins, context)) {
-    let file = initialPhase.processEach(source, fileInfo, context);
+    let file = initialPhase.processFile(source, fileInfo, context);
     files.add(file);
   }
 
@@ -28,7 +28,7 @@ export async function build(plugins: CodeEnginePlugin[], context: PluginContext)
 
   // The remaining build phases (if any) process the full list of files
   for (let phase of subsequentPhases) {
-    await phase.processAll(files, context);
+    await phase.processFiles(files, context);
   }
 
   // Find all the destination plugins

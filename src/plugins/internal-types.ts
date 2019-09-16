@@ -20,7 +20,7 @@ export type PluginMethodName = MethodNames<Plugin>;
 /**
  * An array of plugin method names.
  */
-export const pluginMethods: PluginMethodName[] = ["find", "read", "watch", "processAll", "write", "clean"];
+export const pluginMethods: PluginMethodName[] = ["find", "read", "watch", "processFiles", "write", "clean"];
 
 
 /**
@@ -33,9 +33,9 @@ export function isPlugin(value: unknown): value is Plugin {
     isOptionalType(plugin.name, "string") &&
     pluginMethods.every((method) => isOptionalType(plugin[method], "function")) &&
     (
-      isOptionalType(plugin.processEach, "string") ||
-      isOptionalType(plugin.processEach, "function") ||
-      typeof (plugin.processEach as ModuleDefinition).moduleId === "string"
+      isOptionalType(plugin.processFile, "string") ||
+      isOptionalType(plugin.processFile, "function") ||
+      typeof (plugin.processFile as ModuleDefinition).moduleId === "string"
     );
 }
 
@@ -61,28 +61,28 @@ export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
 
 
 /**
- * A plugin that implements the `processEach()` method.
+ * A plugin that implements the `processFile()` method.
  */
-export type HasProcessEach = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processEach">>;
+export type HasProcessFile = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFile">>;
 
 /**
- * Determines whether the given Plugin implements the `processEach()` method
+ * Determines whether the given Plugin implements the `processFile()` method
  */
-export function hasProcessEach(plugin: CodeEnginePlugin): plugin is HasProcessEach {
-  return !!plugin.processEach;
+export function hasProcessFile(plugin: CodeEnginePlugin): plugin is HasProcessFile {
+  return !!plugin.processFile;
 }
 
 
 /**
- * A plugin that implements the `processAll()` method.
+ * A plugin that implements the `processFiles()` method.
  */
-export type HasProcessAll = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processAll">>;
+export type HasProcessFiles = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFiles">>;
 
 /**
- * Determines whether the given Plugin implements the `processAll()` method
+ * Determines whether the given Plugin implements the `processFiles()` method
  */
-export function hasProcessAll(plugin: CodeEnginePlugin): plugin is HasProcessAll {
-  return !!plugin.processAll;
+export function hasProcessFiles(plugin: CodeEnginePlugin): plugin is HasProcessFiles {
+  return !!plugin.processFiles;
 }
 
 

@@ -1,21 +1,21 @@
 // tslint:disable: max-classes-per-file
 import { CodeEngineFile } from "../files/file";
 import { File, FileInfo, FileList } from "../files/types";
-import { FileSource, HasProcessEach } from "../plugins/internal-types";
+import { FileSource, HasProcessFile } from "../plugins/internal-types";
 import { PluginContext } from "../plugins/types";
 
 /**
  * The initial build phase, during which each file is processed in parallel for maximum performance.
  */
 export class InitialBuildPhase {
-  public readonly plugins: HasProcessEach[] = [];
+  public readonly plugins: HasProcessFile[] = [];
   private readonly _promises: Array<Promise<void>> = [];
 
   /**
    * Reads and processes a file asynchronously. The asnc operation is tracked internally rather than
    * returning a Promise.
    */
-  public processEach(source: FileSource, fileInfo: FileInfo, context: PluginContext): File {
+  public processFile(source: FileSource, fileInfo: FileInfo, context: PluginContext): File {
     let promise = Promise.resolve();
     let file = new CodeEngineFile(fileInfo);
 
@@ -24,13 +24,13 @@ export class InitialBuildPhase {
       promise = promise.then(() => source.read!(file, context));
     }
 
-    promise = promise.then(() => processEach(this.plugins, file, context));
+    promise = promise.then(() => processFile(this.plugins, file, context));
     this._promises.push(promise);
     return file;
   }
 
   /**
-   * Waits for all of the `processEach()` operations to finish.
+   * Waits for all of the `processFile()` operations to finish.
    */
   public async finished(): Promise<void> {
     await Promise.all(this._promises);
@@ -44,13 +44,13 @@ export class InitialBuildPhase {
  * the file list in parallel.
  */
 export class SubsequentBuildPhase {
-  public readonly plugins: HasProcessEach[] = [];
+  public readonly plugins: HasProcessFile[] = [];
 
   /**
    * Process the list of files in parallel.
    */
-  public async processAll(files: FileList, context: PluginContext): Promise<void> {
-    await Promise.all(files.map((file) => processEach(this.plugins, file, context)));
+  public async processFiles(files: FileList, context: PluginContext): Promise<void> {
+    await Promise.all(files.map((file) => processFile(this.plugins, file, context)));
   }
 }
 
@@ -58,8 +58,8 @@ export class SubsequentBuildPhase {
 /**
  * Process the given file through all the specified plugins.
  */
-async function processEach(plugins: HasProcessEach[], file: File, context: PluginContext): Promise<void> {
+async function processFile(plugins: HasProcessFile[], file: File, context: PluginContext): Promise<void> {
   for (let plugin of plugins) {
-    await plugin.processEach(file, context);
+    await plugin.processFile(file, context);
   }
 }

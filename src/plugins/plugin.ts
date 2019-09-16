@@ -43,10 +43,10 @@ export class CodeEnginePlugin {
     try {
       plugin = new CodeEnginePlugin(pluginPOJO, defaultName);
 
-      let { processEach } = pluginPOJO;
-      if (typeof processEach === "string" || (typeof processEach === "object" && "moduleId" in plugin)) {
-        // The processEach method is implemented as a separate module, so load the module on all worker threads.
-        plugin._plugin.processEach = await workerPool.loadModule(processEach);
+      let { processFile } = pluginPOJO;
+      if (typeof processFile === "string" || (typeof processFile === "object" && "moduleId" in plugin)) {
+        // The processFile method is implemented as a separate module, so load the module on all worker threads.
+        plugin._plugin.processFile = await workerPool.loadModule(processFile);
       }
 
       return plugin;
@@ -85,7 +85,7 @@ export class CodeEnginePlugin {
     }
   }
 
-  public async processEach?(file: File, context: PluginContext): Promise<FileList> {
+  public async processFile?(file: File, context: PluginContext): Promise<FileList> {
     try {
       let files = new CodeEngineFileList([file]);
 
@@ -93,7 +93,7 @@ export class CodeEnginePlugin {
         return files;
       }
 
-      await (this._plugin.processEach as FileProcessor)(files, context);
+      await (this._plugin.processFile as FileProcessor)(files, context);
       return files;
     }
     catch (error) {
@@ -101,7 +101,7 @@ export class CodeEnginePlugin {
     }
   }
 
-  public async processAll?(files: FileList, context: PluginContext): Promise<void> {
+  public async processFiles?(files: FileList, context: PluginContext): Promise<void> {
     try {
       await this._plugin.processAll!(files, context);
     }

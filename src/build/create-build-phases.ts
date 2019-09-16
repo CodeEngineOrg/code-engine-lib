@@ -1,4 +1,4 @@
-import { hasProcessAll, hasProcessEach } from "../plugins/internal-types";
+import { hasProcessFile, hasProcessFiles } from "../plugins/internal-types";
 import { CodeEnginePlugin } from "../plugins/plugin";
 import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phase";
 
@@ -23,11 +23,11 @@ function createInitialBuildPhase(plugins: CodeEnginePlugin[]): [number, InitialB
   for (; index < plugins.length; index++) {
     let plugin = plugins[index];
 
-    if (hasProcessEach(plugin)) {
+    if (hasProcessFile(plugin)) {
       initialPhase.plugins.push(plugin);
     }
 
-    if (hasProcessAll(plugin)) {
+    if (hasProcessFiles(plugin)) {
       // We found the first sequential plugin, which ends the initial build phase
       break;
     }
@@ -46,20 +46,20 @@ function createSubsequentBuildPhases(plugins: CodeEnginePlugin[]): SubsequentBui
   let buildPhase: SubsequentBuildPhase | undefined;
 
   for (let [index, plugin] of plugins.entries()) {
-    if (hasProcessEach(plugin) && index > 0) {
+    if (hasProcessFile(plugin) && index > 0) {
       // Group all parallel plugins together into one build phase
       buildPhase || (buildPhase = new SubsequentBuildPhase());
       buildPhase.plugins.push(plugin);
     }
 
-    if (hasProcessAll(plugin)) {
+    if (hasProcessFiles(plugin)) {
       // Add all the parallel plugins that have been grouped together so far
       if (buildPhase) {
         buildPhases.push(buildPhase);
         buildPhase = undefined;
       }
 
-      // Add the plugin directly, since it already implements `processAll()`
+      // Add the plugin directly, since it already implements `processFiles()`
       buildPhases.push(plugin as unknown as SubsequentBuildPhase);
     }
   }
