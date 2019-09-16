@@ -90,8 +90,8 @@ describe("CodeEngine class", () => {
           assert.fail("CodeEngine should have thrown an error");
         }
         catch (error) {
-          expect(error).to.be.an.instanceOf(TypeError);
-          expect(error.message).to.equal(`${invalidPlugin.toString()} is not a valid CodeEngine plugin.`);
+          expect(error).to.be.an.instanceOf(Error);
+          expect(error.message).to.match(/^Error in Plugin \d\. \n.* is not a valid CodeEngine plugin\.$/);
         }
       }
     }
@@ -114,7 +114,25 @@ describe("CodeEngine class", () => {
     await engine.dispose();
 
     try {
-      await engine.use({ moduleId: "some-file.js" });
+      await engine.use({ name: "Plugin" });
+      assert.fail("CodeEngine should have thrown an error");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error.message).to.equal("CodeEngine cannot be used after it has been disposed.");
+    }
+
+    try {
+      await engine.clean();
+      assert.fail("CodeEngine should have thrown an error");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error.message).to.equal("CodeEngine cannot be used after it has been disposed.");
+    }
+
+    try {
+      await engine.build();
       assert.fail("CodeEngine should have thrown an error");
     }
     catch (error) {

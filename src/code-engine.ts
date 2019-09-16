@@ -58,6 +58,8 @@ export class CodeEngine extends EventEmitter {
     let { plugins, workerPool } = this[_internal];
     let pluginPOJOs: Plugin[] = arg1.flat();
 
+    workerPool.assertNotDisposed();
+
     for (let pluginPOJO of pluginPOJOs) {
       let defaultName = `Plugin ${plugins.length + 1}`;
       let plugin = await CodeEnginePlugin.load(pluginPOJO, workerPool, defaultName);
@@ -69,7 +71,9 @@ export class CodeEngine extends EventEmitter {
    * Deletes the contents of the destination.
    */
   public async clean(): Promise<void> {
-    let cleaners = this[_internal].plugins.filter(isDestinationCleaner);
+    let { plugins, workerPool } = this[_internal];
+    workerPool.assertNotDisposed();
+    let cleaners = plugins.filter(isDestinationCleaner);
     let context = new CodeEnginePluginContext(this);
     await Promise.all(cleaners.map((cleaner) => cleaner.clean(context)));
   }
@@ -80,8 +84,10 @@ export class CodeEngine extends EventEmitter {
    * @returns - The output files
    */
   public async build(): Promise<FileList> {
+    let { plugins, workerPool } = this[_internal];
+    workerPool.assertNotDisposed();
     let context = new CodeEnginePluginContext(this);
-    return build(this[_internal].plugins, context);
+    return build(plugins, context);
   }
 
   /**

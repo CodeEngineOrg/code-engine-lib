@@ -30,7 +30,7 @@ export class WorkerPool {
    * Loads the specified JavaScript module into all worker threads.
    */
   public async loadModule(module: ModuleDefinition | string): Promise<FileProcessor> {
-    this._assertNotDisposed();
+    this.assertNotDisposed();
 
     if (typeof module === "string") {
       module = { moduleId: module };
@@ -80,24 +80,24 @@ export class WorkerPool {
   }
 
   /**
+   * Throws an error if the `WorkerPool` has been disposed.
+   */
+  public assertNotDisposed() {
+    if (this._isDisposed) {
+      throw ono(`CodeEngine cannot be used after it has been disposed.`);
+    }
+  }
+
+  /**
    * Creates a `FileProcessor` function that marshalls to a worker in the pool.
    */
   private _createFileProcessor(id: number): FileProcessor {
     return (files, context) => {
-      this._assertNotDisposed();
+      this.assertNotDisposed();
 
       // Select a worker from the pool to process the files
       let worker = this.select();
       return worker.processFiles(id, files, context);
     };
-  }
-
-  /**
-   * Throws an error if the `WorkerPool` has been disposed.
-   */
-  private _assertNotDisposed() {
-    if (this._isDisposed) {
-      throw ono(`CodeEngine cannot be used after it has been disposed.`);
-    }
   }
 }
