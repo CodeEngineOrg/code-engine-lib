@@ -96,6 +96,12 @@ export type FilePathField = "path" | "originalPath";
 
 
 /**
+ * A function that evaluates each `File` in a `FileList`.
+ */
+export type FileIterator<TContext = void, TReturn = unknown> = (this: TContext, file: File, files: FileList) => TReturn;
+
+
+/**
  * An unordered list of unique `File` objects.
  */
 export interface FileList extends Iterable<File> {
@@ -163,6 +169,15 @@ export interface FileList extends Iterable<File> {
   delete(file: string | File, compareField?: FilePathField): boolean;
 
   /**
+   * Removes all matching files from the list.
+   *
+   * @param predicate - A function that returns a truthy value for files to be removed
+   * @param thisArg - The `this` context of the `predicate` function
+   * @returns - A list containing only the removed files
+   */
+  delete<T = void>(predicate: FileIterator<T>): FileList;
+
+  /**
    * Removes all files from the list.
    */
   clear(): void;
@@ -181,32 +196,32 @@ export interface FileList extends Iterable<File> {
   /**
    * Returns a file in the list where predicate is true, or `undefined` otherwise.
    */
-  find<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): File | undefined;
+  find<T = void>(predicate: FileIterator<T>, thisArg?: T): File | undefined;
 
   /**
    * Determines whether every file in the list satisfies the specified test.
    */
-  every<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): boolean;
+  every<T = void>(predicate: FileIterator<T>, thisArg?: T): boolean;
 
   /**
    * Determines whether any file in the list satisfies the specified test.
    */
-  some<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): boolean;
+  some<T = void>(predicate: FileIterator<T>, thisArg?: T): boolean;
 
   /**
    * Performs the specified action for each file in the list.
    */
-  forEach<T = void>(iterator: (this: T, file: File, files: FileList) => void, thisArg?: T): void;
+  forEach<T = void>(iterator: FileIterator<T>, thisArg?: T): void;
 
   /**
    * Maps each file in the list to value, and returns the array of values.
    */
-  map<U, T = void>(mapper: (this: T, file: File, files: FileList) => U, thisArg?: T): U[];
+  map<U, T = void>(mapper: FileIterator<T, U>, thisArg?: T): U[];
 
   /**
    * Returns the files that satisfy the specified test.
    */
-  filter<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): FileList;
+  filter<T = void>(predicate: FileIterator<T>, thisArg?: T): FileList;
 
   /**
    * Reduces the file list to a single result.

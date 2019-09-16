@@ -1,7 +1,7 @@
 // tslint:disable: completed-docs
 import { ono } from "ono";
 import { CodeEngineFile } from "./file";
-import { File, FileInfo, FileList, FilePathField } from "./types";
+import { File, FileInfo, FileIterator, FileList, FilePathField } from "./types";
 
 const _internal = Symbol("Internal CodeEngine Properties");
 
@@ -69,15 +69,38 @@ export class CodeEngineFileList implements FileList {
     return this[_internal].files[index];
   }
 
-  public delete(file: string | File, compareField?: FilePathField): boolean {
-    let index = findIndex(this, file, compareField);
+  public delete(file: string | File, compareField?: FilePathField): boolean;
+  public delete(predicate: FileIterator, arg2?: unknown): FileList;
+  public delete(arg1: string | File | FileIterator, arg2?: unknown): boolean | FileList {
+    if (typeof arg1 === "function") {
+      // We're deleting all files that match the criteria
+      let allFiles = this[_internal].files;
+      let deletedFiles = [], keepFiles = [];
 
-    if (index === -1) {
-      return false;
+      for (let file of allFiles) {
+        if (arg1.call(arg2, file, this)) {
+          deletedFiles.push(file);
+        }
+        else {
+          keepFiles.push(file);
+        }
+      }
+
+      this[_internal].files = keepFiles;
+      return new CodeEngineFileList(deletedFiles);
     }
+    else {
+      // We're deleting a single, specific file
+      let index = findIndex(this, arg1, arg2 as FilePathField);
 
-    this[_internal].files.splice(index, 1);
-    return true;
+      if (index >= 0) {
+        this[_internal].files.splice(index, 1);
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
   }
 
   public clear(): void {
