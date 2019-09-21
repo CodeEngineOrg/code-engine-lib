@@ -133,7 +133,7 @@ export interface FileList extends Iterable<File> {
   /**
    * Adds the given file to the list.
    */
-  add(file: FileInfo): File;
+  add(file: File | FileInfo): File;
 
   /**
    * Determines whether the specified file exists in the list.
@@ -177,6 +177,22 @@ export interface FileList extends Iterable<File> {
    * Returns a string consisting of all the elements of the list, separated by the specified separator.
    */
   join(separator?: string): string;
+
+  /**
+   * Combines two or more `FileList` objects into a new `FileList`.
+   *
+   * @param lists - Additional `FileList` objects whose files are concatenated with this list's files.
+   * @returns A new `FileList` object that contains all the files in this list and the other list(s).
+   */
+  concat(...lists: Array<Iterable<File | FileInfo>>): FileList;
+
+  /**
+   * Combines two or more `FileList` objects into a new `FileList`.
+   *
+   * @param items - Additional `File` or `FileList` objects whose to concatenate with this list's files.
+   * @returns A new `FileList` object that contains all the files in this list and the other list(s).
+   */
+  concat(...items: Array<FileInfo | Iterable<File | FileInfo>>): FileList;
 
   /**
    * Returns a file in the list where predicate is true, or `undefined` otherwise.

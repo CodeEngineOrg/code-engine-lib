@@ -13,8 +13,10 @@ export class CodeEngineFileList implements FileList {
     files: File[];
   };
 
-  public constructor(files: File[] = []) {
-    Object.defineProperty(this, _internal, { value: { files }});
+  public constructor(files?: File[]) {
+    Object.defineProperty(this, _internal, { value: {
+      files: files ? files.slice() : []
+    }});
   }
 
   public get size(): number {
@@ -41,12 +43,12 @@ export class CodeEngineFileList implements FileList {
     }
   }
 
-  public add(props: FileInfo): File {
+  public add(props: File | FileInfo): File {
     if (this.has(props.path)) {
       throw ono({ path: props.path }, `Duplicate file path: ${props.path}`);
     }
 
-    let file = new CodeEngineFile(props);
+    let file = props instanceof CodeEngineFile ? props : new CodeEngineFile(props);
     this[_internal].files.push(file);
     return file;
   }
@@ -104,6 +106,25 @@ export class CodeEngineFileList implements FileList {
 
   public join(separator?: string): string {
     return this[_internal].files.join(separator);
+  }
+
+  public concat(...items: Array<FileInfo | Iterable<File | FileInfo>>): FileList {
+    let files = new CodeEngineFileList(this[_internal].files);
+
+    for (let item of items) {
+      let iterable = item as Iterable<File | FileInfo>;
+
+      if (typeof iterable[Symbol.iterator] === "function") {
+        for (let file of iterable) {
+          files.add(file);
+        }
+      }
+      else {
+        files.add(item as FileInfo);
+      }
+    }
+
+    return files;
   }
 
   public find<T = void>(predicate: (this: T, file: File, files: FileList) => unknown, thisArg?: T): File | undefined {
