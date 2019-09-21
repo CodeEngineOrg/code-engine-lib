@@ -99,11 +99,11 @@ describe("Plugin.find()", () => {
     sinon.assert.callCount(plugin2.processFile, 5);
 
     let processFile = plugin2.processFile.getCalls();
-    expect(processFile[0].args[0]).to.be.a("File").with.property("path", "file3.txt");
-    expect(processFile[1].args[0]).to.be.a("File").with.property("path", "file4.txt");
-    expect(processFile[2].args[0]).to.be.a("File").with.property("path", "file1.txt");
-    expect(processFile[3].args[0]).to.be.a("File").with.property("path", "file5.txt");
-    expect(processFile[4].args[0]).to.be.a("File").with.property("path", "file2.txt");
+    expect([...processFile[0].args[0]][0]).to.be.a("File").with.property("path", "file3.txt");
+    expect([...processFile[1].args[0]][0]).to.be.a("File").with.property("path", "file4.txt");
+    expect([...processFile[2].args[0]][0]).to.be.a("File").with.property("path", "file1.txt");
+    expect([...processFile[3].args[0]][0]).to.be.a("File").with.property("path", "file5.txt");
+    expect([...processFile[4].args[0]][0]).to.be.a("File").with.property("path", "file2.txt");
   });
 
   it("should ignore unknown fields on FileInfo objects", async () => {
@@ -124,15 +124,14 @@ describe("Plugin.find()", () => {
     let files = await engine.build();
 
     expect(files.size).to.equal(3);
-    files.forEach(validateFileProps);
-
     sinon.assert.calledThrice(plugin.processFile);
+
     let processFile = plugin.processFile.getCalls();
     expect(processFile[0].args[0]).to.satisfy(validateFileProps);
     expect(processFile[1].args[0]).to.satisfy(validateFileProps);
     expect(processFile[2].args[0]).to.satisfy(validateFileProps);
 
-    function validateFileProps (file) {
+    function validateFileProps ([file]) {
       expect(file).to.be.a("File").with.keys(expectedKeys);
       expect(file.metadata).to.be.an("object").and.empty;
       return true;
@@ -234,7 +233,7 @@ describe("Plugin.find()", () => {
         ];
       },
       counter: 0,
-      processFile (file) {
+      processFile ([file]) {
         file.name += ++this.counter;
       }
     };

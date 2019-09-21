@@ -43,14 +43,8 @@ const utils = module.exports = {
     let moduleId = await new Promise((resolve, reject) =>
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
 
-    if (data === undefined) {
-      await fs.writeFile(moduleId, `module.exports = ${method};`);
-      return moduleId;
-    }
-    else {
-      await fs.writeFile(moduleId, `module.exports = (data) => ${method};`);
-      return { module, data };
-    }
+    await fs.writeFile(moduleId, `module.exports = ${method};`);
+    return { moduleId, data };
   },
 };
 
@@ -59,10 +53,8 @@ const utils = module.exports = {
  * Runs the given plugin method on the main thread
  */
 async function createMainThreadModule (method, data) {
-  if (data === undefined) {
-    return method;
+  if (data !== undefined) {
+    method = method(data);
   }
-  else {
-    return eval(method.toString()); // eslint-disable-line no-eval
-  }
+  return method;
 }

@@ -7,7 +7,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 
 describe("PluginContext", () => {
-  testThreadConsistency((createPlugin) => {
+  testThreadConsistency((createModule) => {
 
     it("should have all the expected properties", async () => {
       let source = {
@@ -17,17 +17,17 @@ describe("PluginContext", () => {
         },
       };
 
-      let plugin = await createPlugin(() => ({
+      let plugin = {
         name: "Context Test",
-        processFile (file, context) {
+        processFile: await createModule(([file], context) => {
           file.contents = Buffer.from(JSON.stringify({
             keys: Object.keys(context),
             cwd: context.cwd,
             dev: context.dev,
             debug: context.debug,
           }));
-        }
-      }));
+        })
+      };
 
       let engine = CodeEngine.create();
       await engine.use(source, plugin);
@@ -48,15 +48,15 @@ describe("PluginContext", () => {
         },
       };
 
-      let plugin = await createPlugin(() => ({
+      let plugin = {
         name: "Logger Test",
-        processFile (file, { logger }) {
+        processFile: await createModule((files, { logger }) => {
           logger.log("this is a log message", { foo: "bar", isLogTest: true });
           logger.debug("this is a debug message", { fizz: "buzz", isLogTest: true });
           logger.warn("this is a warning message", { uh: "oh!", isLogTest: true });
           logger.error("this is an error message", { ka: "boom!", isLogTest: true });
-        }
-      }));
+        })
+      };
 
       let engine = CodeEngine.create({ debug: true });
       let log = sinon.spy();
@@ -81,13 +81,13 @@ describe("PluginContext", () => {
         },
       };
 
-      let plugin = await createPlugin(() => ({
+      let plugin = {
         name: "Logger Test",
-        processFile (file, { logger }) {
+        processFile: await createModule((files, { logger }) => {
           logger.warn(new Error("this is a warning error"), { uh: "oh!", isLogTest: true });
           logger.error(new Error("this is an error"), { ka: "boom!", isLogTest: true });
-        }
-      }));
+        })
+      };
 
       let engine = CodeEngine.create({ debug: true });
       let log = sinon.spy();

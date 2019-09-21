@@ -409,19 +409,13 @@ async function testSerialization (data, mutate = () => undefined) {
       *find () {
         yield { path: "file1.txt", metadata: data };            // <--- the original data
       },
-    },
-    {
-      moduleId: await createModule(`
-        module.exports = () => {
-          return {
-            name: "Worker Plugin",
-            processFile (file, { logger }) {
-              logger.log("data", { data: file.metadata });      // <--- the serialized data
-              (${mutate.toString()})(file.metadata);            // <--- mutate the data
-            }
-          };
-        };
-      `),
+      // eslint-disable-next-line no-new-func
+      processFile: await createModule(new Function("files", "context", `
+        let [file] = files;
+        let { logger } = context;
+        logger.log("data", { data: file.metadata });            // <--- the serialized data
+        (${mutate.toString()})(file.metadata);                  // <--- mutate the data
+      `)),
     }
   );
 
