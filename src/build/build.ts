@@ -1,5 +1,4 @@
 import { ono } from "ono";
-import { CodeEngineFileList } from "../files/file-list";
 import { FileInfo, FileList } from "../files/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
 import { PluginContext } from "../plugins/types";
@@ -11,20 +10,17 @@ import { iterateMultiple } from "./iterate-multiple";
  * Runs the given build pipeline
  */
 export async function build(plugins: CodeEnginePlugin[], context: PluginContext): Promise<FileList> {
-  let files = new CodeEngineFileList();
-
   // Split the build into phases,
   // based on which plugins are capable of running in parallel, versus sequential
   let [initialPhase, subsequentPhases] = createBuildPhases(plugins);
 
   // Iterate through each source file, processing each file in parallel for maximum performance.
   for await (let [source, fileInfo] of find(plugins, context)) {
-    let file = initialPhase.processFile(source, fileInfo, context);
-    files.add(file);
+    initialPhase.processFile(source, fileInfo, context);
   }
 
   // Wait for all the initial build phases to finish
-  await initialPhase.finished();
+  let files = await initialPhase.finished();
 
   // The remaining build phases (if any) process the full list of files
   for (let phase of subsequentPhases) {

@@ -7,6 +7,9 @@ import { isPlugin } from "../type-guards";
 import { WorkerPool } from "../workers/worker-pool";
 import { AnyIterator, CanIterate, FileProcessor, FilterFunction, Plugin, PluginContext } from "./types";
 
+type PluginMethod = "processFile" | "processFiles" | "find" | "read" | "watch" | "write" | "clean";
+const pluginMethods: PluginMethod[] = ["processFile", "processFiles", "find", "read", "watch", "write", "clean"];
+
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
  */
@@ -44,7 +47,7 @@ export class CodeEnginePlugin {
       plugin = new CodeEnginePlugin(pluginPOJO, defaultName);
 
       let { processFile } = pluginPOJO;
-      if (typeof processFile === "string" || (typeof processFile === "object" && "moduleId" in plugin)) {
+      if (typeof processFile === "string" || (typeof processFile === "object" && "moduleId" in processFile)) {
         // The processFile method is implemented as a separate module, so load the module on all worker threads.
         plugin._plugin.processFile = await workerPool.loadModule(processFile);
       }
@@ -53,6 +56,46 @@ export class CodeEnginePlugin {
     }
     catch (error) {
       throw ono(error, `Error in ${defaultName}.`);
+    }
+  }
+
+  public async processFile?(file: File, context: PluginContext): Promise<FileList> {
+    try {
+      let files = new CodeEngineFileList([file]);
+
+      if (this.filter && !this.filter(file, files, context)) {
+        return files;
+      }
+
+      await (this._plugin.processFile as FileProcessor)(files, context);
+      return files;
+    }
+    catch (error) {
+      throw ono(error, { path: file.path }, `An error occurred in ${this} while processing ${file}.`);
+    }
+  }
+
+  public async processFiles?(files: FileList, context: PluginContext): Promise<void> {
+    try {
+      if (this.filter) {
+        // Temporarily remove the filtered files from the master list
+        let filteredFiles = files.remove((file) => this.filter!(file, files, context));
+
+        // Process only the filtered files
+        await this._plugin.processFiles!(filteredFiles, context);
+
+        // Now add the filtered files (including any added/removed files) to the master list
+        for (let file of filteredFiles) {
+          files.add(file);
+        }
+      }
+      else {
+        // There is no filter, so process the full list of files
+        await this._plugin.processFiles!(files, context);
+      }
+    }
+    catch (error) {
+      throw ono(error, `An error occurred in ${this} while processing files.`);
     }
   }
 
@@ -82,46 +125,6 @@ export class CodeEnginePlugin {
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
-    }
-  }
-
-  public async processFile?(file: File, context: PluginContext): Promise<FileList> {
-    try {
-      let files = new CodeEngineFileList([file]);
-
-      if (this.filter && !this.filter(file, files, context)) {
-        return files;
-      }
-
-      await (this._plugin.processFile as FileProcessor)(files, context);
-      return files;
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `An error occurred in ${this} while processing ${file}.`);
-    }
-  }
-
-  public async processFiles?(files: FileList, context: PluginContext): Promise<void> {
-    try {
-      if (this.filter) {
-        // Temporarily remove the filtered files from the master list
-        let filteredFiles = files.delete((file) => this.filter!(file, files, context));
-
-        // Process only the filtered files
-        await this._plugin.processFiles!(filteredFiles, context);
-
-        // Now add the filtered files (including any added/removed files) to the master list
-        for (let file of filteredFiles) {
-          files.add(file);
-        }
-      }
-      else {
-        // There is no filter, so process the full list of files
-        await this._plugin.processFiles!(files, context);
-      }
-    }
-    catch (error) {
-      throw ono(error, `An error occurred in ${this} while processing files.`);
     }
   }
 
