@@ -1,26 +1,5 @@
-import { CodeEnginePlugin } from "./plugin";
-import { ModuleDefinition, Plugin } from "./types";
-
-
-/**
- * Extracts the method names of the given type.
- */
-type MethodNames<T> = {
-  // tslint:disable-next-line: ban-types
-  [k in keyof T]-?: T[k] extends Function | undefined ? k : never;
-}[keyof T];
-
-
-/**
- * The name of a `Plugin` method.
- */
-export type PluginMethodName = MethodNames<Plugin>;
-
-
-/**
- * An array of plugin method names.
- */
-export const pluginMethods: PluginMethodName[] = ["find", "read", "watch", "processFiles", "write", "clean"];
+import { CodeEnginePlugin } from "./plugins/plugin";
+import { ModuleDefinition, Plugin } from "./plugins/types";
 
 
 /**
@@ -31,7 +10,12 @@ export function isPlugin(value: unknown): value is Plugin {
   return plugin &&
     typeof plugin === "object" &&
     isOptionalType(plugin.name, "string") &&
-    pluginMethods.every((method) => isOptionalType(plugin[method], "function")) &&
+    isOptionalType(plugin.find, "function") &&
+    isOptionalType(plugin.read, "function") &&
+    isOptionalType(plugin.watch, "function") &&
+    isOptionalType(plugin.write, "function") &&
+    isOptionalType(plugin.clean, "function") &&
+    isOptionalType(plugin.processFiles, "function") &&
     (
       isOptionalType(plugin.processFile, "string") ||
       isOptionalType(plugin.processFile, "function") ||

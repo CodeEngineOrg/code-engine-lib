@@ -1,5 +1,5 @@
-import { hasProcessFile, hasProcessFiles } from "../plugins/internal-types";
 import { CodeEnginePlugin } from "../plugins/plugin";
+import { hasProcessFile, hasProcessFiles } from "../type-guards";
 import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phase";
 
 /**

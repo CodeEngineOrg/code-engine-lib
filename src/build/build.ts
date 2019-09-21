@@ -1,9 +1,9 @@
 import { ono } from "ono";
 import { CodeEngineFileList } from "../files/file-list";
 import { FileInfo, FileList } from "../files/types";
-import { FileSource, isFileDestination, isFileSource } from "../plugins/internal-types";
 import { CodeEnginePlugin } from "../plugins/plugin";
 import { PluginContext } from "../plugins/types";
+import { FileSource, isFileDestination, isFileSource } from "../type-guards";
 import { createBuildPhases } from "./create-build-phases";
 import { iterateMultiple } from "./iterate-multiple";
 

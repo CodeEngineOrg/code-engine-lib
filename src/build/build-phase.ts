@@ -1,8 +1,8 @@
 // tslint:disable: max-classes-per-file
 import { CodeEngineFile } from "../files/file";
 import { File, FileInfo, FileList } from "../files/types";
-import { FileSource, HasProcessFile } from "../plugins/internal-types";
 import { PluginContext } from "../plugins/types";
+import { FileSource, HasProcessFile } from "../type-guards";
 
 /**
  * The initial build phase, during which each file is processed in parallel for maximum performance.

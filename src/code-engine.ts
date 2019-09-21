@@ -4,9 +4,9 @@ import { FileList } from "./files/types";
 import { LogEmitter } from "./loggers/log-emitter";
 import { Logger } from "./loggers/types";
 import { CodeEnginePluginContext } from "./plugins/context";
-import { isDestinationCleaner } from "./plugins/internal-types";
 import { CodeEnginePlugin } from "./plugins/plugin";
 import { Plugin, PluginContext } from "./plugins/types";
+import { isDestinationCleaner } from "./type-guards";
 import { Config, Event } from "./types";
 import { WorkerPool } from "./workers/worker-pool";
 

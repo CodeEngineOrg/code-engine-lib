@@ -3,8 +3,8 @@ import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { CodeEngineFileList } from "../files/file-list";
 import { File, FileInfo, FileList } from "../files/types";
+import { isPlugin } from "../type-guards";
 import { WorkerPool } from "../workers/worker-pool";
-import { isPlugin, pluginMethods } from "./internal-types";
 import { AnyIterator, CanIterate, FileProcessor, FilterFunction, Plugin, PluginContext } from "./types";
 
 /**
