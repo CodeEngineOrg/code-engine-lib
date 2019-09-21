@@ -69,38 +69,33 @@ export class CodeEngineFileList implements FileList {
     return this[_internal].files[index];
   }
 
-  public delete(file: string | File, compareField?: FilePathField): boolean;
-  public delete(predicate: FileIterator, arg2?: unknown): FileList;
-  public delete(arg1: string | File | FileIterator, arg2?: unknown): boolean | FileList {
-    if (typeof arg1 === "function") {
-      // We're deleting all files that match the criteria
-      let allFiles = this[_internal].files;
-      let deletedFiles = [], keepFiles = [];
+  public delete(file: string | File, compareField?: FilePathField): boolean {
+    let index = findIndex(this, file, compareField);
 
-      for (let file of allFiles) {
-        if (arg1.call(arg2, file, this)) {
-          deletedFiles.push(file);
-        }
-        else {
-          keepFiles.push(file);
-        }
-      }
-
-      this[_internal].files = keepFiles;
-      return new CodeEngineFileList(deletedFiles);
+    if (index >= 0) {
+      this[_internal].files.splice(index, 1);
+      return true;
     }
     else {
-      // We're deleting a single, specific file
-      let index = findIndex(this, arg1, arg2 as FilePathField);
+      return false;
+    }
+  }
 
-      if (index >= 0) {
-        this[_internal].files.splice(index, 1);
-        return true;
+  public remove<T = void>(predicate: FileIterator<T>, thisArg?: T): FileList {
+    let allFiles = this[_internal].files;
+    let deletedFiles = [], keepFiles = [];
+
+    for (let file of allFiles) {
+      if (predicate.call(thisArg, file, this)) {
+        deletedFiles.push(file);
       }
       else {
-        return false;
+        keepFiles.push(file);
       }
     }
+
+    this[_internal].files = keepFiles;
+    return new CodeEngineFileList(deletedFiles);
   }
 
   public clear(): void {

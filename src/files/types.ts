@@ -169,15 +169,6 @@ export interface FileList extends Iterable<File> {
   delete(file: string | File, compareField?: FilePathField): boolean;
 
   /**
-   * Removes all matching files from the list.
-   *
-   * @param predicate - A function that returns a truthy value for files to be removed
-   * @param thisArg - The `this` context of the `predicate` function
-   * @returns - A list containing only the removed files
-   */
-  delete<T = void>(predicate: FileIterator<T>): FileList;
-
-  /**
    * Removes all files from the list.
    */
   clear(): void;
@@ -197,6 +188,15 @@ export interface FileList extends Iterable<File> {
    * Returns a file in the list where predicate is true, or `undefined` otherwise.
    */
   find<T = void>(predicate: FileIterator<T>, thisArg?: T): File | undefined;
+
+  /**
+   * Removes all matching files from the list.
+   *
+   * @param predicate - A function that returns a truthy value for files to be removed
+   * @param thisArg - The `this` context of the `predicate` function
+   * @returns - A list containing only the removed files
+   */
+  remove<T = void>(predicate: FileIterator<T>, thisArg?: T): FileList;
 
   /**
    * Determines whether every file in the list satisfies the specified test.
