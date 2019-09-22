@@ -1,15 +1,12 @@
-import { ono } from "ono";
 import { CodeEngine } from "../code-engine";
-import { FileInfo, FileList } from "../files/types";
+import { FileList } from "../files/types";
 import { CodeEnginePluginContext } from "../plugins/context";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { PluginContext } from "../plugins/types";
-import { FileSource, hasClean, hasStopWatching, isFileDestination, isFileSource } from "../type-guards";
-import { createBuildPhases } from "./create-build-phases";
-import { iterateMultiple } from "./iterate-multiple";
+import { hasClean, hasStopWatching, isFileDestination } from "../type-guards";
+import { BuildPipeline } from "./build-pipeline";
 
 /**
- * The CodeEngine build pipeline
+ * Manages CodeEngine builds
  */
 export class Build {
   public plugins: CodeEnginePlugin[] = [];
@@ -34,24 +31,9 @@ export class Build {
    * @returns - The output files
    */
   public async build(): Promise<FileList> {
+    let pipeline = new BuildPipeline(this.plugins);
     let context = new CodeEnginePluginContext(this._engine);
-
-    // Split the build into phases,
-    // based on which plugins are capable of running in parallel, versus sequential
-    let [initialPhase, subsequentPhases] = createBuildPhases(this.plugins);
-
-    // Iterate through each source file, processing each file in parallel for maximum performance.
-    for await (let [source, fileInfo] of find(this.plugins, context)) {
-      initialPhase.processFile(source, fileInfo, context);
-    }
-
-    // Wait for all the initial build phases to finish
-    let files = await initialPhase.finished();
-
-    // The remaining build phases (if any) process the full list of files
-    for (let phase of subsequentPhases) {
-      await phase.processFiles(files, context);
-    }
+    let files = await pipeline.run(context);
 
     // Find all the destination plugins
     let destinations = this.plugins.filter(isFileDestination);
@@ -80,18 +62,4 @@ export class Build {
     let context = new CodeEnginePluginContext(this._engine);
     await Promise.all(watchers.map((watcher) => watcher.stopWatching(context)));
   }
-}
-
-/**
- * Calls the `find()` method of all file source plugins, and returns an iterator of all the files.
- */
-function find(plugins: CodeEnginePlugin[], context: PluginContext): AsyncIterableIterator<[FileSource, FileInfo]> {
-  // Find all the file sources
-  let sources = plugins.filter(isFileSource);
-
-  if (sources.length === 0) {
-    throw ono("At least one file source is required.");
-  }
-
-  return iterateMultiple(sources, (source) => source.find(context));
 }

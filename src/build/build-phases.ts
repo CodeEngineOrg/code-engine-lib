@@ -2,8 +2,9 @@
 import { CodeEngineFile } from "../files/file";
 import { CodeEngineFileList } from "../files/file-list";
 import { File, FileInfo, FileList } from "../files/types";
+import { CodeEnginePlugin } from "../plugins/plugin";
 import { PluginContext } from "../plugins/types";
-import { FileSource, HasProcessFile } from "../type-guards";
+import { FileSource, hasProcessFile, HasProcessFile, hasProcessFiles } from "../type-guards";
 
 /**
  * The initial build phase, during which each file is processed in parallel for maximum performance.
@@ -11,6 +12,32 @@ import { FileSource, HasProcessFile } from "../type-guards";
 export class InitialBuildPhase {
   public readonly plugins: HasProcessFile[] = [];
   private readonly _promises: Array<Promise<File[]>> = [];
+
+  private constructor() {}
+
+  /**
+   * Creates the initial build phase, which consists of all the parallel plugins, up to the first sequential plugin.
+   */
+  public static create(plugins: CodeEnginePlugin[]): [number, InitialBuildPhase] {
+    let initialPhase = new InitialBuildPhase();
+    let index = 0;
+
+    for (; index < plugins.length; index++) {
+      let plugin = plugins[index];
+
+      if (hasProcessFile(plugin)) {
+        initialPhase.plugins.push(plugin);
+      }
+
+      if (hasProcessFiles(plugin)) {
+        // We found the first sequential plugin, which ends the initial build phase
+        break;
+      }
+    }
+
+    return [index, initialPhase];
+  }
+
 
   /**
    * Reads and processes a file asynchronously. The asnc operation is tracked internally rather than
@@ -29,6 +56,7 @@ export class InitialBuildPhase {
     this._promises.push(filesPromise);
   }
 
+
   /**
    * Waits for all of the `processFile()` operations to finish.
    */
@@ -46,6 +74,44 @@ export class InitialBuildPhase {
  */
 export class SubsequentBuildPhase {
   public readonly plugins: HasProcessFile[] = [];
+
+  private constructor() {}
+
+  /**
+   * Creates the subsequent build phases, each of which may consist of a single sequential plugin,
+   * or multiple parallel plugins.
+   */
+  public static create(plugins: CodeEnginePlugin[]): SubsequentBuildPhase[] {
+    let buildPhases: SubsequentBuildPhase[] = [];
+    let buildPhase: SubsequentBuildPhase | undefined;
+
+    for (let [index, plugin] of plugins.entries()) {
+      if (hasProcessFile(plugin) && index > 0) {
+        // Group all parallel plugins together into one build phase
+        buildPhase || (buildPhase = new SubsequentBuildPhase());
+        buildPhase.plugins.push(plugin);
+      }
+
+      if (hasProcessFiles(plugin)) {
+        // Add all the parallel plugins that have been grouped together so far
+        if (buildPhase) {
+          buildPhases.push(buildPhase);
+          buildPhase = undefined;
+        }
+
+        // Add the plugin directly, since it already implements `processFiles()`
+        buildPhases.push(plugin as unknown as SubsequentBuildPhase);
+      }
+    }
+
+    // Add the final build phase, if any
+    if (buildPhase) {
+      buildPhases.push(buildPhase);
+    }
+
+    return buildPhases;
+  }
+
 
   /**
    * Process the list of files in parallel.
