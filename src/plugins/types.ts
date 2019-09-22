@@ -53,6 +53,11 @@ export interface Plugin {
   watch?(context: PluginContext): CanIterate<FileInfo>;
 
   /**
+   * Stops watching source files for changes.
+   */
+  stopWatching?(context: PluginContext): void | Promise<void>;
+
+  /**
    * Writes a file to a destination, such as the filesystem, a CMS, a database, an RSS feed, etc.
    */
   write?(file: File, context: PluginContext): void | Promise<void>;

@@ -7,8 +7,8 @@ import { isPlugin } from "../type-guards";
 import { WorkerPool } from "../workers/worker-pool";
 import { AnyIterator, CanIterate, FileProcessor, FilterFunction, Plugin, PluginContext } from "./types";
 
-type PluginMethod = "processFile" | "processFiles" | "find" | "read" | "watch" | "write" | "clean";
-const pluginMethods: PluginMethod[] = ["processFile", "processFiles", "find", "read", "watch", "write", "clean"];
+type PluginMethod = "processFile" | "processFiles" | "find" | "read" | "watch" | "stopWatching" | "write" | "clean";
+const pluginMethods: PluginMethod[] = ["processFile", "processFiles", "find", "read", "watch", "stopWatching", "write", "clean"];
 
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
@@ -122,6 +122,15 @@ export class CodeEnginePlugin {
     try {
       let iterable = this._plugin.watch!(context);
       return getIterator(iterable);
+    }
+    catch (error) {
+      throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
+    }
+  }
+
+  public async stopWatching?(context: PluginContext): Promise<void> {
+    try {
+      await this._plugin.stopWatching!(context);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while watching source files for changes.`);

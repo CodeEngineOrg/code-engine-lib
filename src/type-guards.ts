@@ -71,6 +71,32 @@ export function hasProcessFiles(plugin: CodeEnginePlugin): plugin is HasProcessF
 
 
 /**
+ * A plugin that implements the `watch()` method.
+ */
+export type HasWatch = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "watch">>;
+
+/**
+ * Determines whether the given Plugin implements the `watch()` method
+ */
+export function hasWatch(plugin: CodeEnginePlugin): plugin is HasWatch {
+  return !!plugin.watch;
+}
+
+
+/**
+ * A plugin that implements the `stopWatching()` method.
+ */
+export type HasStopWatching = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "stopWatching">>;
+
+/**
+ * Determines whether the given Plugin implements the `stopWatching()` method
+ */
+export function hasStopWatching(plugin: CodeEnginePlugin): plugin is HasStopWatching {
+  return !!plugin.stopWatching;
+}
+
+
+/**
  * A plugin that implements the `write()` method.
  */
 export type FileDestination = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "write">>;
