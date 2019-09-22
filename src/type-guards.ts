@@ -112,11 +112,11 @@ export function isFileDestination(plugin: CodeEnginePlugin): plugin is FileDesti
 /**
  * A plugin that implements the `clean()` method.
  */
-export type DestinationCleaner = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "clean">>;
+export type HasClean = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "clean">>;
 
 /**
  * Determines whether the given Plugin implements the `clean()` method
  */
-export function isDestinationCleaner(plugin: CodeEnginePlugin): plugin is DestinationCleaner {
+export function hasClean(plugin: CodeEnginePlugin): plugin is HasClean {
   return !!plugin.clean;
 }

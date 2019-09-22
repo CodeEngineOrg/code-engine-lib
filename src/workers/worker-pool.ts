@@ -1,4 +1,3 @@
-import { ono } from "ono";
 import * as os from "os";
 import { CodeEngine } from "../code-engine";
 import { FileProcessor, ModuleDefinition } from "../plugins/types";
@@ -14,7 +13,6 @@ let roundRobinCounter = 0;
 export class WorkerPool {
   private _engine: CodeEngine;
   private _workers: CodeEngineWorker[] = [];
-  private _isDisposed = false;
 
   public constructor(engine: CodeEngine, concurrency?: number) {
     this._engine = engine;
@@ -30,8 +28,6 @@ export class WorkerPool {
    * Loads the specified JavaScript module into all worker threads.
    */
   public async loadModule(module: ModuleDefinition | string): Promise<FileProcessor> {
-    this.assertNotDisposed();
-
     if (typeof module === "string") {
       module = { moduleId: module };
     }
@@ -59,33 +55,12 @@ export class WorkerPool {
   }
 
   /**
-   * Indicates whether the `dispose()` method has been called.
-   */
-  public get isDisposed(): boolean {
-    return this._isDisposed;
-  }
-
-  /**
    * Terminates all worker threads.
    */
   public async dispose(): Promise<void> {
-    if (this._isDisposed) {
-      return;
-    }
-
-    this._isDisposed = true;
     let workers = this._workers;
     this._workers = [];
     await Promise.all(workers.map((worker) => worker.terminate()));
-  }
-
-  /**
-   * Throws an error if the `WorkerPool` has been disposed.
-   */
-  public assertNotDisposed() {
-    if (this._isDisposed) {
-      throw ono(`CodeEngine cannot be used after it has been disposed.`);
-    }
   }
 
   /**
@@ -93,8 +68,6 @@ export class WorkerPool {
    */
   private _createFileProcessor(id: number): FileProcessor {
     return (files, context) => {
-      this.assertNotDisposed();
-
       // Select a worker from the pool to process the files
       let worker = this.select();
       return worker.processFiles(id, files, context);
