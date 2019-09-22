@@ -1,5 +1,6 @@
 // tslint:disable: completed-docs
 import { ono } from "ono";
+import * as path from "path";
 import { CodeEngineFile } from "./file";
 import { File, FileInfo, FileIterator, FileList, FilePathField } from "./types";
 
@@ -176,6 +177,7 @@ export class CodeEngineFileList implements FileList {
  */
 function findIndex(list: CodeEngineFileList, file: string | File, compareField: FilePathField = "path") {
   let searchValue = typeof file === "string" ? file : file[compareField];
+  searchValue = path.normalize(searchValue);
 
   let i = 0, files = list[_internal].files;
   for (; i < files.length; i++) {
