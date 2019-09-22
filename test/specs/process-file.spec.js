@@ -84,47 +84,47 @@ describe("Plugin.processFile()", () => {
       }
     });
 
-    it.skip("should only pass the files to each plugin that match its filter", async () => {
-      // let plugin1 = {
-      //   *find () {
-      //     yield { path: "file.txt" };
-      //     yield { path: "file.html" };
-      //     yield { path: "subdir/file.txt" };
-      //     yield { path: "subdir/file.html" };
-      //     yield { path: "subdir/subsubdir/file.txt" };
-      //     yield { path: "subdir/subsubdir/file.html" };
-      //   },
-      //   filter: true,
-      //   processFile: sinon.spy(),
-      // };
-      // let plugin2 = {
-      //   filter: false,
-      //   processFile: sinon.spy(),
-      // };
-      // let plugin3 = {
-      //   filter: "**/*.html",
-      //   processFile: sinon.spy(),
-      // };
-      // let plugin4 = {
-      //   filter: "*/*.txt",
-      //   processFile: await createPlugin(() => ({
-      //     processFile (file) {
-      //       file.contents = Buffer.from("Plugin 4 was here");
-      //     }
-      // }));
+    it("should only pass the files to each plugin that match its filter", async () => {
+      let plugin1 = {
+        *find () {
+          yield { path: "file.txt" };
+          yield { path: "file.html" };
+          yield { path: "subdir/file.txt" };
+          yield { path: "subdir/file.html" };
+          yield { path: "subdir/subsubdir/file.txt" };
+          yield { path: "subdir/subsubdir/file.html" };
+        },
+        filter: true,
+        processFile: sinon.spy(([file]) => file.contents = Buffer.from(String(file.contents) + "1")),
+      };
+      let plugin2 = {
+        filter: false,
+        processFile: sinon.spy(([file]) => file.contents = Buffer.from(String(file.contents) + "2")),
+      };
+      let plugin3 = {
+        filter: "**/*.html",
+        processFile: sinon.spy(([file]) => file.contents = Buffer.from(String(file.contents) + "3")),
+      };
+      let plugin4 = {
+        filter: "*/*.txt",
+        processFile: await createModule(([file]) => file.contents = Buffer.from(String(file.contents) + "4")),
+      };
 
-      // let engine = CodeEngine.create();
-      // await engine.use(plugin1, plugin2, plugin3, plugin4);
-      // let files = await engine.build();
+      let engine = CodeEngine.create();
+      await engine.use(plugin1, plugin2, plugin3, plugin4);
+      let files = await engine.build();
 
-      // sinon.assert.callCount(plugin1.processFile, 4);
-      // sinon.assert.callCount(plugin2.processFile, 4);
-      // sinon.assert.callCount(plugin3.processFile, 4);
+      expect(files.size).to.equal(6);
+      sinon.assert.callCount(plugin1.processFile, 6);
+      sinon.assert.callCount(plugin2.processFile, 0);
+      sinon.assert.callCount(plugin3.processFile, 3);
 
-      // expect(files.size).to.equal(4);
-      // for (let file of files) {
-      //   expect(file.contents.toString()).to.equal("Plugin 4 was here");
-      // }
+      expect(files.demand("file.txt").contents.toString()).to.equal("1");
+      expect(files.demand("file.html").contents.toString()).to.equal("13");
+      expect(files.demand("subdir/file.txt").contents.toString()).to.equal("14");
+      expect(files.demand("subdir/file.html").contents.toString()).to.equal("13");
+      expect(files.demand("subdir/subsubdir/file.txt").contents.toString()).to.equal("1");
+      expect(files.demand("subdir/subsubdir/file.html").contents.toString()).to.equal("13");
     });
 
     it("should call the processFile() methods in order for each file", async () => {
