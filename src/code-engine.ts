@@ -1,43 +1,49 @@
 import { EventEmitter } from "events";
 import { ono } from "ono";
 import { Build } from "./build/build";
-import { FileList } from "./files/types";
+import { File } from "./files/types";
 import { LogEmitter } from "./loggers/log-emitter";
-import { Logger } from "./loggers/types";
 import { CodeEnginePlugin } from "./plugins/plugin";
-import { Plugin } from "./plugins/types";
-import { Config, Event } from "./types";
+import { Context, Plugin } from "./plugins/types";
+import { AsyncAllIterable, Config, Event } from "./types";
 import { WorkerPool } from "./workers/worker-pool";
 
 const _internal = Symbol("Internal CodeEngine Properties");
+
+interface Internal {
+  readonly build: Build;
+  readonly workerPool: WorkerPool;
+  isDisposed: boolean;
+}
 
 /**
  * The main CodeEngine class.
  */
 export class CodeEngine extends EventEmitter {
-  public readonly cwd: string;
-  public readonly dev: boolean;
-  public readonly debug: boolean;
-  public readonly logger: Logger;
-  private readonly [_internal]: {
-    isDisposed: boolean;
-    readonly build: Build;
-    readonly workerPool: WorkerPool;
-  };
+  private readonly [_internal]: Internal;
 
   public constructor(config: Config = {}) {
     super();
 
-    this.cwd = config.cwd || process.cwd();
-    this.dev = config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev;
-    this.debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
-    this.logger = new LogEmitter(this, this.debug);
+    let debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
 
-    Object.defineProperty(this, _internal, { value: {
+    let context: Context = {
+      debug,
+      cwd: config.cwd || process.cwd(),
+      dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
+      logger: new LogEmitter(this, debug),
+    };
+
+    let workerPool = new WorkerPool(config.concurrency, context);
+    workerPool.on(Event.Error, (err: Error) => errorHandler(this, err));
+
+    let internal: Internal = {
+      workerPool,
       isDisposed: false,
-      build: new Build(this),
-      workerPool: new WorkerPool(this, config.concurrency),
-    }});
+      build: new Build(context),
+    };
+
+    Object.defineProperty(this, _internal, { value: internal });
   }
 
   /**
@@ -57,7 +63,7 @@ export class CodeEngine extends EventEmitter {
     let { build, workerPool } = this[_internal];
     let pluginPOJOs: Plugin[] = arg1.flat();
 
-    this._assertNotDisposed();
+    assertNotDisposed(this);
 
     for (let pluginPOJO of pluginPOJOs) {
       let defaultName = `Plugin ${build.plugins.length + 1}`;
@@ -70,7 +76,7 @@ export class CodeEngine extends EventEmitter {
    * Deletes the contents of the destination(s).
    */
   public async clean(): Promise<void> {
-    this._assertNotDisposed();
+    assertNotDisposed(this);
     return this[_internal].build.clean();
   }
 
@@ -80,7 +86,7 @@ export class CodeEngine extends EventEmitter {
    * @returns - The output files
    */
   public async build(): Promise<FileList> {
-    this._assertNotDisposed();
+    assertNotDisposed(this);
     return this[_internal].build.build();
   }
 
@@ -89,7 +95,7 @@ export class CodeEngine extends EventEmitter {
    * source files change.
    */
   public async watch(): Promise<void> {
-    this._assertNotDisposed();
+    assertNotDisposed(this);
     return this[_internal].build.watch();
   }
 
@@ -127,23 +133,25 @@ export class CodeEngine extends EventEmitter {
   public get [Symbol.toStringTag](): string {
     return "CodeEngine";
   }
+}
 
-  /**
-   * Emits an "error" event and disposes this CodeEngine instance.
-   *
-   * @internal
-   */
-  public _error(error: Error): void {
-    this.emit(Event.Error, error);
-    this.dispose();  // tslint:disable-line: no-floating-promises
+/**
+ * Throws an error if the `WorkerPool` has been disposed.
+ */
+function assertNotDisposed(engine: CodeEngine) {
+  if (engine.isDisposed) {
+    throw ono(`CodeEngine cannot be used after it has been disposed.`);
   }
+}
 
-  /**
-   * Throws an error if the `WorkerPool` has been disposed.
-   */
-  private _assertNotDisposed() {
-    if (this[_internal].isDisposed) {
-      throw ono(`CodeEngine cannot be used after it has been disposed.`);
-    }
+/**
+ * Handles unexpected errors, such as worker threads crashing.
+ */
+async function errorHandler(engine: CodeEngine, error: Error) {
+  try {
+    engine.emit(Event.Error, error);
+  }
+  finally {
+    await engine.dispose();
   }
 }

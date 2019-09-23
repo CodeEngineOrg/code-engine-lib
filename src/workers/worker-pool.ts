@@ -1,6 +1,7 @@
+import { EventEmitter } from "events";
 import * as os from "os";
-import { CodeEngine } from "../code-engine";
-import { FileProcessor, ModuleDefinition } from "../plugins/types";
+import { Context, FileProcessor, ModuleDefinition } from "../plugins/types";
+import { Event } from "../types";
 import { LoadModuleData } from "./types";
 import { CodeEngineWorker } from "./worker";
 
@@ -10,16 +11,21 @@ let roundRobinCounter = 0;
 /**
  * Manages the CodeEngine worker threads.
  */
-export class WorkerPool {
-  private _engine: CodeEngine;
+export class WorkerPool extends EventEmitter {
+  private _cwd: string;
   private _workers: CodeEngineWorker[] = [];
 
-  public constructor(engine: CodeEngine, concurrency?: number) {
-    this._engine = engine;
+  public constructor(concurrency: number | undefined, context: Context) {
+    super();
+    this._cwd = context.cwd;
     concurrency = concurrency || os.cpus().length;
 
+    // Re-emit all errros from workers
+    let emitError = (error: Error) => this.emit(Event.Error, error);
+
     for (let i = 0; i < concurrency; i++) {
-      let worker = new CodeEngineWorker(engine);
+      let worker = new CodeEngineWorker(context);
+      worker.on(Event.Error, emitError);
       this._workers.push(worker);
     }
   }
@@ -35,7 +41,7 @@ export class WorkerPool {
     let data: LoadModuleData = {
       ...module,
       id: ++moduleCounter,
-      cwd: this._engine.cwd,
+      cwd: this._cwd,
     };
 
     await Promise.all(

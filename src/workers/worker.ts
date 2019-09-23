@@ -1,12 +1,11 @@
 import { ono } from "ono";
 import * as path from "path";
 import { Worker } from "worker_threads";
-import { CodeEngine } from "../code-engine";
 import { FileListClone } from "../files/file-list-clone";
-import { FileList } from "../files/types";
-import { LogEventData, LoggerMethods, LogLevel } from "../loggers/types";
+import { LogEventData, Logger, LoggerMethods, LogLevel } from "../loggers/types";
 import { ContextClone } from "../plugins/context-clone";
 import { Context } from "../plugins/types";
+import { Event } from "../types";
 import { awaitOnline } from "./await-online";
 import { Messenger } from "./messenger";
 import { FileProcessorData, FileProcessorResults, LoadModuleData, WorkerEvent } from "./types";
@@ -17,22 +16,21 @@ const workerScript = path.join(__dirname, "main.js");
  * Controls an `Executor` instance running on a worker thread.
  */
 export class CodeEngineWorker extends Worker {
-  private _engine: CodeEngine;
+  private _logger: Logger;
   private _isTerminated: boolean;
   private _waitUntilOnline: Promise<void>;
   private readonly _messenger: Messenger;
 
-  public constructor(engine: CodeEngine) {
+  public constructor({ logger }: Context) {
     super(workerScript);
 
-    this._engine = engine;
+    this._logger = logger;
     this._isTerminated = false;
     this._waitUntilOnline = awaitOnline(this);
     this._messenger = new Messenger(this);
 
     this.on("online", this._handleOnline);
     this.on("exit", this._handleExit);
-    this.on("error", this._handleError);
   }
 
   /**
@@ -92,28 +90,18 @@ export class CodeEngineWorker extends Worker {
   /**
    * Handles the worker thread exiting, either because we told it to terminate, or because it crashed.
    */
-  private async _handleExit(exitCode: number) {
+  private _handleExit(exitCode: number) {
     if (!this._isTerminated) {
       // The worker crashed or exited unexpectedly
-      await this._handleError(ono(`CodeEngine worker #${this.threadId} unexpectedly exited with code ${exitCode}`));
+      this.emit(Event.Error, ono({ workerId: this.threadId },
+        `CodeEngine worker #${this.threadId} unexpectedly exited with code ${exitCode}`));
     }
-  }
-
-  /**
-   * Handles an unexpected error on the worker thread.
-   */
-  private async _handleError(error: Error) {
-    // Crash the worker thread and clean-up state
-    await this.terminate();
-
-    // Crash CodeEngine as well, since we're now in an unknown state
-    this._engine._error(error);
   }
 
   /**
    * Logs a debug message for this worker.
    */
   private _debug(event: WorkerEvent, message: string, data?: object) {
-    this._engine.logger.debug(message, { ...data, event, workerId: this.threadId });
+    this._logger.debug(message, { ...data, event, workerId: this.threadId });
   }
 }
