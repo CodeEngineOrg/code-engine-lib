@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { SerializedPluginContext } from "../plugins/context-clone";
+import { SerializedContext } from "../plugins/context-clone";
 import { RequestHandlerCallbacks } from "../workers/messenger";
 import { serialize } from "../workers/serialization";
 import { WorkerEvent } from "../workers/types";
@@ -11,7 +11,7 @@ import { LogEventData, Logger } from "./types";
  * exists on the main thread.
  */
 export class LoggerClone extends LogEmitter {
-  public constructor(serialized: SerializedPluginContext, callbacks: RequestHandlerCallbacks) {
+  public constructor(serialized: SerializedContext, callbacks: RequestHandlerCallbacks) {
     let emitter = new EventEmitter();
     super(emitter, serialized.debug);
 

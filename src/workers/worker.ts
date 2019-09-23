@@ -5,8 +5,8 @@ import { CodeEngine } from "../code-engine";
 import { FileListClone } from "../files/file-list-clone";
 import { FileList } from "../files/types";
 import { LogEventData, LoggerMethods, LogLevel } from "../loggers/types";
-import { PluginContextClone } from "../plugins/context-clone";
-import { PluginContext } from "../plugins/types";
+import { ContextClone } from "../plugins/context-clone";
+import { Context } from "../plugins/types";
 import { awaitOnline } from "./await-online";
 import { Messenger } from "./messenger";
 import { FileProcessorData, FileProcessorResults, LoadModuleData, WorkerEvent } from "./types";
@@ -46,14 +46,14 @@ export class CodeEngineWorker extends Worker {
   /**
    * Processes the given files in the worker thread.
    */
-  public async processFiles(id: number, files: FileList, context: PluginContext): Promise<void> {
+  public async processFiles(id: number, files: FileList, context: Context): Promise<void> {
     await this._waitUntilOnline;
     this._debug(WorkerEvent.ProcessFiles, `CodeEngine worker #${this.threadId} is processing ${[files]}`);
 
     let data: FileProcessorData = {
       id,
       files: FileListClone.serialize(files),
-      context: PluginContextClone.serialize(context),
+      context: ContextClone.serialize(context),
     };
 
     function log({ level, message, ...other }: LogEventData) {

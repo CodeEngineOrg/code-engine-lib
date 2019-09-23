@@ -2,9 +2,9 @@ import { Logger } from "../loggers/types";
 import { Context } from "./types";
 
 /**
- * The internal CodeEngine implementation of the `PluginContext` interface.
+ * The internal CodeEngine implementation of the `Context` interface.
  */
-export class CodeEnginePluginContext implements Context {
+export class CodeEngineContext implements Context {
   public readonly logger: Logger;
   public readonly cwd: string;
   public readonly dev: boolean;
@@ -21,13 +21,13 @@ export class CodeEnginePluginContext implements Context {
    * Returns a string representation of the context.
    */
   public toString(): string {
-    return "PluginContext";
+    return "Context";
   }
 
   /**
    * Returns the name to use for `Object.toString()`.
    */
   public get [Symbol.toStringTag](): string {
-    return "PluginContext";
+    return "Context";
   }
 }

@@ -1,14 +1,14 @@
 import { LoggerClone, SerializedLogger } from "../loggers/logger-clone";
 import { RequestHandlerCallbacks } from "../workers/messenger";
-import { CodeEnginePluginContext } from "./context";
+import { CodeEngineContext } from "./context";
 import { Context } from "./types";
 
 /**
- * A clone of a `PluginContext` object. The clone exists in a worker thread and proxies calls back
+ * A clone of a `Context` object. The clone exists in a worker thread and proxies calls back
  * to the main thread when needed.
  */
-export class PluginContextClone extends CodeEnginePluginContext {
-  public constructor(serialized: SerializedPluginContext, callbacks: RequestHandlerCallbacks) {
+export class ContextClone extends CodeEngineContext {
+  public constructor(serialized: SerializedContext, callbacks: RequestHandlerCallbacks) {
     super({
       ...serialized,
       logger: new LoggerClone(serialized, callbacks),
@@ -16,9 +16,9 @@ export class PluginContextClone extends CodeEnginePluginContext {
   }
 
   /**
-   * Serializes the given `PluginContext` object so it can be passed across the thread boundary.
+   * Serializes the given `Context` object so it can be passed across the thread boundary.
    */
-  public static serialize(context: Context): SerializedPluginContext {
+  public static serialize(context: Context): SerializedContext {
     return {
       ...context,
       logger: LoggerClone.serialize(context.logger),
@@ -29,9 +29,9 @@ export class PluginContextClone extends CodeEnginePluginContext {
 
 /**
  * The data that is sent across the thread boundary between a `CodeEngineWorker` and an `Executor`
- * to represent a `PluginContext` object.
+ * to represent a `Context` object.
  */
-export interface SerializedPluginContext {
+export interface SerializedContext {
   logger: SerializedLogger;
   cwd: string;
   dev: boolean;

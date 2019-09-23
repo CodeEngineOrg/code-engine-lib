@@ -6,7 +6,7 @@ const { testThreadConsistency } = require("../utils/utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
-describe("PluginContext", () => {
+describe("Context", () => {
   testThreadConsistency((createModule) => {
 
     it("should have all the expected properties", async () => {

@@ -3,7 +3,7 @@ import * as resolveFrom from "resolve-from";
 import * as resolveGlobal from "resolve-global";
 import { MessagePort, threadId } from "worker_threads";
 import { FileListClone } from "../files/file-list-clone";
-import { PluginContextClone } from "../plugins/context-clone";
+import { ContextClone } from "../plugins/context-clone";
 import { FileProcessor, FileProcessorFactory } from "../plugins/types";
 import { Messenger, RequestHandlerCallbacks } from "./messenger";
 import { FileProcessorData, FileProcessorResults, LoadModuleData, WorkerEvent } from "./types";
@@ -62,9 +62,9 @@ export class Executor {
    */
   public async processFiles(data: FileProcessorData, callbacks: RequestHandlerCallbacks)
   : Promise<FileProcessorResults> {
-    // Create clones of the File and PluginContext
+    // Create clones of the File and Context
     let files = new FileListClone(data.files);
-    let context = new PluginContextClone(data.context, callbacks);
+    let context = new ContextClone(data.context, callbacks);
 
     // Process the file using the specified plugin
     let fileProcessor = this._processors.get(data.id)!;

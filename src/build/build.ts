@@ -1,6 +1,6 @@
 import { CodeEngine } from "../code-engine";
 import { FileList } from "../files/types";
-import { CodeEnginePluginContext } from "../plugins/context";
+import { CodeEngineContext } from "../plugins/context";
 import { CodeEnginePlugin } from "../plugins/plugin";
 import { hasClean, hasStopWatching, isFileDestination } from "../type-guards";
 import { BuildPipeline } from "./build-pipeline";
@@ -21,7 +21,7 @@ export class Build {
    */
   public async clean(): Promise<void> {
     let cleaners = this.plugins.filter(hasClean);
-    let context = new CodeEnginePluginContext(this._engine);
+    let context = new CodeEngineContext(this._engine);
     await Promise.all(cleaners.map((cleaner) => cleaner.clean(context)));
   }
 
@@ -32,7 +32,7 @@ export class Build {
    */
   public async build(): Promise<FileList> {
     let pipeline = new BuildPipeline(this.plugins);
-    let context = new CodeEnginePluginContext(this._engine);
+    let context = new CodeEngineContext(this._engine);
     let files = await pipeline.run(context);
 
     // Find all the destination plugins
@@ -59,7 +59,7 @@ export class Build {
     this.plugins = [];
 
     let watchers = plugins.filter(hasStopWatching);
-    let context = new CodeEnginePluginContext(this._engine);
+    let context = new CodeEngineContext(this._engine);
     await Promise.all(watchers.map((watcher) => watcher.stopWatching(context)));
   }
 }

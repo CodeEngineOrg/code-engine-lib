@@ -1,5 +1,5 @@
 import { SerializedFileList } from "../files/file-list-clone";
-import { SerializedPluginContext } from "../plugins/context-clone";
+import { SerializedContext } from "../plugins/context-clone";
 import { ModuleDefinition } from "../plugins/types";
 
 /**
@@ -37,7 +37,7 @@ export interface LoadModuleData extends ModuleDefinition {
 export interface FileProcessorData {
   id: number;
   files: SerializedFileList;
-  context: SerializedPluginContext;
+  context: SerializedContext;
 }
 
 
