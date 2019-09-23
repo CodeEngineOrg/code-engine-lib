@@ -1,7 +1,7 @@
 import { LoggerClone, SerializedLogger } from "../loggers/logger-clone";
 import { RequestHandlerCallbacks } from "../workers/messenger";
 import { CodeEnginePluginContext } from "./context";
-import { PluginContext } from "./types";
+import { Context } from "./types";
 
 /**
  * A clone of a `PluginContext` object. The clone exists in a worker thread and proxies calls back
@@ -18,7 +18,7 @@ export class PluginContextClone extends CodeEnginePluginContext {
   /**
    * Serializes the given `PluginContext` object so it can be passed across the thread boundary.
    */
-  public static serialize(context: PluginContext): SerializedPluginContext {
+  public static serialize(context: Context): SerializedPluginContext {
     return {
       ...context,
       logger: LoggerClone.serialize(context.logger),

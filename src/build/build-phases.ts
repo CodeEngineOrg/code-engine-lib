@@ -3,7 +3,7 @@ import { CodeEngineFile } from "../files/file";
 import { CodeEngineFileList } from "../files/file-list";
 import { File, FileInfo, FileList } from "../files/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { PluginContext } from "../plugins/types";
+import { Context } from "../plugins/types";
 import { FileSource, hasProcessFile, HasProcessFile, hasProcessFiles } from "../type-guards";
 
 /**
@@ -43,7 +43,7 @@ export class InitialBuildPhase {
    * Reads and processes a file asynchronously. The asnc operation is tracked internally rather than
    * returning a Promise.
    */
-  public processFile(source: FileSource, fileInfo: FileInfo, context: PluginContext): void {
+  public processFile(source: FileSource, fileInfo: FileInfo, context: Context): void {
     let promise = Promise.resolve();
     let file = new CodeEngineFile(fileInfo);
 
@@ -116,7 +116,7 @@ export class SubsequentBuildPhase {
   /**
    * Process the list of files in parallel.
    */
-  public async processFiles(files: FileList, context: PluginContext): Promise<void> {
+  public async processFiles(files: FileList, context: Context): Promise<void> {
     await Promise.all(files.map((file) => processFile(file, this.plugins, context)));
   }
 }
@@ -125,7 +125,7 @@ export class SubsequentBuildPhase {
 /**
  * Process the given file through all the specified plugins.
  */
-async function processFile(file: File, plugins: HasProcessFile[], context: PluginContext): Promise<File[]> {
+async function processFile(file: File, plugins: HasProcessFile[], context: Context): Promise<File[]> {
   // Get the first plugin
   let plugin = plugins[0];
   plugins = plugins.slice(1);

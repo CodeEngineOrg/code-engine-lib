@@ -1,16 +1,16 @@
 import { Logger } from "../loggers/types";
-import { PluginContext } from "./types";
+import { Context } from "./types";
 
 /**
  * The internal CodeEngine implementation of the `PluginContext` interface.
  */
-export class CodeEnginePluginContext implements PluginContext {
+export class CodeEnginePluginContext implements Context {
   public readonly logger: Logger;
   public readonly cwd: string;
   public readonly dev: boolean;
   public readonly debug: boolean;
 
-  public constructor(context: PluginContext) {
+  public constructor(context: Context) {
     this.logger = context.logger;
     this.cwd = context.cwd;
     this.dev = context.dev;

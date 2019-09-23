@@ -1,7 +1,7 @@
 import { ono } from "ono";
 import { FileInfo, FileList } from "../files/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { PluginContext } from "../plugins/types";
+import { Context } from "../plugins/types";
 import { FileSource, isFileSource } from "../type-guards";
 import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phases";
 import { iterateMultiple } from "./iterate-multiple";
@@ -27,7 +27,7 @@ export class BuildPipeline {
   /**
    * Runs the given files through the build pipeline.
    */
-  public async run(context: PluginContext): Promise<FileList> {
+  public async run(context: Context): Promise<FileList> {
     // Iterate through each source file, processing each file in parallel for maximum performance.
     for await (let [source, fileInfo] of find(this._sources, context)) {
       this._initialPhase.processFile(source, fileInfo, context);
@@ -48,7 +48,7 @@ export class BuildPipeline {
 /**
  * Calls the `find()` method of all file source plugins, and returns an iterator of all the files.
  */
-function find(sources: FileSource[], context: PluginContext): AsyncIterableIterator<[FileSource, FileInfo]> {
+function find(sources: FileSource[], context: Context): AsyncIterableIterator<[FileSource, FileInfo]> {
   if (sources.length === 0) {
     throw ono("At least one file source is required.");
   }
