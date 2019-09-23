@@ -3,8 +3,9 @@ import { ono } from "ono";
 import { Build } from "./build/build";
 import { File } from "./files/types";
 import { LogEmitter } from "./loggers/log-emitter";
+import { normalizePlugin } from "./plugins/normalize-plugin";
 import { CodeEnginePlugin } from "./plugins/plugin";
-import { Context, Plugin } from "./plugins/types";
+import { Context, PluginDefinition } from "./plugins/types";
 import { AsyncAllIterable, Config, Event } from "./types";
 import { WorkerPool } from "./workers/worker-pool";
 
@@ -57,18 +58,15 @@ export class CodeEngine extends EventEmitter {
   /**
    * Loads one or more CodeEngine plugins.
    */
-  public async use(...plugins: Plugin[]): Promise<void>;
-  public async use(plugins: Plugin[]): Promise<void>;
-  public async use(...arg1: Array<Plugin | Plugin[]>): Promise<void> {
+  public async use(...plugins: PluginDefinition[]): Promise<void> {
     let { build, workerPool } = this[_internal];
-    let pluginPOJOs: Plugin[] = arg1.flat();
 
     assertNotDisposed(this);
 
-    for (let pluginPOJO of pluginPOJOs) {
+    for (let pluginDefinition of plugins) {
       let defaultName = `Plugin ${build.plugins.length + 1}`;
-      let plugin = await CodeEnginePlugin.load(pluginPOJO, workerPool, defaultName);
-      build.plugins.push(plugin);
+      let plugin = await normalizePlugin(pluginDefinition, workerPool, defaultName);
+      build.plugins.push(new CodeEnginePlugin(plugin));
     }
   }
 

@@ -1,14 +1,26 @@
 // tslint:disable: completed-docs
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { CodeEngineFileList } from "../files/file-list";
-import { File, FileInfo, FileList } from "../files/types";
-import { isPlugin } from "../type-guards";
-import { WorkerPool } from "../workers/worker-pool";
-import { AnyIterator, CanIterate, FileProcessor, FilterFunction, Plugin, PluginContext } from "./types";
+import { File, FileInfo } from "../files/types";
+import { NormalizedPlugin } from "./normalize-plugin";
+import { Context, FileProcessor, FilterFunction } from "./types";
 
-type PluginMethod = "processFile" | "processFiles" | "find" | "read" | "watch" | "stopWatching" | "write" | "clean";
-const pluginMethods: PluginMethod[] = ["processFile", "processFiles", "find", "read", "watch", "stopWatching", "write", "clean"];
+/**
+ * The names of plugin methods
+ */
+enum PluginMethod {
+  ProcessFile = "processFile",
+  ProcessFiles = "processFiles",
+  Watch = "watch",
+  StopWatching = "stopWatching",
+  Clean = "clean"
+}
+
+/**
+ * An object containing plugin methods
+ */
+type PluginMethods = { [m in PluginMethod]?: NormalizedPlugin[m] };
+
 
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
@@ -16,50 +28,29 @@ const pluginMethods: PluginMethod[] = ["processFile", "processFiles", "find", "r
 export class CodeEnginePlugin {
   public readonly name: string;
   public readonly filter?: FilterFunction;
-  private readonly _plugin: Plugin;
+  private readonly _methods: PluginMethods = {};
 
-  private constructor(plugin: Plugin, defaultName: string) {
-    if (!isPlugin(plugin)) {
-      throw ono.type(`${plugin} is not a valid CodeEngine plugin.`);
-    }
-
-    this.name = plugin.name || defaultName;
-    this._plugin = plugin;
+  public constructor(plugin: NormalizedPlugin) {
+    this.name = plugin.name;
 
     if (plugin.filter !== undefined) {
       this.filter = createFilter({ map }, plugin.filter);
     }
 
-    for (let method of pluginMethods) {
-      if (!plugin[method]) {
+    for (let method of Object.values(PluginMethod)) {
+      if (plugin[method]) {
+        // @ts-ignore  Store a reference to this plugin's method
+        this._methods[method] = plugin[method];
+      }
+      else {
+        // This plugin doesn't implement this method,
+        // so remove the corresponding method from this class
         this[method] = undefined;
       }
     }
   }
 
-  /**
-   * Loads the given `Plugin` or `ModuleDefinition`.
-   */
-  public static async load(pluginPOJO: Plugin, workerPool: WorkerPool, defaultName: string): Promise<CodeEnginePlugin> {
-    let plugin: CodeEnginePlugin;
-
-    try {
-      plugin = new CodeEnginePlugin(pluginPOJO, defaultName);
-
-      let { processFile } = pluginPOJO;
-      if (typeof processFile === "string" || (typeof processFile === "object" && "moduleId" in processFile)) {
-        // The processFile method is implemented as a separate module, so load the module on all worker threads.
-        plugin._plugin.processFile = await workerPool.loadModule(processFile);
-      }
-
-      return plugin;
-    }
-    catch (error) {
-      throw ono(error, `Error in ${defaultName}.`);
-    }
-  }
-
-  public async processFile?(file: File, context: PluginContext): Promise<FileList> {
+  public async processFile?(file: File, context: Context): Promise<FileList> {
     try {
       let files = new CodeEngineFileList([file]);
 

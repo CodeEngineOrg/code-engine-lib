@@ -1,35 +1,4 @@
 import { CodeEnginePlugin } from "./plugins/plugin";
-import { ModuleDefinition, Plugin } from "./plugins/types";
-
-
-/**
- * Determines whether the given value is a CodeEngine `Plugin` object.
- */
-export function isPlugin(value: unknown): value is Plugin {
-  let plugin = value as Plugin;
-  return plugin &&
-    typeof plugin === "object" &&
-    isOptionalType(plugin.name, "string") &&
-    isOptionalType(plugin.find, "function") &&
-    isOptionalType(plugin.read, "function") &&
-    isOptionalType(plugin.watch, "function") &&
-    isOptionalType(plugin.write, "function") &&
-    isOptionalType(plugin.clean, "function") &&
-    isOptionalType(plugin.processFiles, "function") &&
-    (
-      isOptionalType(plugin.processFile, "string") ||
-      isOptionalType(plugin.processFile, "function") ||
-      typeof (plugin.processFile as ModuleDefinition).moduleId === "string"
-    );
-}
-
-/**
- * Determines whether the given value is the specified type or `null` or `undefined`.
- */
-function isOptionalType(value: unknown, type: string): boolean {
-  return value === undefined || value === null || typeof value === type;
-}
-
 
 /**
  * A plugin that implements the `find()` method.
