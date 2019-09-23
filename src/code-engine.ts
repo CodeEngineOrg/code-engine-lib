@@ -108,16 +108,6 @@ export class CodeEngine extends EventEmitter {
   }
 
   /**
-   * Emits an "error" event and disposes this CodeEngine instance.
-   *
-   * @internal
-   */
-  public error(error: Error): void {
-    this.emit(Event.Error, error);
-    this.dispose();  // tslint:disable-line: no-floating-promises
-  }
-
-  /**
    * Returns a string representation of the CodeEngine instance.
    */
   public toString(): string {
@@ -136,6 +126,16 @@ export class CodeEngine extends EventEmitter {
    */
   public get [Symbol.toStringTag](): string {
     return "CodeEngine";
+  }
+
+  /**
+   * Emits an "error" event and disposes this CodeEngine instance.
+   *
+   * @internal
+   */
+  public _error(error: Error): void {
+    this.emit(Event.Error, error);
+    this.dispose();  // tslint:disable-line: no-floating-promises
   }
 
   /**

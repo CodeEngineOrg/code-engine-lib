@@ -107,7 +107,7 @@ export class CodeEngineWorker extends Worker {
     await this.terminate();
 
     // Crash CodeEngine as well, since we're now in an unknown state
-    this._engine.error(error);
+    this._engine._error(error);
   }
 
   /**
