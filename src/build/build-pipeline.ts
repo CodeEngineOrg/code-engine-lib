@@ -1,57 +1,67 @@
-import { ono } from "ono";
-import { FileInfo, FileList } from "../files/types";
+import { AsyncAllIterable, Context, File } from "@code-engine/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { Context } from "../plugins/types";
-import { FileSource, isFileSource } from "../type-guards";
-import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phases";
-import { iterateMultiple } from "./iterate-multiple";
+import { hasClean, hasDispose, NormalizedPlugin } from "../plugins/types";
+import { Build } from "./build";
 
 /**
- * Runs files through a series of plugins as efficiently as possible.
+ * A sequence of CodeEngine plugins that can be used to run builds.
+ * @internal
  */
 export class BuildPipeline {
-  private _sources: FileSource[];
-  private _initialPhase: InitialBuildPhase;
-  private _subsequentPhases: SubsequentBuildPhase[];
+  private _plugins: CodeEnginePlugin[] = [];
+  private _context: Context;
 
-  public constructor(plugins: CodeEnginePlugin[]) {
-    this._sources = plugins.filter(isFileSource);
-
-    // Split the plugin list into separate build phases, based on which plugins are capable of
-    // running in parallal, and which ones must be run sequentially.
-    let [index, initialPhase] = InitialBuildPhase.create(plugins);
-    this._initialPhase = initialPhase;
-    this._subsequentPhases = SubsequentBuildPhase.create(plugins.slice(index));
+  public constructor(context: Context) {
+    this._context = context;
   }
 
   /**
-   * Runs the given files through the build pipeline.
+   * The number of plugins in the build pipeline.
    */
-  public async run(context: Context): Promise<FileList> {
-    // Iterate through each source file, processing each file in parallel for maximum performance.
-    for await (let [source, fileInfo] of find(this._sources, context)) {
-      this._initialPhase.processFile(source, fileInfo, context);
-    }
-
-    // Wait for all the initial build phases to finish
-    let files = await this._initialPhase.finished();
-
-    // The remaining build phases (if any) process the full list of files
-    for (let phase of this._subsequentPhases) {
-      await phase.processFiles(files, context);
-    }
-
-    return files;
-  }
-}
-
-/**
- * Calls the `find()` method of all file source plugins, and returns an iterator of all the files.
- */
-function find(sources: FileSource[], context: Context): AsyncIterableIterator<[FileSource, FileInfo]> {
-  if (sources.length === 0) {
-    throw ono("At least one file source is required.");
+  public get size(): number {
+    return this._plugins.length;
   }
 
-  return iterateMultiple(sources, (source) => source.find(context));
+  /**
+   * Adds a plugin to the build pipeline
+   */
+  public add(plugin: NormalizedPlugin): void {
+    this._plugins.push(new CodeEnginePlugin(plugin));
+  }
+
+  /**
+   * Deletes the contents of the destination(s).
+   */
+  public async clean(): Promise<void> {
+    let cleaners = this._plugins.filter(hasClean);
+    await Promise.all(cleaners.map((plugin) => plugin.clean(this._context)));
+  }
+
+  /**
+   * Runs a full build of all source files.
+   *
+   * @returns - The output files
+   */
+  public build(): AsyncAllIterable<File> {
+    let build = new Build(this._plugins);
+    return build.run(this._context);
+  }
+
+  /**
+   * Watches source files for changes and runs incremental re-builds whenever changes are detected.
+   */
+  public async watch(): Promise<void> {
+    return;
+  }
+
+  /**
+   * Removes all plugins and stops watching source files.
+   */
+  public async dispose(): Promise<void> {
+    let plugins = this._plugins;
+    this._plugins = [];
+
+    let needDisposed = plugins.filter(hasDispose);
+    await Promise.all(needDisposed.map((plugin) => plugin.dispose(this._context)));
+  }
 }

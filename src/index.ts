@@ -1,9 +1,7 @@
 import { CodeEngine } from "./code-engine";
 
-export * from "./files/types";
-export * from "./loggers/types";
-export * from "./plugins/types";
-export * from "./types";
+export * from "@code-engine/types";
+export * from "./config";
 export { CodeEngine };
 
 // Export `CodeEngine` as the default export

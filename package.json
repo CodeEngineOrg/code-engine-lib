@@ -33,7 +33,7 @@
     "url": "https://github.com/CodeEngineOrg/code-engine-lib.git"
   },
   "main": "lib/index.js",
-  "types": "lib/index.d.js",
+  "types": "lib/index.d.ts",
   "files": [
     "lib"
   ],
@@ -77,9 +77,10 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
+    "@code-engine/types": "^1.0.0-alpha.1",
+    "@code-engine/utils": "^1.0.0-alpha.1",
+    "@code-engine/workers": "^1.0.0-alpha.1",
     "file-path-filter": "^2.2.2",
-    "ono": "^5.1.0",
-    "resolve-from": "^5.0.0",
-    "resolve-global": "^1.0.0"
+    "ono": "^5.1.0"
   }
 }

@@ -33,11 +33,3 @@ export interface Config {
    */
   debug?: boolean;
 }
-
-/**
- * Events that can be emitted by a CodeEngine instance.
- */
-export enum Event {
-  Log = "log",
-  Error = "error",
-}

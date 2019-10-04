@@ -1,13 +1,11 @@
 // tslint:disable: max-classes-per-file
-import { CodeEngineFile } from "../files/file";
-import { CodeEngineFileList } from "../files/file-list";
-import { File, FileInfo, FileList } from "../files/types";
+import { File } from "@code-engine/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { Context } from "../plugins/types";
-import { FileSource, hasProcessFile, HasProcessFile, hasProcessFiles } from "../type-guards";
+import { FileSource, hasProcessFile, HasProcessFile, hasProcessFiles, NormalizedPlugin } from "../plugins/types";
 
 /**
- * The initial build phase, during which each file is processed in parallel for maximum performance.
+ * The initial build phase, during which each file is processed in parallel.
+ * @internal
  */
 export class InitialBuildPhase {
   public readonly plugins: HasProcessFile[] = [];
@@ -49,7 +47,7 @@ export class InitialBuildPhase {
 
     if (source.read && (fileInfo.contents === undefined || fileInfo.contents === null)) {
       // We need to call `Plugin.read()` to get the file contents, before processing it.
-      promise = promise.then(() => source.read!(file, context));
+      promise = promise.then(() => source.read(file, context));
     }
 
     let filesPromise = promise.then(() => processFile(file, this.plugins, context));
@@ -71,6 +69,7 @@ export class InitialBuildPhase {
  * A subsequent build phase, which occurs after at least one sequential plugin, which means that
  * we now have the complete list of files. Nonetheless, we can achieve perfomance gains by processing
  * the file list in parallel.
+ * @internal
  */
 export class SubsequentBuildPhase {
   public readonly plugins: HasProcessFile[] = [];
@@ -81,7 +80,7 @@ export class SubsequentBuildPhase {
    * Creates the subsequent build phases, each of which may consist of a single sequential plugin,
    * or multiple parallel plugins.
    */
-  public static create(plugins: CodeEnginePlugin[]): SubsequentBuildPhase[] {
+  public static create(plugins: NormalizedPlugin[]): SubsequentBuildPhase[] {
     let buildPhases: SubsequentBuildPhase[] = [];
     let buildPhase: SubsequentBuildPhase | undefined;
 
@@ -124,6 +123,7 @@ export class SubsequentBuildPhase {
 
 /**
  * Process the given file through all the specified plugins.
+ * @internal
  */
 async function processFile(file: File, plugins: HasProcessFile[], context: Context): Promise<File[]> {
   // Get the first plugin

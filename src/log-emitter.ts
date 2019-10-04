@@ -1,39 +1,34 @@
+import { LogEventData, Logger } from "@code-engine/types";
 import { EventEmitter } from "events";
-import { Event } from "../types";
-import { LogEventData, Logger, LogLevel } from "./types";
-
-const _internal = Symbol("Internal CodeEngine Properties");
 
 /**
  * Emits log messages via an EventEmitter.
+ * @internal
  */
 export class LogEmitter implements Logger {
-  private readonly [_internal]: {
-    readonly emitter: EventEmitter;
-    readonly debug: boolean;
-  };
+  private readonly _emitter: EventEmitter;
+  private readonly _debug: boolean;
 
   public constructor(emitter: EventEmitter, debug: boolean) {
-    Object.defineProperty(this, _internal, { value: { emitter, debug }});
+    this._emitter = emitter;
+    this._debug = debug;
   }
 
   /**
    * Emits a log event with a message and possibly additional data.
    */
   public log(message: string, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, message, level: LogLevel.Info };
-    this[_internal].emitter.emit(Event.Log, logEventData);
+    let logEventData: LogEventData = { ...data, message, level: "info" };
+    this._emitter.emit("log", logEventData);
   }
 
   /**
    * Emits a log event, only if debug mode is enabled.
    */
   public debug(message: string, data?: object | undefined): void {
-    let { debug, emitter } = this[_internal];
-
-    if (debug) {
-      let logEventData: LogEventData = { ...data, message, level: LogLevel.Debug };
-      emitter.emit(Event.Log, logEventData);
+    if (this._debug) {
+      let logEventData: LogEventData = { ...data, message, level: "debug" };
+      this._emitter.emit("log", logEventData);
     }
   }
 
@@ -41,18 +36,16 @@ export class LogEmitter implements Logger {
    * Emits a log event with a warning message and possibly additional data.
    */
   public warn(warning: string | Error, data?: object | undefined): void {
-    let { debug, emitter } = this[_internal];
-    let logEventData: LogEventData = { ...data, ...splitError(warning, debug), level: LogLevel.Warning };
-    emitter.emit(Event.Log, logEventData);
+    let logEventData: LogEventData = { ...data, ...splitError(warning, this._debug), level: "warning" };
+    this._emitter.emit("log", logEventData);
   }
 
   /**
    * Emits a log event with an error message and possibly additional data.
    */
   public error(error: string | Error, data?: object | undefined): void {
-    let { debug, emitter } = this[_internal];
-    let logEventData: LogEventData = { ...data, ...splitError(error, debug), level: LogLevel.Error };
-    emitter.emit(Event.Log, logEventData);
+    let logEventData: LogEventData = { ...data, ...splitError(error, this._debug), level: "error" };
+    this._emitter.emit("log", logEventData);
   }
 }
 

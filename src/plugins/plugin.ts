@@ -1,9 +1,9 @@
 // tslint:disable: completed-docs
+import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/types";
+import { createFile, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { File, FileInfo } from "../files/types";
-import { NormalizedPlugin } from "./normalize-plugin";
-import { Context, FileProcessor, FilterFunction } from "./types";
+import { NormalizedPlugin } from "./types";
 
 /**
  * The names of plugin methods
@@ -11,9 +11,10 @@ import { Context, FileProcessor, FilterFunction } from "./types";
 enum PluginMethod {
   ProcessFile = "processFile",
   ProcessFiles = "processFiles",
+  Read = "read",
   Watch = "watch",
-  StopWatching = "stopWatching",
-  Clean = "clean"
+  Clean = "clean",
+  Dispose = "dispose",
 }
 
 /**
@@ -24,6 +25,7 @@ type PluginMethods = { [m in PluginMethod]?: NormalizedPlugin[m] };
 
 /**
  * The internal CodeEngine implementation of the `Plugin` interface.
+ * @internal
  */
 export class CodeEnginePlugin {
   public readonly name: string;
@@ -50,39 +52,56 @@ export class CodeEnginePlugin {
     }
   }
 
-  public async processFile?(file: File, context: Context): Promise<FileList> {
+  // tslint:disable-next-line: no-async-without-await
+  public async* processFile?(file: File, context: Context): AsyncGenerator<File> {
     try {
-      let files = new CodeEngineFileList([file]);
+      let fileInfos;
 
-      if (this.filter && !this.filter(file, files, context)) {
-        return files;
+      if (this.filter && !this.filter(file, context)) {
+        fileInfos = file;
+      }
+      else {
+        fileInfos = this._methods.processFile!(file, context);
       }
 
-      await (this._plugin.processFile as FileProcessor)(files, context);
-      return files;
+      for await (let fileInfo of iterate(fileInfos)) {
+        yield createFile(fileInfo);
+      }
     }
     catch (error) {
       throw ono(error, { path: file.path }, `An error occurred in ${this} while processing ${file}.`);
     }
   }
 
-  public async processFiles?(files: FileList, context: PluginContext): Promise<void> {
+  public async* processFiles?(files: AsyncAllIterable<File>, context: Context): AsyncGenerator<File> {
     try {
+      let fileInfos;
+
       if (this.filter) {
-        // Temporarily remove the filtered files from the master list
-        let filteredFiles = files.remove((file) => this.filter!(file, files, context));
+        let filteredFiles = [];
 
-        // Process only the filtered files
-        await this._plugin.processFiles!(filteredFiles, context);
-
-        // Now add the filtered files (including any added/removed files) to the master list
-        for (let file of filteredFiles) {
-          files.add(file);
+        // Determine which files match the filter
+        for await (let file of files) {
+          if (this.filter(file, context)) {
+            // This file matches the filter, so add it to the list to be passed to the plugin
+            filteredFiles.push(file);
+          }
+          else {
+            // This file does NOT match the filter, so immediately pass it along
+            yield file;
+          }
         }
+
+        // Allow the plugin to process the files that matched the filter
+        fileInfos = await this._methods.processFiles!(iterate(filteredFiles), context);
       }
       else {
         // There is no filter, so process the full list of files
-        await this._plugin.processFiles!(files, context);
+        fileInfos = this._methods.processFiles!(files, context);
+      }
+
+      for await (let fileInfo of iterate(fileInfos)) {
+        yield createFile(fileInfo);
       }
     }
     catch (error) {
@@ -90,59 +109,49 @@ export class CodeEnginePlugin {
     }
   }
 
-  public find?(context: PluginContext): AnyIterator<FileInfo> {
+  // tslint:disable-next-line: no-async-without-await
+  public async* read?(context: Context): AsyncGenerator<File> {
     try {
-      let iterable = this._plugin.find!(context);
-      return getIterator(iterable);
-    }
-    catch (error) {
-      throw ono(error, `An error occurred in ${this} while searching for source files.`);
-    }
-  }
+      let fileInfos = this._methods.read!(context);
 
-  public async read?(file: File, context: PluginContext): Promise<void> {
-    try {
-      await this._plugin.read!(file, context);
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `An error occurred in ${this} while reading ${file}.`);
-    }
-  }
-
-  public watch?(context: PluginContext): AnyIterator<FileInfo> {
-    try {
-      let iterable = this._plugin.watch!(context);
-      return getIterator(iterable);
+      for await (let fileInfo of iterate(fileInfos)) {
+        yield createFile(fileInfo);
+      }
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
     }
   }
 
-  public async stopWatching?(context: PluginContext): Promise<void> {
+  // tslint:disable-next-line: no-async-without-await
+  public async* watch?(context: Context): AsyncGenerator<File> {
     try {
-      await this._plugin.stopWatching!(context);
+      let changedFileInfos = this._methods.watch!(context);
+
+      for await (let fileInfo of iterate(changedFileInfos)) {
+        yield createFile(fileInfo);
+      }
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
     }
   }
 
-  public async write?(file: File, context: PluginContext): Promise<void> {
+  public async clean?(context: Context): Promise<void> {
     try {
-      await this._plugin.write!(file, context);
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `An error occurred in ${this} while writing ${file} to the destination.`);
-    }
-  }
-
-  public async clean?(context: PluginContext): Promise<void> {
-    try {
-      await this._plugin.clean!(context);
+      await this._methods.clean!(context);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while cleaning the destination.`);
+    }
+  }
+
+  public async dispose?(context: Context): Promise<void> {
+    try {
+      await this._methods.dispose!(context);
+    }
+    catch (error) {
+      throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
     }
   }
 
@@ -151,29 +160,6 @@ export class CodeEnginePlugin {
    */
   public toString(): string {
     return this.name;
-  }
-}
-
-
-/**
- * Returns the iterator for the given iterable.
- */
-function getIterator<TResult>(canIterate: CanIterate<TResult>): AnyIterator<TResult> {
-  let iterator = canIterate as AnyIterator<TResult>;
-  let syncIterable = canIterate as Iterable<TResult>;
-  let asyncIterable = canIterate as AsyncIterable<TResult>;
-
-  if (typeof asyncIterable[Symbol.asyncIterator] === "function") {
-    return asyncIterable[Symbol.asyncIterator]();
-  }
-  else if (typeof syncIterable[Symbol.iterator] === "function") {
-    return syncIterable[Symbol.iterator]();
-  }
-  else if (typeof iterator.next === "function") {
-    return iterator;
-  }
-  else {
-    throw ono.type(`CodeEngine requires an iterable, such as an array, Map, Set, or generator.`);
   }
 }
 

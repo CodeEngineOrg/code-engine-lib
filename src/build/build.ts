@@ -1,65 +1,57 @@
-import { CodeEngine } from "../code-engine";
-import { FileList } from "../files/types";
-import { CodeEngineContext } from "../plugins/context";
+import { AsyncAllIterable, Context, File } from "@code-engine/types";
+import { iterateMultiple } from "@code-engine/utils";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { hasClean, hasStopWatching, isFileDestination } from "../type-guards";
-import { BuildPipeline } from "./build-pipeline";
+import { FileSource, isFileSource } from "../plugins/types";
+import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phases";
 
 /**
- * Manages CodeEngine builds
+ * Runs files through a series of plugins.
+ * @internal
  */
 export class Build {
-  public plugins: CodeEnginePlugin[] = [];
-  private _engine: CodeEngine;
+  private _sources: FileSource[];
+  private _initialPhase: InitialBuildPhase;
+  private _subsequentPhases: SubsequentBuildPhase[];
 
-  public constructor(engine: CodeEngine) {
-    this._engine = engine;
+  /**
+   * Separates the plugins by type and order.
+   */
+  public constructor(plugins: CodeEnginePlugin[]) {
+    // Get all the file source plugins
+    this._sources = plugins.filter(isFileSource);
+
+    // Split the file processor plugins into separate build phases, based on which plugins
+    // are capable of running in parallal, and which ones must be run sequentially.
+    let [index, initialPhase] = InitialBuildPhase.create(plugins);
+    this._initialPhase = initialPhase;
+    this._subsequentPhases = SubsequentBuildPhase.create(plugins.slice(index));
   }
 
   /**
-   * Deletes the contents of the destination(s).
+   * Runs the given files through the build pipeline.
    */
-  public async clean(): Promise<void> {
-    let cleaners = this.plugins.filter(hasClean);
-    let context = new CodeEngineContext(this._engine);
-    await Promise.all(cleaners.map((cleaner) => cleaner.clean(context)));
-  }
+  public async run(context: Context): AsyncAllIterable<File> {
+    // Iterate through each source file, processing each file in parallel.
+    for await (let file of this._readAll(context)) {
+      this._initialPhase.processFile(file, context);
+    }
 
-  /**
-   * Runs a full build of all source files.
-   *
-   * @returns - The output files
-   */
-  public async build(): Promise<FileList> {
-    let pipeline = new BuildPipeline(this.plugins);
-    let context = new CodeEngineContext(this._engine);
-    let files = await pipeline.run(context);
+    // Wait for all the initial build phases to finish
+    let files = await this._initialPhase.finished();
 
-    // Find all the destination plugins
-    let destinations = this.plugins.filter(isFileDestination);
-
-    // TODO: Write each file to the destinations, without waiting for all files to be processed
+    // The remaining build phases (if any) process the full list of files
+    for (let phase of this._subsequentPhases) {
+      await phase.processFiles(files, context);
+    }
 
     return files;
   }
 
   /**
-   * Runs a full build of all source files, and runs incremental re-builds whenever
-   * source files change.
+   * Reads all source files simultaneously from all file sources.
    */
-  public async watch(): Promise<void> {
-    return;
-  }
-
-  /**
-   * Removes all plugins and stops watching source files.
-   */
-  public async dispose(): Promise<void> {
-    let plugins = this.plugins;
-    this.plugins = [];
-
-    let watchers = plugins.filter(hasStopWatching);
-    let context = new CodeEngineContext(this._engine);
-    await Promise.all(watchers.map((watcher) => watcher.stopWatching(context)));
+  private _readAll(context: Context): AsyncIterable<File> {
+    let fileGenerators = this._sources.map((source) => source.read(context));
+    return iterateMultiple(fileGenerators);
   }
 }

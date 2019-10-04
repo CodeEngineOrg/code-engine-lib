@@ -1,27 +1,24 @@
+import { AsyncAllIterable, Context, File, PluginDefinition } from "@code-engine/types";
+import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
-import { Build } from "./build/build";
-import { File } from "./files/types";
-import { LogEmitter } from "./loggers/log-emitter";
+import { BuildPipeline } from "./build/build-pipeline";
+import { Config } from "./config";
+import { LogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
-import { CodeEnginePlugin } from "./plugins/plugin";
-import { Context, PluginDefinition } from "./plugins/types";
-import { AsyncAllIterable, Config, Event } from "./types";
-import { WorkerPool } from "./workers/worker-pool";
-
-const _internal = Symbol("Internal CodeEngine Properties");
-
-interface Internal {
-  readonly build: Build;
-  readonly workerPool: WorkerPool;
-  isDisposed: boolean;
-}
 
 /**
  * The main CodeEngine class.
  */
 export class CodeEngine extends EventEmitter {
-  private readonly [_internal]: Internal;
+  /** internal */
+  private readonly _buildPipeline: BuildPipeline;
+
+  /** internal */
+  private readonly _workerPool: WorkerPool;
+
+  /** internal */
+  private _isDisposed: boolean = false;
 
   public constructor(config: Config = {}) {
     super();
@@ -35,16 +32,9 @@ export class CodeEngine extends EventEmitter {
       logger: new LogEmitter(this, debug),
     };
 
-    let workerPool = new WorkerPool(config.concurrency, context);
-    workerPool.on(Event.Error, (err: Error) => errorHandler(this, err));
-
-    let internal: Internal = {
-      workerPool,
-      isDisposed: false,
-      build: new Build(context),
-    };
-
-    Object.defineProperty(this, _internal, { value: internal });
+    this._workerPool = new WorkerPool(config.concurrency, context);
+    this._workerPool.on("error", (err: Error) => errorHandler(this, err));
+    this._buildPipeline = new BuildPipeline(context);
   }
 
   /**
@@ -52,21 +42,19 @@ export class CodeEngine extends EventEmitter {
    * Once disposed, a CodeEngine instance is no longer usable.
    */
   public get isDisposed(): boolean {
-    return this[_internal].isDisposed;
+    return this._isDisposed;
   }
 
   /**
    * Loads one or more CodeEngine plugins.
    */
   public async use(...plugins: PluginDefinition[]): Promise<void> {
-    let { build, workerPool } = this[_internal];
-
     assertNotDisposed(this);
 
     for (let pluginDefinition of plugins) {
-      let defaultName = `Plugin ${build.plugins.length + 1}`;
-      let plugin = await normalizePlugin(pluginDefinition, workerPool, defaultName);
-      build.plugins.push(new CodeEnginePlugin(plugin));
+      let defaultName = `Plugin ${this._buildPipeline.size + 1}`;
+      let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
+      this._buildPipeline.add(plugin);
     }
   }
 
@@ -75,7 +63,7 @@ export class CodeEngine extends EventEmitter {
    */
   public async clean(): Promise<void> {
     assertNotDisposed(this);
-    return this[_internal].build.clean();
+    return this._buildPipeline.clean();
   }
 
   /**
@@ -83,18 +71,17 @@ export class CodeEngine extends EventEmitter {
    *
    * @returns - The output files
    */
-  public async build(): Promise<FileList> {
+  public build(): AsyncAllIterable<File> {
     assertNotDisposed(this);
-    return this[_internal].build.build();
+    return this._buildPipeline.build();
   }
 
   /**
-   * Runs a full build of all source files, and runs incremental re-builds whenever
-   * source files change.
+   * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
   public async watch(): Promise<void> {
     assertNotDisposed(this);
-    return this[_internal].build.watch();
+    return this._buildPipeline.watch();
   }
 
   /**
@@ -102,26 +89,26 @@ export class CodeEngine extends EventEmitter {
    * Once `dispose()` is called, the CodeEngine instance is no longer usable.
    */
   public async dispose(): Promise<void> {
-    if (this[_internal].isDisposed) {
+    if (this._isDisposed) {
       return;
     }
 
-    this[_internal].isDisposed = true;
-    await this[_internal].build.dispose();
-    await this[_internal].workerPool.dispose();
+    this._isDisposed = true;
+    await Promise.all([
+      this._buildPipeline.dispose(),
+      this._workerPool.dispose(),
+    ]);
   }
 
   /**
    * Returns a string representation of the CodeEngine instance.
    */
   public toString(): string {
-    let { isDisposed, build } = this[_internal];
-
-    if (isDisposed) {
+    if (this._isDisposed) {
       return `CodeEngine (disposed)`;
     }
     else {
-      return `CodeEngine (${build.plugins.length} plugins)`;
+      return `CodeEngine (${this._buildPipeline.size} plugins)`;
     }
   }
 
@@ -134,7 +121,7 @@ export class CodeEngine extends EventEmitter {
 }
 
 /**
- * Throws an error if the `WorkerPool` has been disposed.
+ * Throws an error if the `CodeEngine` has been disposed.
  */
 function assertNotDisposed(engine: CodeEngine) {
   if (engine.isDisposed) {
@@ -147,7 +134,7 @@ function assertNotDisposed(engine: CodeEngine) {
  */
 async function errorHandler(engine: CodeEngine, error: Error) {
   try {
-    engine.emit(Event.Error, error);
+    engine.emit("error", error);
   }
   finally {
     await engine.dispose();

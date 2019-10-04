@@ -1,197 +1,110 @@
-import { File, FileInfo, FileList } from "../files/types";
-import { Logger } from "../loggers/types";
+import { FileProcessor, ModuleDefinition, Plugin } from "@code-engine/types";
+import { CodeEnginePlugin } from "./plugin";
+
 
 /**
- * A CodeEngine plugin
+ * A CodeEngine Plugin that has been normalized so that it always has a `name`,
+ * and its `processFile`, if set, is always a `FileProcessor` function.
+ * @internal
  */
-export interface Plugin {
-  /**
-   * The plugin name. Used for log messages.
-   */
-  name?: string;
+export type NormalizedPlugin = { name: string; processFile?: FileProcessor } & Omit<Plugin, "name" | "processFile">;
 
-  /**
-   * Glob patterns, regular expressions, or filter functions that limit which files are processed
-   * by the plugin's `processFile()` and `processFiles()` methods.
-   *
-   * Defaults to all files.
-   */
-  filter?: Filter;
 
-  /**
-   * Processes a file that matches the plugin's `filter` criteria. Can be any of the following:
-   *
-   * - A function that process the file on the main thread
-   * - The path of a JavaScript module or Node package that processes the file on a worker thread
-   * - An object containing the path of a JavaScript module or Node package, as well as data to pass to it
-   *
-   */
-  processFile?: string | ModuleDefinition | FileProcessor;
-
-  /**
-   * Processes all files that match the plugin's `filter` criteria.
-   *
-   * NOTE: Most plugins should use `processFile()` (singular) instead, which speeds-up the build by
-   * allowing the files to be processed in parallel. Using `processFiles()` (plural) forces CodeEngine
-   * to wait until all files are ready to be processed.
-   */
-  processFiles?: FileProcessor;
-
-  /**
-   * Finds files to be built from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
-   */
-  find?(context: PluginContext): CanIterate<FileInfo>;
-
-  /**
-   * Reads the contents of a file from a source, such as the filesystem, a CMS, a database, an RSS feed, etc.
-   */
-  read?(file: File, context: PluginContext): void | Promise<void>;
-
-  /**
-   * Watches source files and notifies CodeEngine when changes are detected.
-   */
-  watch?(context: PluginContext): CanIterate<FileInfo>;
-
-  /**
-   * Stops watching source files for changes.
-   */
-  stopWatching?(context: PluginContext): void | Promise<void>;
-
-  /**
-   * Writes a file to a destination, such as the filesystem, a CMS, a database, an RSS feed, etc.
-   */
-  write?(file: File, context: PluginContext): void | Promise<void>;
-
-  /**
-   * Deletes existing files from the destination, in preparation for a clean build.
-   */
-  clean?(context: PluginContext): void | Promise<void>;
+/**
+ * Determines if the given value is a `ModuleDefinition` object,
+ * or a string that's shorthand for `ModuleDefinition.moduleId`.
+ * @internal
+ */
+export function isModuleDefinition(value: unknown): value is string | ModuleDefinition {
+  return typeof value === "string" || (value && typeof (value as ModuleDefinition).moduleId === "string");
 }
 
 
 /**
- * Processes a file, either on the main thread or on a worker thread.
- *
- * @param files
- * A list of files to be processed. You can modify files, delete files, or add new files to the list.
- * For the `Plugin.processFile()` method, this list will always start with a single file.
+ * A plugin that implements the `read()` method.
+ * @internal
  */
-export type FileProcessor = (files: FileList, context: PluginContext) => void | Promise<void>;
-
+export type FileSource = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "read">>;
 
 /**
- * A JavaScript module whose default export is a `FileProcessor` or `FileProcessorFactory`.
+ * Determines whether the given Plugin implements the `read()` method
+ * @internal
  */
-export interface ModuleDefinition {
-  /**
-   * A JavaScript module ID, such as the path of a JavaScript file or the name of an NPM package.
-   * The module's default export must be a `FileProcessor` or `FileProcessorFactory`.
-   */
-  moduleId: string;
-
-  /**
-   * If the module's default export is a `FileProcessorFactory`, then this data will be passed when
-   * calling the factory function. This data can only contain types that are compatible with the
-   * Structured Clone Algoritm.
-   *
-   * NOTE: If `data` is `undefined`, then the module must export a `FileProcessor` directly, not
-   * a `FileProcessorFactory`.
-   *
-   * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
-   */
-  data?: unknown;
+export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
+  return !!plugin.read;
 }
 
 
 /**
- * A function that returns a `FileProcessor`. The default export of a `ModuleDefinition` must
- * match this signature.
- *
- * @param data - The `ModuleDefinition.data` value
+ * A plugin that implements the `processFile()` method.
+ * @internal
  */
-export type FileProcessorFactory = (data: unknown) => FileProcessor | Promise<FileProcessor>;
-
+export type HasProcessFile = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFile">>;
 
 /**
- * A synchronous or asynchronous iterable.
+ * Determines whether the given Plugin implements the `processFile()` method
+ * @internal
  */
-export type AnyIterable<T> = Iterable<T> | AsyncIterable<T>;
-
-
-/**
- * A synchronous or asynchronous iterator.
- */
-export type AnyIterator<T> = Iterator<T> | AsyncIterator<T>;
-
-
-/**
- * CodeEngine plugins can return files as arrays, Sets, Maps, generators, async generators, or
- * anything else that can be iterated.
- */
-export type CanIterate<T> = AnyIterable<T> | AnyIterator<T>;
-
-
-/**
- * Filters files by their path.  Can be any of the following:
- *
- *    - A boolean to include/exclude all files
- *    - A glob pattern
- *    - A regular expression
- */
-export type PathFilter = boolean | string | RegExp;
-
-
-/**
- * Custom filter criteria for `File` objects
- */
-export type FilterFunction = (file: File, files: FileList, context: PluginContext) => unknown;
-
-
-/**
- * One or more `File` filter criteria
- */
-export type FilterCriteria = PathFilter | FilterFunction | Array<PathFilter | FilterFunction>;
-
-
-/**
- * Explicit inclusion and exclusion filter criteria.
- */
-export interface Filters {
-  include?: FilterCriteria;
-  exclude?: FilterCriteria;
+export function hasProcessFile(plugin: CodeEnginePlugin): plugin is HasProcessFile {
+  return !!plugin.processFile;
 }
 
 
 /**
- * One or more inclusion/exclusion filter criteria for `File` objects
+ * A plugin that implements the `processFiles()` method.
+ * @internal
  */
-export type Filter = FilterCriteria | Filters;
+export type HasProcessFiles = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFiles">>;
+
+/**
+ * Determines whether the given Plugin implements the `processFiles()` method
+ * @internal
+ */
+export function hasProcessFiles(plugin: CodeEnginePlugin): plugin is HasProcessFiles {
+  return !!plugin.processFiles;
+}
 
 
 /**
- * Contextual information passed to every plugin hook.
+ * A plugin that implements the `watch()` method.
+ * @internal
  */
-export interface PluginContext {
-  /**
-   * Used to log messages and errors
-   */
-  readonly logger: Logger;
+export type HasWatch = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "watch">>;
 
-  /**
-   * The directory that should be used to resolve all relative paths.
-   */
-  readonly cwd: string;
+/**
+ * Determines whether the given Plugin implements the `watch()` method
+ * @internal
+ */
+export function hasWatch(plugin: CodeEnginePlugin): plugin is HasWatch {
+  return !!plugin.watch;
+}
 
-  /**
-   * Indicates whether CodeEngine should run in local development mode.
-   * When `true`, plugins should generate files that are un-minified, un-obfuscated, and may
-   * contain references to localhost.
-   */
-  readonly dev: boolean;
 
-  /**
-   * Indicates whether CodeEngine is running in debug mode, which enables additional logging
-   * and error stack traces.
-   */
-  readonly debug: boolean;
+/**
+ * A plugin that implements the `clean()` method.
+ * @internal
+ */
+export type HasClean = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "clean">>;
+
+/**
+ * Determines whether the given Plugin implements the `clean()` method
+ * @internal
+ */
+export function hasClean(plugin: CodeEnginePlugin): plugin is HasClean {
+  return !!plugin.clean;
+}
+
+
+/**
+ * A plugin that implements the `dispose()` method.
+ * @internal
+ */
+export type HasDispose = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "dispose">>;
+
+/**
+ * Determines whether the given Plugin implements the `dispose()` method
+ * @internal
+ */
+export function hasDispose(plugin: CodeEnginePlugin): plugin is HasDispose {
+  return !!plugin.dispose;
 }
