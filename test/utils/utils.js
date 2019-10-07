@@ -44,7 +44,13 @@ const utils = module.exports = {
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
 
     await fs.writeFile(moduleId, `module.exports = ${method};`);
-    return { moduleId, data };
+
+    if (data === undefined) {
+      return moduleId;
+    }
+    else {
+      return { moduleId, data };
+    }
   },
 };
 

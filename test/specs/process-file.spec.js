@@ -244,14 +244,14 @@ describe("Plugin.processFile()", () => {
         calls.find(({ path, processorId }) => path === "file3.txt" && processorId === 2),
         calls.find(({ path, processorId }) => path === "file3.txt" && processorId === 3),
 
-        // // Next, file2 finishes processor1 and starts processor2
+        // Next, file2 finishes processor1 and starts processor2
         calls.find(({ path, processorId }) => path === "file2.txt" && processorId === 2),
 
-        // // Next, file1 finishes processor1 and is processed by processor2 and processor3
+        // Next, file1 finishes processor1 and is processed by processor2 and processor3
         calls.find(({ path, processorId }) => path === "file1.txt" && processorId === 2),
         calls.find(({ path, processorId }) => path === "file1.txt" && processorId === 3),
 
-        // // And finally, file2 finishes processor2 and starts processor3
+        // And finally, file2 finishes processor2 and starts processor3
         calls.find(({ path, processorId }) => path === "file2.txt" && processorId === 3),
       ];
 

@@ -78,20 +78,16 @@ describe("CodeEngine class", () => {
       await engine.use({});
       await engine.use({ foo: "bar" });
 
-      let invalidPlugins = [
-        12345, true, false, -1,
-        { name: 123 }, { name: true }, { name: false },
-        { find: 123 }, { read: true }, { processFile: false },
-      ];
+      let invalidPlugins = [12345, true, false, -1];
 
       for (let invalidPlugin of invalidPlugins) {
         try {
           await engine.use(invalidPlugin);
-          assert.fail("CodeEngine should have thrown an error");
+          assert.fail(`CodeEngine should have thrown an error for ${invalidPlugin}`);
         }
         catch (error) {
           expect(error).to.be.an.instanceOf(Error);
-          expect(error.message).to.match(/^Error in Plugin \d\. \n.* is not a valid CodeEngine plugin\.$/);
+          expect(error.message).to.match(/^Error in Plugin \d\. \nCodeEngine plugins must be an object, function, or string, not /);
         }
       }
     }

@@ -19,7 +19,9 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       definition = { processFile: definition };
     }
     else if (!definition || typeof definition !== "object") {
-      throw ono.type(`CodeEngine plugins must be an object, function, or string, not ${definition}.`);
+      throw ono.type(
+        "CodeEngine plugins must be an object, function, or string, not " +
+        Object.prototype.toString.call(definition) + ".");
     }
 
     if (isModuleDefinition(definition.processFile)) {
