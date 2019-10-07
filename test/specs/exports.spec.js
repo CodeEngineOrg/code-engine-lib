@@ -4,7 +4,7 @@ const commonJSExport = require("../../");
 const { default: defaultExport, CodeEngine: namedExport, Event, LogLevel } = require("../../");
 const { expect } = require("chai");
 
-describe("@code-engine/lib package exports", () => {
+describe.only("@code-engine/lib package exports", () => {
 
   it("should export the CodeEngine class as the default CommonJS export", () => {
     expect(commonJSExport).to.be.a("function");

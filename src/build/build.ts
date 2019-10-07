@@ -1,8 +1,8 @@
-import { AsyncAllIterable, Context, File } from "@code-engine/types";
-import { iterateMultiple } from "@code-engine/utils";
+import { Context, File } from "@code-engine/types";
+import { iterableSeries, joinIterables } from "@code-engine/utils";
 import { CodeEnginePlugin } from "../plugins/plugin";
-import { FileSource, isFileSource } from "../plugins/types";
-import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phases";
+import { BuildStep, FileSource, isBuildStep, isFileSource } from "../plugins/types";
+import { BuildSummary } from "./build-summary";
 
 /**
  * Runs files through a series of plugins.
@@ -10,41 +10,37 @@ import { InitialBuildPhase, SubsequentBuildPhase } from "./build-phases";
  */
 export class Build {
   private _sources: FileSource[];
-  private _initialPhase: InitialBuildPhase;
-  private _subsequentPhases: SubsequentBuildPhase[];
+  private _steps: BuildStep[];
 
   /**
    * Separates the plugins by type and order.
    */
   public constructor(plugins: CodeEnginePlugin[]) {
-    // Get all the file source plugins
     this._sources = plugins.filter(isFileSource);
-
-    // Split the file processor plugins into separate build phases, based on which plugins
-    // are capable of running in parallal, and which ones must be run sequentially.
-    let [index, initialPhase] = InitialBuildPhase.create(plugins);
-    this._initialPhase = initialPhase;
-    this._subsequentPhases = SubsequentBuildPhase.create(plugins.slice(index));
+    this._steps = plugins.filter(isBuildStep);
   }
 
   /**
    * Runs the given files through the build pipeline.
    */
-  public async run(context: Context): AsyncAllIterable<File> {
-    // Iterate through each source file, processing each file in parallel.
-    for await (let file of this._readAll(context)) {
-      this._initialPhase.processFile(file, context);
+  public async run(concurrency: number, context: Context): Promise<BuildSummary> {
+    let startTime = Date.now();
+    let files = this._readAll(context);
+    let steps = this._steps.map((step) => step.processFiles);
+    let series = iterableSeries(files, steps, { concurrency, args: [context] });
+
+    let fileCount = 0, totalFileSize = 0;
+
+    for await (let file of series) {
+      fileCount++;
+      totalFileSize += file.size;
     }
 
-    // Wait for all the initial build phases to finish
-    let files = await this._initialPhase.finished();
-
-    // The remaining build phases (if any) process the full list of files
-    for (let phase of this._subsequentPhases) {
-      await phase.processFiles(files, context);
-    }
-
-    return files;
+    return {
+      fileCount,
+      totalFileSize,
+      took: Date.now() - startTime,
+    };
   }
 
   /**
@@ -52,6 +48,6 @@ export class Build {
    */
   private _readAll(context: Context): AsyncIterable<File> {
     let fileGenerators = this._sources.map((source) => source.read(context));
-    return iterateMultiple(fileGenerators);
+    return joinIterables(fileGenerators);
   }
 }

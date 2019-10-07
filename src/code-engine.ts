@@ -1,10 +1,11 @@
-import { AsyncAllIterable, Context, File, PluginDefinition } from "@code-engine/types";
+import { Context, PluginDefinition } from "@code-engine/types";
 import { validate } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
 import * as os from "os";
 import { BuildPipeline } from "./build/build-pipeline";
+import { BuildSummary } from "./build/build-summary";
 import { Config } from "./config";
 import { LogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
@@ -71,10 +72,8 @@ export class CodeEngine extends EventEmitter {
 
   /**
    * Runs a full build of all source files.
-   *
-   * @returns - The output files
    */
-  public build(): AsyncAllIterable<File> {
+  public async build(): Promise<BuildSummary> {
     assertNotDisposed(this);
     return this._buildPipeline.build();
   }

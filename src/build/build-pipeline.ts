@@ -1,7 +1,8 @@
-import { AsyncAllIterable, Context, File } from "@code-engine/types";
+import { Context } from "@code-engine/types";
 import { CodeEnginePlugin } from "../plugins/plugin";
 import { hasClean, hasDispose, NormalizedPlugin } from "../plugins/types";
 import { Build } from "./build";
+import { BuildSummary } from "./build-summary";
 
 /**
  * A sequence of CodeEngine plugins that can be used to run builds.
@@ -9,9 +10,11 @@ import { Build } from "./build";
  */
 export class BuildPipeline {
   private _plugins: CodeEnginePlugin[] = [];
+  private _concurrency: number;
   private _context: Context;
 
-  public constructor(context: Context) {
+  public constructor(concurrency: number, context: Context) {
+    this._concurrency = concurrency;
     this._context = context;
   }
 
@@ -42,9 +45,9 @@ export class BuildPipeline {
    *
    * @returns - The output files
    */
-  public build(): AsyncAllIterable<File> {
+  public async build(): Promise<BuildSummary> {
     let build = new Build(this._plugins);
-    return build.run(this._context);
+    return build.run(this._concurrency, this._context);
   }
 
   /**
