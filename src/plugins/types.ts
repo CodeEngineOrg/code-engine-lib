@@ -36,31 +36,16 @@ export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
 
 
 /**
- * A plugin that implements the `processFile()` method.
+ * A plugin that implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export type HasProcessFile = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFile">>;
+export type BuildStep = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFiles">>;
 
 /**
- * Determines whether the given Plugin implements the `processFile()` method
+ * Determines whether the given Plugin implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export function hasProcessFile(plugin: CodeEnginePlugin): plugin is HasProcessFile {
-  return !!plugin.processFile;
-}
-
-
-/**
- * A plugin that implements the `processFiles()` method.
- * @internal
- */
-export type HasProcessFiles = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFiles">>;
-
-/**
- * Determines whether the given Plugin implements the `processFiles()` method
- * @internal
- */
-export function hasProcessFiles(plugin: CodeEnginePlugin): plugin is HasProcessFiles {
+export function isBuildStep(plugin: CodeEnginePlugin): plugin is BuildStep {
   return !!plugin.processFiles;
 }
 

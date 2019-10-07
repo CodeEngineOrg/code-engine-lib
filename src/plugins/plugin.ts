@@ -1,106 +1,84 @@
 // tslint:disable: completed-docs
-import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/types";
-import { createFile, iterate } from "@code-engine/utils";
+import { AsyncAllIterable, Context, File, FileInfo, FilterFunction, ZeroOrMore } from "@code-engine/types";
+import { createFile, createWritableIterator, iterate, WritableIterator } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { NormalizedPlugin } from "./types";
-
-/**
- * The names of plugin methods
- */
-enum PluginMethod {
-  ProcessFile = "processFile",
-  ProcessFiles = "processFiles",
-  Read = "read",
-  Watch = "watch",
-  Clean = "clean",
-  Dispose = "dispose",
-}
-
-/**
- * An object containing plugin methods
- */
-type PluginMethods = { [m in PluginMethod]?: NormalizedPlugin[m] };
+import { NormalizedPlugin } from "../plugins/types";
 
 
 /**
- * The internal CodeEngine implementation of the `Plugin` interface.
+ * Exposes a Plugin's functionality to CodeEngine.
  * @internal
  */
 export class CodeEnginePlugin {
   public readonly name: string;
-  public readonly filter?: FilterFunction;
-  private readonly _methods: PluginMethods = {};
+  public readonly filter: FilterFunction;
+  private readonly _methods: {
+    processFile?: NormalizedPlugin["processFile"];
+    processFiles?: NormalizedPlugin["processFiles"];
+    read?: NormalizedPlugin["read"];
+    watch?: NormalizedPlugin["watch"];
+    clean?: NormalizedPlugin["clean"];
+    dispose?: NormalizedPlugin["dispose"];
+  };
 
   public constructor(plugin: NormalizedPlugin) {
     this.name = plugin.name;
+    this.filter = createFilter({ map }, plugin.filter === undefined ? true : plugin.filter);
 
-    if (plugin.filter !== undefined) {
-      this.filter = createFilter({ map }, plugin.filter);
+    if (!plugin.processFile && !plugin.processFiles) {
+      this.processFiles = undefined;
     }
 
-    for (let method of Object.values(PluginMethod)) {
-      if (plugin[method]) {
-        // @ts-ignore  Store a reference to this plugin's method
-        this._methods[method] = plugin[method];
-      }
-      else {
-        // This plugin doesn't implement this method,
-        // so remove the corresponding method from this class
-        this[method] = undefined;
-      }
-    }
+    this._methods = {
+      processFile: plugin.processFile,
+      processFiles: plugin.processFiles,
+      read: plugin.read || (this.read = undefined),
+      watch: plugin.watch || (this.watch = undefined),
+      clean: plugin.clean || (this.clean = undefined),
+      dispose: plugin.dispose || (this.dispose = undefined),
+    };
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* processFile?(file: File, context: Context): AsyncGenerator<File> {
-    try {
-      let fileInfos;
-
-      if (this.filter && !this.filter(file, context)) {
-        fileInfos = file;
-      }
-      else {
-        fileInfos = this._methods.processFile!(file, context);
-      }
-
-      for await (let fileInfo of iterate(fileInfos)) {
-        yield createFile(fileInfo);
-      }
-    }
-    catch (error) {
-      throw ono(error, { path: file.path }, `An error occurred in ${this} while processing ${file}.`);
-    }
-  }
-
   public async* processFiles?(files: AsyncAllIterable<File>, context: Context): AsyncGenerator<File> {
     try {
-      let fileInfos;
+      // Used to push files into the plugin's processFiles() method
+      let processFilesIterator: undefined | WritableIterator<File>;
+      let processFilesOutput: ZeroOrMore<FileInfo> | Promise<ZeroOrMore<FileInfo>>;
 
-      if (this.filter) {
-        let filteredFiles = [];
+      if (this._methods.processFiles) {
+        // Call the plugin's processFiles() method with an initially-empty iterator.
+        // Files will be pushed into the stream as they arrive.
+        processFilesIterator = createWritableIterator();
+        processFilesOutput = this._methods.processFiles(processFilesIterator, context);
+      }
 
-        // Determine which files match the filter
-        for await (let file of files) {
-          if (this.filter(file, context)) {
-            // This file matches the filter, so add it to the list to be passed to the plugin
-            filteredFiles.push(file);
+      for await (let file of files) {
+        if (!this.filter(file, context)) {
+          // This file doesn't match the plugin's filter criteria, so just forward it on
+          yield file;
+        }
+        else {
+          if (this._methods.processFile) {
+            let fileInfos = this._methods.processFile(file, context);
+
+            for await (let fileInfo of iterate(fileInfos)) {
+              yield createFile(fileInfo);
+            }
           }
-          else {
-            // This file does NOT match the filter, so immediately pass it along
-            yield file;
+
+          if (processFilesIterator) {
+            await processFilesIterator.next(file);
           }
         }
-
-        // Allow the plugin to process the files that matched the filter
-        fileInfos = await this._methods.processFiles!(iterate(filteredFiles), context);
-      }
-      else {
-        // There is no filter, so process the full list of files
-        fileInfos = this._methods.processFiles!(files, context);
       }
 
-      for await (let fileInfo of iterate(fileInfos)) {
+      if (processFilesIterator) {
+        await processFilesIterator.return();
+      }
+
+      for await (let fileInfo of iterate(processFilesOutput)) {
         yield createFile(fileInfo);
       }
     }
@@ -119,7 +97,7 @@ export class CodeEnginePlugin {
       }
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
+      throw ono(error, `An error occurred in ${this} while reading source files.`);
     }
   }
 
