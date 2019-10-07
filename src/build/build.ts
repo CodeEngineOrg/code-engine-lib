@@ -26,7 +26,7 @@ export class Build {
   public async run(concurrency: number, context: Context): Promise<BuildSummary> {
     let startTime = Date.now();
     let files = this._readAll(context);
-    let steps = this._steps.map((step) => step.processFiles);
+    let steps = this._steps.map((step) => step.processFiles.bind(step));
     let series = iterableSeries(files, steps, { concurrency, args: [context] });
 
     let fileCount = 0, totalFileSize = 0;
