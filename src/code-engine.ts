@@ -1,7 +1,9 @@
 import { AsyncAllIterable, Context, File, PluginDefinition } from "@code-engine/types";
+import { validate } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
+import * as os from "os";
 import { BuildPipeline } from "./build/build-pipeline";
 import { Config } from "./config";
 import { LogEmitter } from "./log-emitter";
@@ -23,6 +25,7 @@ export class CodeEngine extends EventEmitter {
   public constructor(config: Config = {}) {
     super();
 
+    let concurrency = validate.concurrency(config.concurrency, os.cpus().length);
     let debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
 
     let context: Context = {
@@ -32,9 +35,9 @@ export class CodeEngine extends EventEmitter {
       logger: new LogEmitter(this, debug),
     };
 
-    this._workerPool = new WorkerPool(config.concurrency, context);
+    this._workerPool = new WorkerPool(concurrency, context);
     this._workerPool.on("error", (err: Error) => errorHandler(this, err));
-    this._buildPipeline = new BuildPipeline(context);
+    this._buildPipeline = new BuildPipeline(concurrency, context);
   }
 
   /**
