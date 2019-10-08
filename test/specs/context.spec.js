@@ -2,7 +2,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { testThreadConsistency } = require("../utils/utils");
+const { getCallArg, testThreadConsistency } = require("../utils/utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
@@ -65,7 +65,7 @@ describe("Context", () => {
 
       // The log method may get invoked extra times due to CodeEngine debug messages
       expect(log.callCount).to.be.at.least(4);
-      let logEntries = log.getCalls().map((call) => call.args[0]).filter((entry) => entry.isLogTest);
+      let logEntries = getCallArg(log).filter((entry) => entry.isLogTest);
       expect(logEntries[0]).to.deep.equal({ level: "info", message: "this is a log message", foo: "bar", isLogTest: true });
       expect(logEntries[1]).to.deep.equal({ level: "debug", message: "this is a debug message", fizz: "buzz", isLogTest: true });
       expect(logEntries[2]).to.deep.equal({ level: "warning", message: "this is a warning message", uh: "oh!", isLogTest: true });
@@ -92,7 +92,7 @@ describe("Context", () => {
 
       // The log method may get invoked extra times due to CodeEngine debug messages
       expect(log.callCount).to.be.at.least(2);
-      let [warning, error] = log.getCalls().map((call) => call.args[0]).filter((entry) => entry.isLogTest);
+      let [warning, error] = getCallArg(log).filter((entry) => entry.isLogTest);
 
       expect(warning).to.have.keys("level", "error", "message", "uh", "isLogTest");
       expect(warning.level).to.equal("warning");

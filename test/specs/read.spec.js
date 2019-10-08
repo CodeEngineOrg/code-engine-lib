@@ -3,7 +3,7 @@
 const path = require("path");
 const sinon = require("sinon");
 const CodeEngine = require("../utils/code-engine");
-const { delay } = require("../utils/utils");
+const { delay, getCallArg } = require("../utils/utils");
 const { assert, expect } = require("chai");
 
 describe("Plugin.read()", () => {
@@ -49,7 +49,9 @@ describe("Plugin.read()", () => {
     };
     let asyncGenerator = {
       async *read () {
+        await delay(50);
         yield { path: "file7.txt" };
+        await delay(50);
         yield { path: "file8.txt" };
       }
     };
@@ -61,7 +63,7 @@ describe("Plugin.read()", () => {
     await engine.build();
 
     sinon.assert.callCount(spy.processFile, 8);
-    let filePaths = spy.processFile.getCalls().map((call) => call.args[0].path);
+    let filePaths = getCallArg(spy.processFile).map((file) => file.path);
     expect(filePaths).to.have.same.members([
       "file1.txt",
       "file2.txt",
@@ -100,7 +102,7 @@ describe("Plugin.read()", () => {
     await engine.build();
 
     sinon.assert.callCount(spy.processFile, 5);
-    let files = spy.processFile.getCalls().map((call) => call.args[0]);
+    let files = getCallArg(spy.processFile);
     expect(files[0]).to.have.property("path", "file3.txt");
     expect(files[1]).to.have.property("path", "file4.txt");
     expect(files[2]).to.have.property("path", "file1.txt");
@@ -130,7 +132,7 @@ describe("Plugin.read()", () => {
     await engine.build();
 
     sinon.assert.callCount(spy.processFile, 6);
-    let files = spy.processFile.getCalls().map((call) => call.args[0]);
+    let files = getCallArg(spy.processFile);
     expect(files[0]).to.have.property("path", "file1.txt");
     expect(files[1]).to.have.property("path", path.normalize("path/to/file1.txt"));
     expect(files[2]).to.have.property("path", path.normalize("path/to/another/file1.txt"));
@@ -166,7 +168,7 @@ describe("Plugin.read()", () => {
     await engine.build();
 
     sinon.assert.callCount(spy.processFile, 6);
-    let files = spy.processFile.getCalls().map((call) => call.args[0]);
+    let files = getCallArg(spy.processFile);
     expect(files[0]).to.have.property("path", "file1.txt");
     expect(files[1]).to.have.property("path", "file1.txt");
     expect(files[2]).to.have.property("path", "file2.txt");

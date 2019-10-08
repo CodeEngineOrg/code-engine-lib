@@ -21,6 +21,18 @@ const utils = module.exports = {
 
 
   /**
+   * Returns the specified argument from each Sinon call.
+   *
+   * @param spy {SinonSpy} - The Sinon Spy to return arguments from
+   * @param [argIndex] - The argument to return. Defaults to the first arg.
+   * @returns {Array}
+   */
+  getCallArg (spy, argIndex = 0) {
+    return spy.getCalls().map((call) => call.args[argIndex]);
+  },
+
+
+  /**
    * Ensures that tests work consistently on both the main thread and worker threads.
    * The test suite calls the `createModule()` function that's passed to it rather than the normal
    * `utils.createModule()` method, so every plugin is authored as though it was a worker plugin.
