@@ -10,29 +10,32 @@ describe("Context", () => {
   testThreadConsistency((createModule) => {
 
     it("should have all the expected properties", async () => {
-      let source = {
-        name: "File Source",
-        *find () {
-          yield { path: "file1.txt" };
-        },
-      };
-
       let plugin = {
         name: "Context Test",
-        processFile: await createModule(([file], context) => {
-          file.contents = Buffer.from(JSON.stringify({
+        read () {
+          return { path: "file1.txt" };
+        },
+        processFile: await createModule((file, context) => {
+          file.text = JSON.stringify({
             keys: Object.keys(context),
             cwd: context.cwd,
             dev: context.dev,
             debug: context.debug,
-          }));
+          });
+
+          return file;
         })
       };
 
+      let spy = { processFile: sinon.spy() };
+
       let engine = CodeEngine.create();
-      await engine.use(source, plugin);
-      let [file] = await engine.build();
-      let context = JSON.parse(file.contents.toString());
+      await engine.use(plugin, spy);
+      await engine.build();
+
+      sinon.assert.calledOnce(spy.processFile);
+      let file = spy.processFile.firstCall.args[0];
+      let context = JSON.parse(file.text);
 
       expect(context.keys).to.have.members(["cwd", "dev", "debug", "logger"]);
       expect(context.cwd).to.equal(process.cwd());
@@ -41,16 +44,12 @@ describe("Context", () => {
     });
 
     it("should log messages", async () => {
-      let source = {
-        name: "File Source",
-        *find () {
-          yield { path: "file1.txt" };
-        },
-      };
-
       let plugin = {
         name: "Logger Test",
-        processFile: await createModule((files, { logger }) => {
+        read () {
+          return { path: "file1.txt" };
+        },
+        processFile: await createModule((file, { logger }) => {
           logger.log("this is a log message", { foo: "bar", isLogTest: true });
           logger.debug("this is a debug message", { fizz: "buzz", isLogTest: true });
           logger.warn("this is a warning message", { uh: "oh!", isLogTest: true });
@@ -61,7 +60,7 @@ describe("Context", () => {
       let engine = CodeEngine.create({ debug: true });
       let log = sinon.spy();
       engine.on("log", log);
-      await engine.use(source, plugin);
+      await engine.use(plugin);
       await engine.build();
 
       // The log method may get invoked extra times due to CodeEngine debug messages
@@ -74,16 +73,12 @@ describe("Context", () => {
     });
 
     it("should log errors", async () => {
-      let source = {
-        name: "File Source",
-        *find () {
-          yield { path: "file1.txt" };
-        },
-      };
-
       let plugin = {
         name: "Logger Test",
-        processFile: await createModule((files, { logger }) => {
+        read () {
+          return { path: "file1.txt" };
+        },
+        processFile: await createModule((file, { logger }) => {
           logger.warn(new Error("this is a warning error"), { uh: "oh!", isLogTest: true });
           logger.error(new Error("this is an error"), { ka: "boom!", isLogTest: true });
         })
@@ -92,7 +87,7 @@ describe("Context", () => {
       let engine = CodeEngine.create({ debug: true });
       let log = sinon.spy();
       engine.on("log", log);
-      await engine.use(source, plugin);
+      await engine.use(plugin);
       await engine.build();
 
       // The log method may get invoked extra times due to CodeEngine debug messages
