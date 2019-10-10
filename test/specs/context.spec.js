@@ -27,14 +27,14 @@ describe("Context", () => {
         })
       };
 
-      let spy = { processFile: sinon.spy() };
+      let spy = sinon.spy();
 
       let engine = CodeEngine.create();
       await engine.use(plugin, spy);
       await engine.build();
 
-      sinon.assert.calledOnce(spy.processFile);
-      let file = spy.processFile.firstCall.args[0];
+      sinon.assert.calledOnce(spy);
+      let file = spy.firstCall.args[0];
       let context = JSON.parse(file.text);
 
       expect(context.keys).to.have.members(["cwd", "dev", "debug", "logger"]);
