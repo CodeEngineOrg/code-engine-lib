@@ -267,6 +267,37 @@ describe("Plugin.processFile()", () => {
       }
     });
 
+    it("should be called with the plugin's `this` context", async () => {
+      let plugin1 = {
+        name: "Plugin A",
+        id: 11111,
+        read () { return { path: "file1" }; },
+        processFile: await createModule(function (file) {
+          file.text = `${this.id}: ${this.name}\n`;
+          return file;
+        }),
+      };
+
+      let plugin2 = {
+        name: "Plugin B",
+        id: 22222,
+        foo: "bar",
+        processFile: await createModule(function (file) {
+          file.text += `${this.id}: ${this.name} ${this.foo}\n`;
+          return file;
+        }),
+      };
+
+      let spy = sinon.spy();
+      let engine = CodeEngine.create();
+      await engine.use(plugin1, plugin2, spy);
+      await engine.build();
+
+      let files = getCallArg(spy);
+      expect(files).to.have.lengthOf(1);
+      expect(files[0].text).to.equal("11111: Plugin A\n22222: Plugin B bar\n");
+    });
+
     it("should re-throw synchronous errors", async () => {
       let source = {
         name: "File Source",

@@ -29,11 +29,8 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       definition.processFile = await workerPool.loadFileProcessor(definition.processFile);
     }
 
-    return {
-      ...definition,
-      name: String(definition.name || defaultName),
-      processFile: definition.processFile,
-    };
+    definition.name = String(definition.name || defaultName);
+    return definition as NormalizedPlugin;
   }
   catch (error) {
     throw ono(error, `Error in ${defaultName}.`);

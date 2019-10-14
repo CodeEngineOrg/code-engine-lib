@@ -13,31 +13,21 @@ import { NormalizedPlugin } from "../plugins/types";
 export class CodeEnginePlugin {
   public readonly name: string;
   public readonly filter: FilterFunction;
-  private readonly _methods: {
-    processFile?: NormalizedPlugin["processFile"];
-    processFiles?: NormalizedPlugin["processFiles"];
-    read?: NormalizedPlugin["read"];
-    watch?: NormalizedPlugin["watch"];
-    clean?: NormalizedPlugin["clean"];
-    dispose?: NormalizedPlugin["dispose"];
-  };
+  private readonly _plugin: NormalizedPlugin;
 
   public constructor(plugin: NormalizedPlugin) {
     this.name = plugin.name;
     this.filter = createFilter({ map }, plugin.filter === undefined ? true : plugin.filter);
+    this._plugin = plugin;
 
     if (!plugin.processFile && !plugin.processFiles) {
       this.processFiles = undefined;
     }
 
-    this._methods = {
-      processFile: plugin.processFile,
-      processFiles: plugin.processFiles,
-      read: plugin.read || (this.read = undefined),
-      watch: plugin.watch || (this.watch = undefined),
-      clean: plugin.clean || (this.clean = undefined),
-      dispose: plugin.dispose || (this.dispose = undefined),
-    };
+    plugin.read || (this.read = undefined);
+    plugin.watch || (this.watch = undefined);
+    plugin.clean || (this.clean = undefined);
+    plugin.dispose || (this.dispose = undefined);
   }
 
   // tslint:disable-next-line: no-async-without-await
@@ -47,11 +37,11 @@ export class CodeEnginePlugin {
       let processFilesIterator: undefined | WritableIterator<File>;
       let processFilesOutput: ZeroOrMore<FileInfo> | Promise<ZeroOrMore<FileInfo>>;
 
-      if (this._methods.processFiles) {
+      if (this._plugin.processFiles) {
         // Call the plugin's processFiles() method with an initially-empty iterator.
         // Files will be pushed into the stream as they arrive.
         processFilesIterator = createWritableIterator();
-        processFilesOutput = this._methods.processFiles(processFilesIterator, context);
+        processFilesOutput = this._plugin.processFiles(processFilesIterator, context);
       }
 
       for await (let file of files) {
@@ -60,8 +50,8 @@ export class CodeEnginePlugin {
           yield file;
         }
         else {
-          if (this._methods.processFile) {
-            let fileInfos = this._methods.processFile(file, context);
+          if (this._plugin.processFile) {
+            let fileInfos = this._plugin.processFile(file, context);
 
             for await (let fileInfo of iterate(fileInfos)) {
               yield createFile(fileInfo);
@@ -75,11 +65,10 @@ export class CodeEnginePlugin {
       }
 
       if (processFilesIterator) {
-        await processFilesIterator.return();
-      }
-
-      for await (let fileInfo of iterate(processFilesOutput)) {
-        yield createFile(fileInfo);
+        let ret = processFilesIterator.return();
+        for await (let fileInfo of iterate(processFilesOutput)) {
+          yield createFile(fileInfo);
+        }
       }
     }
     catch (error) {
@@ -90,7 +79,7 @@ export class CodeEnginePlugin {
   // tslint:disable-next-line: no-async-without-await
   public async* read?(context: Context): AsyncGenerator<File> {
     try {
-      let fileInfos = this._methods.read!(context);
+      let fileInfos = this._plugin.read!(context);
 
       for await (let fileInfo of iterate(fileInfos)) {
         yield createFile(fileInfo);
@@ -104,7 +93,7 @@ export class CodeEnginePlugin {
   // tslint:disable-next-line: no-async-without-await
   public async* watch?(context: Context): AsyncGenerator<File> {
     try {
-      let changedFileInfos = this._methods.watch!(context);
+      let changedFileInfos = this._plugin.watch!(context);
 
       for await (let fileInfo of iterate(changedFileInfos)) {
         yield createFile(fileInfo);
@@ -117,7 +106,7 @@ export class CodeEnginePlugin {
 
   public async clean?(context: Context): Promise<void> {
     try {
-      await this._methods.clean!(context);
+      await this._plugin.clean!(context);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while cleaning the destination.`);
@@ -126,7 +115,7 @@ export class CodeEnginePlugin {
 
   public async dispose?(context: Context): Promise<void> {
     try {
-      await this._methods.dispose!(context);
+      await this._plugin.dispose!(context);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while watching source files for changes.`);

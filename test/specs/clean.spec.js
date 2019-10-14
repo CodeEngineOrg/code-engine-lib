@@ -41,6 +41,31 @@ describe("Plugin.clean()", () => {
     sinon.assert.calledOnce(plugin2.clean);
   });
 
+  it("should be called with the plugin's `this` context", async () => {
+    let plugin1 = {
+      name: "Plugin A",
+      id: 11111,
+      clean: sinon.spy(),
+    };
+
+    let plugin2 = {
+      name: "Plugin B",
+      id: 22222,
+      foo: "bar",
+      clean: sinon.spy(),
+    };
+
+    let engine = CodeEngine.create();
+    await engine.use(plugin1, plugin2);
+    await engine.clean();
+
+    sinon.assert.calledOnce(plugin1.clean);
+    sinon.assert.calledOn(plugin1.clean, plugin1);
+
+    sinon.assert.calledOnce(plugin2.clean);
+    sinon.assert.calledOn(plugin2.clean, plugin2);
+  });
+
   it("should re-throw synchronous errors", async () => {
     let plugin1 = { clean: sinon.stub().returns(1) };
     let plugin2 = { clean: sinon.spy(() => { throw new SyntaxError("Boom!"); }) };
