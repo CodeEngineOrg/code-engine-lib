@@ -15,5 +15,5 @@ export interface BuildSummary {
   /**
    * How long the build took, in milliseconds.
    */
-  took: number;
+  elapsedTime: number;
 }
