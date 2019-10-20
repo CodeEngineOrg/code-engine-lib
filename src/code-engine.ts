@@ -14,13 +14,13 @@ import { normalizePlugin } from "./plugins/normalize-plugin";
  * The main CodeEngine class.
  */
 export class CodeEngine extends EventEmitter {
-  /** internal */
+  /** @internal */
   private readonly _buildPipeline: BuildPipeline;
 
-  /** internal */
+  /** @internal */
   private readonly _workerPool: WorkerPool;
 
-  /** internal */
+  /** @internal */
   private _isDisposed: boolean = false;
 
   public constructor(config: Config = {}) {
