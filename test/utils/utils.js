@@ -55,7 +55,7 @@ const utils = module.exports = {
     let moduleId = await new Promise((resolve, reject) =>
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
 
-    await fs.writeFile(moduleId, `module.exports = ${method};`);
+    await fs.writeFile(moduleId, `"use strict";\nmodule.exports = ${method};`);
 
     if (data === undefined) {
       return moduleId;
