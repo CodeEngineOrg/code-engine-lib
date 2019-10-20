@@ -92,15 +92,15 @@ describe("Plugin.processFile()", () => {
           yield { path: "subdir/subsubdir/file.html" };
         },
         filter: true,
-        processFile: sinon.spy((file) => { file.text += "1"; return file; }),
+        processFile: await createModule((file) => { file.text += "1"; return file; }),
       };
       let plugin2 = {
         filter: false,
-        processFile: sinon.spy((file) => { file.text += "2"; return file; }),
+        processFile: await createModule((file) => { file.text += "2"; return file; }),
       };
       let plugin3 = {
         filter: "**/*.html",
-        processFile: sinon.spy((file) => { file.text += "3"; return file; }),
+        processFile: await createModule((file) => { file.text += "3"; return file; }),
       };
       let plugin4 = {
         filter: "*/*.txt",
@@ -113,9 +113,6 @@ describe("Plugin.processFile()", () => {
       await engine.use(plugin1, plugin2, plugin3, plugin4, spy);
       await engine.build();
 
-      sinon.assert.callCount(plugin1.processFile, 6);
-      sinon.assert.callCount(plugin2.processFile, 0);
-      sinon.assert.callCount(plugin3.processFile, 3);
       sinon.assert.callCount(spy, 6);
 
       let files = getCallArg(spy);
