@@ -1,10 +1,9 @@
 // tslint:disable: completed-docs
-import { AsyncAllIterable, Context, File, FileInfo, FilterFunction, ZeroOrMore } from "@code-engine/types";
-import { createFile, createWritableIterator, iterate, WritableIterator } from "@code-engine/utils";
+import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/types";
+import { createFile, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { NormalizedPlugin } from "../plugins/types";
-
 
 /**
  * Exposes a Plugin's functionality to CodeEngine.
@@ -20,10 +19,8 @@ export class CodeEnginePlugin {
     this.filter = createFilter({ map }, plugin.filter === undefined ? true : plugin.filter);
     this._plugin = plugin;
 
-    if (!plugin.processFile && !plugin.processFiles) {
-      this.processFiles = undefined;
-    }
-
+    plugin.processFile || (this.processFile = undefined);
+    plugin.processFiles || (this.processFiles = undefined);
     plugin.read || (this.read = undefined);
     plugin.watch || (this.watch = undefined);
     plugin.clean || (this.clean = undefined);
@@ -33,46 +30,32 @@ export class CodeEnginePlugin {
   // tslint:disable-next-line: no-async-without-await
   public async* processFiles?(files: AsyncAllIterable<File>, context: Context): AsyncGenerator<File> {
     try {
-      // Used to push files into the plugin's processFiles() method
-      let processFilesIterator: undefined | WritableIterator<File>;
-      let processFilesOutput: ZeroOrMore<FileInfo> | Promise<ZeroOrMore<FileInfo>>;
+      let fileInfos = this._plugin.processFiles!(files, context);
 
-      if (this._plugin.processFiles) {
-        // Call the plugin's processFiles() method with an initially-empty iterator.
-        // Files will be pushed into the stream as they arrive.
-        processFilesIterator = createWritableIterator();
-        processFilesOutput = this._plugin.processFiles(processFilesIterator, context);
+      for await (let fileInfo of iterate(fileInfos)) {
+        yield createFile(fileInfo);
       }
 
-      for await (let file of files) {
-        if (!this.filter(file, context)) {
-          // This file doesn't match the plugin's filter criteria, so just forward it on
-          yield file;
-        }
-        else {
-          if (this._plugin.processFile) {
-            let fileInfos = this._plugin.processFile(file, context);
-
-            for await (let fileInfo of iterate(fileInfos)) {
-              yield createFile(fileInfo);
-            }
-          }
-
-          if (processFilesIterator) {
-            await processFilesIterator.next(file);
-          }
-        }
-      }
-
-      if (processFilesIterator) {
-        let ret = processFilesIterator.return();
-        for await (let fileInfo of iterate(processFilesOutput)) {
-          yield createFile(fileInfo);
-        }
-      }
+      // Ensure that all input files are read, even if the plugin doesn't actually read them.
+      // Otherwise the build will never complete.
+      await files.all();
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while processing files.`);
+    }
+  }
+
+  // tslint:disable-next-line: no-async-without-await
+  public async processFile?(file: File, context: Context, output: IterableWriter<File>): Promise<void> {
+    try {
+      let fileInfos = this._plugin.processFile!(file, context);
+
+      for await (let fileInfo of iterate(fileInfos)) {
+        await output.write(createFile(fileInfo));
+      }
+    }
+    catch (error) {
+      throw ono(error, `An error occurred in ${this} while processing ${file}.`);
     }
   }
 

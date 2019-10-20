@@ -39,14 +39,15 @@ export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
  * A plugin that implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export type BuildStep = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "processFiles">>;
+export type BuildStep = CodeEnginePlugin &
+  (Required<Pick<CodeEnginePlugin, "processFile">> | Required<Pick<CodeEnginePlugin, "processFiles">>);
 
 /**
  * Determines whether the given Plugin implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
 export function isBuildStep(plugin: CodeEnginePlugin): plugin is BuildStep {
-  return !!plugin.processFiles;
+  return !!plugin.processFile || !!plugin.processFiles;
 }
 
 

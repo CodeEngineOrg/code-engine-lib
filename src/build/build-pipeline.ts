@@ -47,7 +47,8 @@ export class BuildPipeline {
    */
   public async build(): Promise<BuildSummary> {
     let build = new Build(this._plugins);
-    return build.run(this._concurrency, this._context);
+    await build.run(this._concurrency, this._context);
+    return build.summary;
   }
 
   /**
