@@ -158,119 +158,13 @@ describe("Plugin.processFile()", () => {
       }
     });
 
-    it("should move each file through the plugin pipeline separately", async () => {
-      let source = {
-        name: "File Source",
-        *read () {
-          yield { path: "file1.txt", text: "[]" };
-          delay(50);
-          yield { path: "file2.txt", text: "[]" };
-          delay(50);
-          yield { path: "file3.txt", text: "[]" };
-        },
-      };
-
-      function fileProcessorFactory (data) {
-        return async function processFile (file) {
-          let { processorId, delays } = data;
-          let now = new Date();
-          let delay = delays[file.path];
-          await new Promise((resolve) => setTimeout(resolve, delay));
-
-          let array = JSON.parse(file.text);
-          array.push({ path: file.path, processorId, now });
-          file.text = JSON.stringify(array);
-          return file;
-        };
-      }
-
-      let processor1 = {
-        name: "Processor 1",
-        processFile: await createModule(fileProcessorFactory, {
-          processorId: 1,
-          delays: {
-            "file1.txt": 500,
-            "file2.txt": 100,
-            "file3.txt": 10,
-          },
-        })
-      };
-      let processor2 = {
-        name: "Processor 2",
-        processFile: await createModule(fileProcessorFactory, {
-          processorId: 2,
-          delays: {
-            "file1.txt": 10,
-            "file2.txt": 500,
-            "file3.txt": 10,
-          },
-        })
-      };
-      let processor3 = {
-        name: "Processor 3",
-        processFile: await createModule(fileProcessorFactory, {
-          processorId: 3,
-          delays: {
-            "file1.txt": 10,
-            "file2.txt": 10,
-            "file3.txt": 10,
-          },
-        })
-      };
-
-      let spy = sinon.spy();
-      let engine = CodeEngine.create({ concurrency: 3 });
-      await engine.use(source, processor1, processor2, processor3, spy);
-      await engine.build();
-
-      let files = getCallArg(spy);
-      let calls = []
-        .concat(...files.map((file) => JSON.parse(file.text)))
-        .sort((a, b) => new Date(a.now) - new Date(b.now));
-
-      function removeTimestamp ({ path, processorId }) {
-        return { path, processorId };
-      }
-
-      try {
-        // All of the processor1 calls should happen before ANY of the processor2 calls.
-        // The order of the processor1 calls is unimportant.
-        let processor1Calls = calls.slice(0, 3).map(removeTimestamp);
-        expect(processor1Calls).to.have.same.deep.members([
-          { processorId: 1, path: "file1.txt" },
-          { processorId: 1, path: "file2.txt" },
-          { processorId: 1, path: "file3.txt" },
-        ]);
-
-        // file3 should be fully processed before file1 or file2 finishes processor1
-        expect(removeTimestamp(calls[3])).to.deep.equal({ processorId: 2, path: "file3.txt" });
-        expect(removeTimestamp(calls[4])).to.deep.equal({ processorId: 3, path: "file3.txt" });
-
-        // Next, file2 finishes processor1 and starts processor2
-        expect(removeTimestamp(calls[5])).to.deep.equal({ processorId: 2, path: "file2.txt" });
-
-        // Next, file1 finishes processor1 and is processed by processor2 and processor3
-        expect(removeTimestamp(calls[6])).to.deep.equal({ processorId: 2, path: "file1.txt" });
-        expect(removeTimestamp(calls[7])).to.deep.equal({ processorId: 3, path: "file1.txt" });
-
-        // And finally, file2 finishes processor2 and starts processor3
-        expect(removeTimestamp(calls[8])).to.deep.equal({ processorId: 3, path: "file2.txt" });
-      }
-      catch (error) {
-        throw ono(error,
-          "Incorrect call order.  Actual order was:\n  " +
-          calls.map(({ path, processorId, now }) => `${now} processor${processorId}(${path})`).join("\n  ")
-        );
-      }
-    });
-
     it("should be called with the plugin's `this` context", async () => {
       let plugin1 = {
         name: "Plugin A",
         id: 11111,
         read () { return { path: "file1" }; },
         processFile: await createModule(function (file) {
-          file.text = `${this.id}: ${this.name}\n`;
+          file.text = this === undefined ? "undefined\n" : `${this.id}: ${this.name}\n`;
           return file;
         }),
       };
@@ -280,7 +174,7 @@ describe("Plugin.processFile()", () => {
         id: 22222,
         foo: "bar",
         processFile: await createModule(function (file) {
-          file.text += `${this.id}: ${this.name} ${this.foo}\n`;
+          file.text += this === undefined ? "undefined" : `${this.id}: ${this.name} ${this.foo}\n`;
           return file;
         }),
       };
@@ -292,7 +186,10 @@ describe("Plugin.processFile()", () => {
 
       let files = getCallArg(spy);
       expect(files).to.have.lengthOf(1);
-      expect(files[0].text).to.equal("11111: Plugin A\n22222: Plugin B bar\n");
+      expect(files[0].text).to.be.oneOf([
+        "11111: Plugin A\n22222: Plugin B bar\n",   // Main thread
+        "undefined\nundefined",                     // Worker thread
+      ]);
     });
 
     it("should re-throw synchronous errors", async () => {
