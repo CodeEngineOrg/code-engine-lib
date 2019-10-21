@@ -14,7 +14,7 @@ describe("Plugin.processFile()", () => {
       let plugin1 = {
         read: sinon.stub().returns([]),
       };
-      let plugin2 = { name: "Plugin 2" };
+      let plugin2 = { name: "Plugin 2", read () {} };
 
       let engine = CodeEngine.create();
       await engine.use(plugin1, plugin2);

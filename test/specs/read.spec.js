@@ -248,7 +248,7 @@ describe("Plugin.read()", () => {
       expect(error).to.be.an.instanceOf(Error);
       expect(error.message).to.equal(
         "An error occurred in Plugin 1 while reading source files. \n" +
-        "[number] is not a valid CodeEngine file. Expected an object with at least a \"path\" property."
+        "Invalid CodeEngine file: 42. Expected an object with at least a \"path\" property."
       );
     }
   });

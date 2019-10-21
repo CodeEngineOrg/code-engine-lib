@@ -1,7 +1,8 @@
 import { PluginDefinition } from "@code-engine/types";
+import { valueToString } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "ono";
-import { isModuleDefinition, NormalizedPlugin } from "./types";
+import { isModuleDefinition, isPlugin, NormalizedPlugin } from "./types";
 
 
 /**
@@ -18,10 +19,8 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       // This plugin is just a worker-thread processFile() method
       definition = { processFile: definition };
     }
-    else if (!definition || typeof definition !== "object") {
-      throw ono.type(
-        "CodeEngine plugins must be an object, function, or string, not " +
-        Object.prototype.toString.call(definition) + ".");
+    else if (!isPlugin(definition)) {
+      throw ono.type(`Invalid CodeEngine plugin: ${valueToString(definition)}`);
     }
 
     if (isModuleDefinition(definition.processFile)) {

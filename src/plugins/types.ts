@@ -21,6 +21,26 @@ export function isModuleDefinition(value: unknown): value is string | ModuleDefi
 
 
 /**
+ * Determines if the given value is a `Plugin` object.
+ * @internal
+ */
+export function isPlugin(value: unknown): value is Plugin {
+  let plugin = value as Plugin;
+  return plugin &&
+    typeof plugin === "object" &&
+    (
+      isModuleDefinition(plugin.processFile) ||
+      typeof plugin.processFile === "function" ||
+      typeof plugin.processFiles === "function" ||
+      typeof plugin.read === "function" ||
+      typeof plugin.watch === "function" ||
+      typeof plugin.clean === "function" ||
+      typeof plugin.dispose === "function"
+    );
+}
+
+
+/**
  * A plugin that implements the `read()` method.
  * @internal
  */

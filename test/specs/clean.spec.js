@@ -13,7 +13,7 @@ describe("Plugin.clean()", () => {
 
   it("should do nothing if there are no plugins that implement clean()", async () => {
     let engine = CodeEngine.create();
-    await engine.use({ name: "Some Plugin", find () {} });
+    await engine.use({ name: "Some Plugin", read () {} });
     await engine.clean();
   });
 

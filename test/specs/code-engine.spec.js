@@ -55,11 +55,11 @@ describe("CodeEngine class", () => {
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (0 plugins)");
 
-      await engine.use({ name: "Plugin 1" });
+      await engine.use({ name: "Plugin 1", read () {} });
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (1 plugins)");
 
-      await engine.use({ name: "Plugin 2" }, { name: "Plugin 3" });
+      await engine.use({ name: "Plugin 2", read () {} }, { name: "Plugin 3", read () {} });
       expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
       expect(engine.toString()).to.equal("CodeEngine (3 plugins)");
     }
@@ -74,11 +74,7 @@ describe("CodeEngine class", () => {
     let engine = new CodeEngine();
 
     try {
-      // These are fine.  They just do nothing.
-      await engine.use({});
-      await engine.use({ foo: "bar" });
-
-      let invalidPlugins = [12345, true, false, -1];
+      let invalidPlugins = [12345, true, false, -1, {}, { name: "My Plugin" }, { foo: "bar" }];
 
       for (let invalidPlugin of invalidPlugins) {
         try {
@@ -87,7 +83,7 @@ describe("CodeEngine class", () => {
         }
         catch (error) {
           expect(error).to.be.an.instanceOf(Error);
-          expect(error.message).to.match(/^Error in Plugin \d\. \nCodeEngine plugins must be an object, function, or string, not /);
+          expect(error.message).to.match(/^Error in Plugin \d\. \nInvalid CodeEngine plugin: /);
         }
       }
     }
