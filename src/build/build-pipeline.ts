@@ -1,6 +1,6 @@
 import { Context } from "@code-engine/types";
-import { CodeEnginePlugin } from "../plugins/plugin";
-import { hasClean, hasDispose, NormalizedPlugin } from "../plugins/types";
+import { PluginController } from "../plugins/plugin-controller";
+import { hasClean, hasDispose } from "../plugins/types";
 import { Build } from "./build";
 import { BuildSummary } from "./build-summary";
 
@@ -9,7 +9,7 @@ import { BuildSummary } from "./build-summary";
  * @internal
  */
 export class BuildPipeline {
-  private _plugins: CodeEnginePlugin[] = [];
+  private _plugins: PluginController[] = [];
   private _concurrency: number;
   private _context: Context;
 
@@ -28,8 +28,8 @@ export class BuildPipeline {
   /**
    * Adds a plugin to the build pipeline
    */
-  public add(plugin: NormalizedPlugin): void {
-    this._plugins.push(new CodeEnginePlugin(plugin));
+  public add(plugin: PluginController): void {
+    this._plugins.push(plugin);
   }
 
   /**

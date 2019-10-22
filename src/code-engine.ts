@@ -9,6 +9,7 @@ import { BuildSummary } from "./build/build-summary";
 import { Config } from "./config";
 import { LogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
+import { PluginController } from "./plugins/plugin-controller";
 
 /**
  * The main CodeEngine class.
@@ -58,7 +59,8 @@ export class CodeEngine extends EventEmitter {
     for (let pluginDefinition of plugins) {
       let defaultName = `Plugin ${this._buildPipeline.size + 1}`;
       let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
-      this._buildPipeline.add(plugin);
+      let controller = new PluginController(plugin);
+      this._buildPipeline.add(controller);
     }
   }
 

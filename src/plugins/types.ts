@@ -1,13 +1,5 @@
-import { FileProcessor, ModuleDefinition, Plugin } from "@code-engine/types";
-import { CodeEnginePlugin } from "./plugin";
-
-
-/**
- * A CodeEngine Plugin that has been normalized so that it always has a `name`,
- * and its `processFile`, if set, is always a `FileProcessor` function.
- * @internal
- */
-export type NormalizedPlugin = { name: string; processFile?: FileProcessor } & Omit<Plugin, "name" | "processFile">;
+import { ModuleDefinition, Plugin } from "@code-engine/types";
+import { PluginController } from "./plugin-controller";
 
 
 /**
@@ -44,13 +36,13 @@ export function isPlugin(value: unknown): value is Plugin {
  * A plugin that implements the `read()` method.
  * @internal
  */
-export type FileSource = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "read">>;
+export type FileSource = PluginController & Required<Pick<PluginController, "read">>;
 
 /**
  * Determines whether the given Plugin implements the `read()` method
  * @internal
  */
-export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
+export function isFileSource(plugin: PluginController): plugin is FileSource {
   return !!plugin.read;
 }
 
@@ -59,14 +51,14 @@ export function isFileSource(plugin: CodeEnginePlugin): plugin is FileSource {
  * A plugin that implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export type BuildStep = CodeEnginePlugin &
-  (Required<Pick<CodeEnginePlugin, "processFile">> | Required<Pick<CodeEnginePlugin, "processFiles">>);
+export type BuildStep = PluginController &
+  (Required<Pick<PluginController, "processFile">> | Required<Pick<PluginController, "processFiles">>);
 
 /**
  * Determines whether the given Plugin implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export function isBuildStep(plugin: CodeEnginePlugin): plugin is BuildStep {
+export function isBuildStep(plugin: PluginController): plugin is BuildStep {
   return !!plugin.processFile || !!plugin.processFiles;
 }
 
@@ -75,13 +67,13 @@ export function isBuildStep(plugin: CodeEnginePlugin): plugin is BuildStep {
  * A plugin that implements the `watch()` method.
  * @internal
  */
-export type HasWatch = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "watch">>;
+export type HasWatch = PluginController & Required<Pick<PluginController, "watch">>;
 
 /**
  * Determines whether the given Plugin implements the `watch()` method
  * @internal
  */
-export function hasWatch(plugin: CodeEnginePlugin): plugin is HasWatch {
+export function hasWatch(plugin: PluginController): plugin is HasWatch {
   return !!plugin.watch;
 }
 
@@ -90,13 +82,13 @@ export function hasWatch(plugin: CodeEnginePlugin): plugin is HasWatch {
  * A plugin that implements the `clean()` method.
  * @internal
  */
-export type HasClean = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "clean">>;
+export type HasClean = PluginController & Required<Pick<PluginController, "clean">>;
 
 /**
  * Determines whether the given Plugin implements the `clean()` method
  * @internal
  */
-export function hasClean(plugin: CodeEnginePlugin): plugin is HasClean {
+export function hasClean(plugin: PluginController): plugin is HasClean {
   return !!plugin.clean;
 }
 
@@ -105,12 +97,12 @@ export function hasClean(plugin: CodeEnginePlugin): plugin is HasClean {
  * A plugin that implements the `dispose()` method.
  * @internal
  */
-export type HasDispose = CodeEnginePlugin & Required<Pick<CodeEnginePlugin, "dispose">>;
+export type HasDispose = PluginController & Required<Pick<PluginController, "dispose">>;
 
 /**
  * Determines whether the given Plugin implements the `dispose()` method
  * @internal
  */
-export function hasDispose(plugin: CodeEnginePlugin): plugin is HasDispose {
+export function hasDispose(plugin: PluginController): plugin is HasDispose {
   return !!plugin.dispose;
 }

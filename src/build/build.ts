@@ -1,6 +1,6 @@
 import { Context, File } from "@code-engine/types";
 import { ConcurrentTasks, IterableWriter, joinIterables } from "@code-engine/utils";
-import { CodeEnginePlugin } from "../plugins/plugin";
+import { PluginController } from "../plugins/plugin-controller";
 import { BuildStep, FileSource, isBuildStep, isFileSource } from "../plugins/types";
 import { BuildSummary } from "./build-summary";
 
@@ -21,7 +21,7 @@ export class Build {
   /**
    * Separates the plugins by type and order.
    */
-  public constructor(plugins: CodeEnginePlugin[]) {
+  public constructor(plugins: PluginController[]) {
     this._sources = plugins.filter(isFileSource);
     this._steps = plugins.filter(isBuildStep);
   }

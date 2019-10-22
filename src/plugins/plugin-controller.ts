@@ -3,13 +3,13 @@ import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/ty
 import { createFile, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { NormalizedPlugin } from "../plugins/types";
+import { NormalizedPlugin } from "./normalize-plugin";
 
 /**
- * Exposes a Plugin's functionality to CodeEngine.
+ * Wraps a plugin's functionality in a consistent interface.
  * @internal
  */
-export class CodeEnginePlugin {
+export class PluginController {
   public readonly name: string;
   public readonly filter: FilterFunction;
   private readonly _plugin: NormalizedPlugin;

@@ -1,8 +1,19 @@
-import { PluginDefinition } from "@code-engine/types";
+import { FileProcessor, Plugin, PluginDefinition } from "@code-engine/types";
 import { valueToString } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "ono";
-import { isModuleDefinition, isPlugin, NormalizedPlugin } from "./types";
+import { isModuleDefinition, isPlugin } from "./types";
+
+
+/**
+ * A CodeEngine Plugin that has been normalized so that it always has a `name`,
+ * and its `processFile`, if set, is always a `FileProcessor` function.
+ * @internal
+ */
+export type NormalizedPlugin = Omit<Plugin, "name" | "processFile"> & {
+  name: string;
+  processFile?: FileProcessor;
+};
 
 
 /**
