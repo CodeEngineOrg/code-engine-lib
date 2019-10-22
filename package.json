@@ -47,7 +47,7 @@
     "test": "mocha && npm run lint",
     "coverage": "nyc mocha",
     "upgrade": "npm-check -u",
-    "bump": "bump --tag --push --all",
+    "bump": "bump prerelease --tag --push --all",
     "release": "npm run upgrade && npm run clean && npm run build && npm test && npm run bump"
   },
   "engines": {
