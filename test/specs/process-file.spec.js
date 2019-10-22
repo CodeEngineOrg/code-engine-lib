@@ -1,11 +1,10 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg, testThreadConsistency } = require("../utils/utils");
+const { getCallArg, testThreadConsistency } = require("../utils/utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const path = require("path");
-const ono = require("ono");
 
 describe("Plugin.processFile()", () => {
   testThreadConsistency((createModule) => {

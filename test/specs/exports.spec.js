@@ -1,7 +1,7 @@
 "use strict";
 
 const commonJSExport = require("../../");
-const { default: defaultExport, CodeEngine: namedExport, Event, LogLevel } = require("../../");
+const { default: defaultExport, CodeEngine: namedExport } = require("../../");
 const { expect } = require("chai");
 
 describe("@code-engine/lib package exports", () => {
