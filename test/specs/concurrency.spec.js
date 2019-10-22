@@ -9,7 +9,7 @@ const ono = require("ono");
 // CI environments are slow, so use a larger time buffer
 const TIME_BUFFER = process.env.CI ? 300 : 25;
 
-describe.only("Concurrent processing", () => {
+describe("Concurrent processing", () => {
   testThreadConsistency((createModule) => {
 
     async function runConcurrentPlugins (plugins) {
@@ -172,7 +172,7 @@ describe.only("Concurrent processing", () => {
       try {
         // 0ms: Plugin1 processes the first two files and yields them to Plugin2.
         //      Plugin2 starts processing the first two files.
-        //      Plugin3 processes the next two files and yields them to Plugin2.
+        //      Plugin1 processes the next two files and yields them to Plugin2.
         //      Plugin2 queues-up one of the yielded files, but doesn't start process it yet.
         //      Plugin1 starts processing file5, since one of the yielded files has been handed-off to Plugin2.
         assertLogEntries(log.slice(0, 7), [
