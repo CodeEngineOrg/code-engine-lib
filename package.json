@@ -55,10 +55,10 @@
   },
   "engineStrict": true,
   "devDependencies": {
-    "@code-engine/types": "^1.0.0-beta.1",
-    "@types/chai": "^4.2.2",
+    "@code-engine/types": "^1.0.0-beta.4",
+    "@types/chai": "^4.2.4",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.11.1",
+    "@types/node": "^12.11.7",
     "@types/sinon": "^7.0.13",
     "chai": "^4.2.0",
     "coveralls": "^3.0.7",
@@ -78,8 +78,8 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
-    "@code-engine/utils": "^1.0.0-beta.5",
-    "@code-engine/workers": "^1.0.0-beta.3",
+    "@code-engine/utils": "^1.0.0-beta.7",
+    "@code-engine/workers": "^1.0.0-beta.4",
     "file-path-filter": "^2.2.2",
     "ono": "^5.1.0"
   }
