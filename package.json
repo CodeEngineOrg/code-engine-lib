@@ -78,7 +78,7 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
-    "@code-engine/utils": "^1.0.0-beta.7",
+    "@code-engine/utils": "^1.0.0-beta.8",
     "@code-engine/workers": "^1.0.0-beta.4",
     "file-path-filter": "^2.2.2",
     "ono": "^5.1.0"

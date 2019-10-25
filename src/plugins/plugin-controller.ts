@@ -1,6 +1,6 @@
 // tslint:disable: completed-docs
 import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/types";
-import { createFile, IterableWriter, iterate } from "@code-engine/utils";
+import { createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { NormalizedPlugin } from "./normalize-plugin";
@@ -38,7 +38,7 @@ export class PluginController {
 
       // Ensure that all input files are read, even if the plugin doesn't actually read them.
       // Otherwise the build will never complete.
-      await files.all();
+      await drainIterable(files);
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while processing files.`);
