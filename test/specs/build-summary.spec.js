@@ -17,7 +17,7 @@ describe("BuildSummary object", () => {
     expect(summary.output.fileSize).to.be.a("number").at.least(0).and.satisfies(Number.isInteger);
     expect(summary.time.start).to.be.an.instanceOf(Date);
     expect(summary.time.end).to.be.an.instanceOf(Date);
-    expect(summary.time.end.getTime()).to.be.above(summary.time.start.getTime());
+    expect(summary.time.end.getTime()).to.be.at.least(summary.time.start.getTime());
     expect(summary.time.elapsed).to.be.a("number").at.least(0).and.satisfies(Number.isInteger);
     return true;
   }
