@@ -1,7 +1,8 @@
 import { Context, File } from "@code-engine/types";
-import { ConcurrentTasks, IterableWriter, joinIterables } from "@code-engine/utils";
+import { IterableWriter, joinIterables } from "@code-engine/utils";
 import { PluginController } from "../plugins/plugin-controller";
 import { BuildStep, FileSource, isBuildStep, isFileSource } from "../plugins/types";
+import { runBuildStep } from "./build-step";
 import { BuildSummary } from "./build-summary";
 
 /**
@@ -68,46 +69,4 @@ export class Build {
       this.summary.totalFileSize += file.size;
     }
   }
-}
-
-async function runBuildStep(
-step: BuildStep, concurrency: number, input: AsyncIterable<File>, output: IterableWriter<File>, context: Context)
-: Promise<void> {
-  let concurrentTasks = new ConcurrentTasks(concurrency);
-  let processFilesInput: IterableWriter<File> | undefined;
-
-  if (step.processFiles) {
-    processFilesInput = new IterableWriter();
-    let processFilesOutput = step.processFiles(processFilesInput.iterable, context);
-    output.writeFrom(processFilesOutput);
-  }
-
-  for await (let file of input) {
-    await concurrentTasks.waitForAvailability();
-
-    if (!step.filter(file, context)) {
-      // This file doesn't match the plugin's filter criteria, so just forward it on
-      let promise = output.write(file);
-      concurrentTasks.add(promise);
-    }
-    else {
-      if (step.processFile) {
-        let promise = step.processFile(file, context, output);
-        concurrentTasks.add(promise);
-      }
-
-      if (processFilesInput) {
-        let promise = processFilesInput.write(file);
-        concurrentTasks.add(promise);
-      }
-    }
-  }
-
-  await concurrentTasks.waitForAll();
-
-  if (processFilesInput) {
-    await processFilesInput.end();
-  }
-
-  await output.end();
 }
