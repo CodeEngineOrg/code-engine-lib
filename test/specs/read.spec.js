@@ -178,7 +178,7 @@ describe("Plugin.read()", () => {
   });
 
   it("should ignore unknown fields on FileInfo objects", async () => {
-    const expectedKeys = ["source", "path", "createdAt", "modifiedAt", "metadata", "contents"];
+    const expectedKeys = ["source", "sourceMap", "path", "createdAt", "modifiedAt", "metadata", "contents"];
 
     let plugin = {
       name: "Plugin",
