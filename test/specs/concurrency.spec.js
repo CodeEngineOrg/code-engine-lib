@@ -155,7 +155,7 @@ describe("Concurrent processing", () => {
 
         // 700ms: All done
         expect(log).to.have.lengthOf(30);
-        expect(summary.elapsedTime).to.be.at.least(700).and.at.most(700 + TIME_BUFFER);
+        expect(summary.time.elapsed).to.be.at.least(700).and.at.most(700 + TIME_BUFFER);
       }
       catch (error) {
         errorHandler(error, log);
@@ -256,7 +256,7 @@ describe("Concurrent processing", () => {
 
         // 1100ms: All done
         expect(log).to.have.lengthOf(30);
-        expect(summary.elapsedTime).to.be.at.least(1100).and.at.most(1100 + TIME_BUFFER);
+        expect(summary.time.elapsed).to.be.at.least(1100).and.at.most(1100 + TIME_BUFFER);
       }
       catch (error) {
         errorHandler(error, log);
@@ -371,7 +371,7 @@ describe("Concurrent processing", () => {
 
         // 1100ms: All done
         expect(log).to.have.lengthOf(30);
-        expect(summary.elapsedTime).to.be.at.least(1100).and.at.most(1100 + TIME_BUFFER);
+        expect(summary.time.elapsed).to.be.at.least(1100).and.at.most(1100 + TIME_BUFFER);
       }
       catch (error) {
         errorHandler(error, log);

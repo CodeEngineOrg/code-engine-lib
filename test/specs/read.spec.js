@@ -18,7 +18,8 @@ describe("Plugin.read()", () => {
 
     sinon.assert.calledOnce(plugin1.read);
     sinon.assert.calledOnce(plugin2.read);
-    expect(summary.fileCount).to.equal(0);
+    expect(summary.input.fileCount).to.equal(0);
+    expect(summary.output.fileCount).to.equal(0);
   });
 
   it("should iterate over all files from all sources of different types", async () => {
@@ -60,7 +61,9 @@ describe("Plugin.read()", () => {
 
     let engine = CodeEngine.create();
     await engine.use(iterable, iterator, generator, asyncGenerator, spy);
-    await engine.build();
+    let summary = await engine.build();
+
+    expect(summary.input.fileCount).to.equal(8);
 
     sinon.assert.callCount(spy, 8);
     let filePaths = getCallArg(spy).map((file) => file.path);
@@ -99,7 +102,9 @@ describe("Plugin.read()", () => {
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2, spy);
-    await engine.build();
+    let summary = await engine.build();
+
+    expect(summary.input.fileCount).to.equal(5);
 
     sinon.assert.callCount(spy, 5);
     let files = getCallArg(spy);
@@ -129,7 +134,9 @@ describe("Plugin.read()", () => {
 
     let engine = CodeEngine.create();
     await engine.use(plugin, spy);
-    await engine.build();
+    let summary = await engine.build();
+
+    expect(summary.input.fileCount).to.equal(6);
 
     sinon.assert.callCount(spy, 6);
     let files = getCallArg(spy);
@@ -165,7 +172,9 @@ describe("Plugin.read()", () => {
 
     let engine = CodeEngine.create();
     await engine.use(plugin1, plugin2, spy);
-    await engine.build();
+    let summary = await engine.build();
+
+    expect(summary.input.fileCount).to.equal(6);
 
     sinon.assert.callCount(spy, 6);
     let files = getCallArg(spy);
@@ -193,7 +202,9 @@ describe("Plugin.read()", () => {
 
     let engine = CodeEngine.create();
     await engine.use(plugin, spy);
-    await engine.build();
+    let summary = await engine.build();
+
+    expect(summary.input.fileCount).to.equal(3);
 
     sinon.assert.calledThrice(spy);
     let processFile = spy.getCalls();
@@ -211,8 +222,10 @@ describe("Plugin.read()", () => {
   it("should process an empty set if there are no plugins", async () => {
     let engine = CodeEngine.create();
     let summary = await engine.build();
-    expect(summary.fileCount).to.equal(0);
-    expect(summary.totalFileSize).to.equal(0);
+    expect(summary.input.fileCount).to.equal(0);
+    expect(summary.input.fileSize).to.equal(0);
+    expect(summary.output.fileCount).to.equal(0);
+    expect(summary.output.fileSize).to.equal(0);
   });
 
   it("should process an empty set if there are no file sources", async () => {
@@ -223,8 +236,10 @@ describe("Plugin.read()", () => {
     await engine.use(plugin1, plugin2);
     let summary = await engine.build();
 
-    expect(summary.fileCount).to.equal(0);
-    expect(summary.totalFileSize).to.equal(0);
+    expect(summary.input.fileCount).to.equal(0);
+    expect(summary.input.fileSize).to.equal(0);
+    expect(summary.output.fileCount).to.equal(0);
+    expect(summary.output.fileSize).to.equal(0);
 
     sinon.assert.notCalled(plugin1.clean);
     sinon.assert.notCalled(plugin2.watch);
