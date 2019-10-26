@@ -11,7 +11,11 @@ describe("Plugin.processFiles()", () => {
 
     it("should not output any files if processFiles() returns nothing", async () => {
       let source = {
-        read () { return ["file1.txt", "file2.txt", "file3.txt"]; }
+        *read () {
+          yield { path: "file1.txt" };
+          yield { path: "file2.txt" };
+          yield { path: "file3.txt" };
+        }
       };
       let plugin = {
         processFiles: sinon.spy(),
@@ -28,7 +32,11 @@ describe("Plugin.processFiles()", () => {
 
     it("should output a subset of files", async () => {
       let source = {
-        read () { return ["file1.txt", "file2.txt", "file3.txt"]; }
+        *read () {
+          yield { path: "file1.txt" };
+          yield { path: "file2.txt" };
+          yield { path: "file3.txt" };
+        }
       };
       let plugin = {
         async* processFiles (files) {
@@ -54,7 +62,11 @@ describe("Plugin.processFiles()", () => {
 
     it("should output a superset of files", async () => {
       let source = {
-        read () { return ["file1.txt", "file2.txt", "file3.txt"]; }
+        *read () {
+          yield { path: "file1.txt" };
+          yield { path: "file2.txt" };
+          yield { path: "file3.txt" };
+        }
       };
       let plugin = {
         async* processFiles (files) {
