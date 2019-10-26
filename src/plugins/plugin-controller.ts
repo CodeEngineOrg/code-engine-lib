@@ -33,7 +33,7 @@ export class PluginController {
       let fileInfos = this._plugin.processFiles!(files, context);
 
       for await (let fileInfo of iterate(fileInfos)) {
-        yield createFile(fileInfo);
+        yield createFile(fileInfo, this.name);
       }
 
       // Ensure that all input files are read, even if the plugin doesn't actually read them.
@@ -51,7 +51,7 @@ export class PluginController {
       let fileInfos = this._plugin.processFile!(file, context);
 
       for await (let fileInfo of iterate(fileInfos)) {
-        await output.write(createFile(fileInfo));
+        await output.write(createFile(fileInfo, this.name));
       }
     }
     catch (error) {
@@ -65,7 +65,7 @@ export class PluginController {
       let fileInfos = this._plugin.read!(context);
 
       for await (let fileInfo of iterate(fileInfos)) {
-        yield createFile(fileInfo);
+        yield createFile(fileInfo, this.name);
       }
     }
     catch (error) {
@@ -79,7 +79,7 @@ export class PluginController {
       let changedFileInfos = this._plugin.watch!(context);
 
       for await (let fileInfo of iterate(changedFileInfos)) {
-        yield createFile(fileInfo);
+        yield createFile(fileInfo, this.name);
       }
     }
     catch (error) {

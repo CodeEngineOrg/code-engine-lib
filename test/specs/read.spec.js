@@ -3,7 +3,7 @@
 const path = require("path");
 const sinon = require("sinon");
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg } = require("../utils/utils");
+const { delay, getCallArg, createModule } = require("../utils/utils");
 const { assert, expect } = require("chai");
 
 describe("Plugin.read()", () => {
@@ -113,6 +113,101 @@ describe("Plugin.read()", () => {
     expect(files[2]).to.have.property("path", "file1.txt");
     expect(files[3]).to.have.property("path", "file5.txt");
     expect(files[4]).to.have.property("path", "file2.txt");
+  });
+
+  it("should set the source property of all files", async () => {
+    let plugin1 = {
+      *read () {
+        yield { path: "file1.txt" };
+      }
+    };
+    let plugin2 = {
+      name: "This is Plugin #2",
+      *read () {
+        yield { path: "file2.txt" };
+      }
+    };
+    function* plugin3 (file) {
+      yield file;
+
+      if (file.name === "file2.txt") {
+        yield { path: "file3.txt" };
+      }
+    }
+    let plugin4 = {
+      *processFile (file) {
+        yield file;
+
+        if (file.name === "file3.txt") {
+          yield { path: "file4.txt" };
+        }
+      }
+    };
+    let plugin5 = {
+      name: "This is Plugin #5",
+      *processFile (file) {
+        yield file;
+
+        if (file.name === "file4.txt") {
+          yield { path: "file5.txt" };
+        }
+      }
+    };
+    let plugin6 = await createModule(function* plugin6 (file) {
+      yield file;
+
+      if (file.name === "file5.txt") {
+        yield { path: "file6.txt" };
+      }
+    });
+    let plugin7 = {
+      processFile: await createModule(function* plugin7 (file) {
+        yield file;
+
+        if (file.name === "file6.txt") {
+          yield { path: "file7.txt" };
+        }
+      })
+    };
+    let plugin8 = {
+      name: "This is Plugin #8",
+      processFile: await createModule(function* (file) {
+        yield file;
+
+        if (file.name === "file7.txt") {
+          yield { path: "file8.txt" };
+        }
+      })
+    };
+    let plugin9 = {
+      processFile: await createModule((file) => {
+        if (file.name === "file8.txt") {
+          return [file, { path: "file9.txt" }];
+        }
+        else {
+          return file;
+        }
+      })
+    };
+
+    let spy = sinon.spy();
+
+    let engine = CodeEngine.create({ concurrency: 1 });
+    await engine.use(plugin1, plugin2, plugin3, plugin4, plugin5, plugin6, plugin7, plugin8, plugin9, spy);
+    await engine.build();
+
+    sinon.assert.callCount(spy, 9);
+
+    let files = getCallArg(spy);
+    expect(files[0].source).to.equal("code-engine://Plugin-1/file1.txt");
+    expect(files[1].source).to.equal("code-engine://This-is-Plugin-2/file2.txt");
+    expect(files[2].source).to.equal("code-engine://plugin3/file3.txt");
+    expect(files[3].source).to.equal("code-engine://Plugin-4/file4.txt");
+    expect(files[4].source).to.equal("code-engine://This-is-Plugin-5/file5.txt");
+    expect(files[5].source).to.equal("code-engine://plugin6/file6.txt");
+    expect(files[6].source).to.equal("code-engine://plugin7/file7.txt");
+    expect(files[7].source).to.equal("code-engine://This-is-Plugin-8/file8.txt");
+    expect(files[8].source).to.equal("code-engine://Plugin-9/file9.txt");
   });
 
   it("should allow multiple files to have the same path", async () => {

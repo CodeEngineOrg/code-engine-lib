@@ -34,12 +34,15 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       throw ono.type(`Invalid CodeEngine plugin: ${valueToString(definition)}`);
     }
 
+    let name = definition.name;
+
     if (isModuleDefinition(definition.processFile)) {
       // Load the processFile method on all worker threads
       definition.processFile = await workerPool.loadFileProcessor(definition.processFile);
+      name = name || definition.processFile.name;
     }
 
-    definition.name = String(definition.name || defaultName);
+    definition.name = String(name || defaultName);
     return definition as NormalizedPlugin;
   }
   catch (error) {
