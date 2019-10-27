@@ -1,7 +1,6 @@
 import { CodeEngine } from "./code-engine";
 
 export * from "@code-engine/types";
-export { BuildSummary } from "./build/build-summary";
 export { Config } from "./config";
 export { CodeEngine };
 
