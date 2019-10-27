@@ -1,6 +1,6 @@
 // tslint:disable: completed-docs
-import { AsyncAllIterable, Context, File, FilterFunction } from "@code-engine/types";
-import { createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
+import { AsyncAllIterable, BuildContext, ChangedFile, Context, File, FilterFunction } from "@code-engine/types";
+import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { NormalizedPlugin } from "./normalize-plugin";
@@ -28,7 +28,7 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* processFiles?(files: AsyncAllIterable<File>, context: Context): AsyncGenerator<File> {
+  public async* processFiles?(files: AsyncAllIterable<File>, context: BuildContext): AsyncGenerator<File> {
     try {
       let fileInfos = this._plugin.processFiles!(files, context);
 
@@ -46,7 +46,7 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async processFile?(file: File, context: Context, output: IterableWriter<File>): Promise<void> {
+  public async processFile?(file: File, context: BuildContext, output: IterableWriter<File>): Promise<void> {
     try {
       let fileInfos = this._plugin.processFile!(file, context);
 
@@ -60,7 +60,7 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* read?(context: Context): AsyncGenerator<File> {
+  public async* read?(context: BuildContext): AsyncGenerator<File> {
     try {
       let fileInfos = this._plugin.read!(context);
 

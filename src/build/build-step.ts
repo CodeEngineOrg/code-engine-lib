@@ -1,4 +1,4 @@
-import { Context, File } from "@code-engine/types";
+import { BuildContext, File } from "@code-engine/types";
 import { ConcurrentTasks, IterableWriter } from "@code-engine/utils";
 import { BuildStep } from "../plugins/types";
 
@@ -10,9 +10,10 @@ import { BuildStep } from "../plugins/types";
  * @param input - An async iterable of input files from the previous build step
  * @param output - An async iterable writer that sends output files to the next build step
  * @param context - Contextual information about the current build
+ * @internal
  */
 export async function runBuildStep(
-step: BuildStep, concurrency: number, input: AsyncIterable<File>, output: IterableWriter<File>, context: Context)
+step: BuildStep, concurrency: number, input: AsyncIterable<File>, output: IterableWriter<File>, context: BuildContext)
 : Promise<void> {
   let concurrentTasks = new ConcurrentTasks(concurrency);
   let processFilesInput: IterableWriter<File> | undefined;

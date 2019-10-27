@@ -1,69 +1,72 @@
-import { Context, File } from "@code-engine/types";
-import { drainIterable, IterableWriter, joinIterables } from "@code-engine/utils";
-import { PluginController } from "../plugins/plugin-controller";
-import { BuildStep, FileSource, isBuildStep, isFileSource } from "../plugins/types";
+import { AsyncAllGenerator, AsyncAllIterable, BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
+import { createChangedFile, drainIterable, IterableWriter, iterateAll } from "@code-engine/utils";
+import { BuildStep } from "../plugins/types";
 import { runBuildStep } from "./build-step";
-import { BuildSummary, updateBuildSummary } from "./build-summary";
 
 /**
  * Runs files through a series of plugins.
  * @internal
  */
-export class Build {
-  private _sources: FileSource[];
-  private _steps: BuildStep[];
+export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], concurrency: number, context: BuildContext): Promise<BuildSummary> {
+  let promises: Array<Promise<void>> = [], promise: Promise<void>;
 
-  public summary: BuildSummary = {
+  let summary: BuildSummary = {
     input: { fileCount: 0, fileSize: 0 },
     output: { fileCount: 0, fileSize: 0 },
     time: { start: new Date(), end: new Date(), elapsed: 0 },
   };
 
-  /**
-   * Separates the plugins by type and order.
-   */
-  public constructor(plugins: PluginController[]) {
-    this._sources = plugins.filter(isFileSource);
-    this._steps = plugins.filter(isBuildStep);
+  // Collect metrics on the input files
+  let input = updateBuildSummary(summary, "input", files);
+
+  // Chain the build steps together, with each one accepting the output of the previous one as input
+  for (let step of steps) {
+    let output = new IterableWriter<File>();
+    promise = runBuildStep(step, concurrency, input, output, context);
+    promises.push(promise);
+    input = output.iterable;
   }
 
-  /**
-   * Runs the given files through the build pipeline.
-   */
-  public async run(concurrency: number, context: Context): Promise<void> {
-    let promises: Array<Promise<void>> = [], promise: Promise<void>;
+  // Collect metrics on the final output files
+  let finalOutput = updateBuildSummary(summary, "output", input);
 
-    // Read files from all sources simultaneously
-    let files = this._readAll(context);
+  // Wait for all build steps to finish
+  promises.push(drainIterable(finalOutput));
+  await Promise.all(promises);
 
-    // Collect metrics on the input files
-    let input = updateBuildSummary(this.summary, "input", files);
+  // Update the build summary
+  summary.time.end = new Date();
+  summary.time.elapsed = summary.time.end.getTime() - summary.time.start.getTime();
+  return summary;
+}
 
-    // Chain the build steps together, with each one accepting the output of the previous one as input
-    for (let step of this._steps) {
-      let output = new IterableWriter<File>();
-      promise = runBuildStep(step, concurrency, input, output, context);
-      promises.push(promise);
-      input = output.iterable;
-    }
 
-    // Collect metrics on the final output files
-    let finalOutput = updateBuildSummary(this.summary, "output", input);
+/**
+ * Creates a "lightweight" copy of a `ChangedFile` object without its contents.
+ */
+function lightweightChangedFile(changedFile: ChangedFile): ChangedFile {
+  let copy = createChangedFile({ ...changedFile });
+  copy.contents = Buffer.alloc(0);
+  return copy;
+}
 
-    // Wait for all build steps to finish
-    promises.push(drainIterable(finalOutput));
-    await Promise.all(promises);
 
-    // Update the build summary
-    this.summary.time.end = new Date();
-    this.summary.time.elapsed = this.summary.time.end.getTime() - this.summary.time.start.getTime();
-  }
+/**
+ * Updates the `input` or `output` metrics of the given `BuildSummary`.
+ */
+function updateBuildSummary(summary: BuildSummary, io: "input" | "output", files: AsyncIterable<File>)
+: AsyncAllIterable<File> {
+  let generator = gatherFileMetrics(summary, io, files) as AsyncAllGenerator<File>;
+  generator.all = iterateAll;
+  return generator;
+}
 
-  /**
-   * Reads all source files simultaneously from all file sources.
-   */
-  private _readAll(context: Context): AsyncIterable<File> {
-    let fileGenerators = this._sources.map((source) => source.read(context));
-    return joinIterables(...fileGenerators);
+
+// tslint:disable-next-line: no-async-without-await
+async function* gatherFileMetrics(summary: BuildSummary, io: "input" | "output", files: AsyncIterable<File>) {
+  for await (let file of files) {
+    summary[io].fileCount++;
+    summary[io].fileSize += file.size;
+    yield file;
   }
 }

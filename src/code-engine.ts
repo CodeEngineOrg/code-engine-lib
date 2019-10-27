@@ -1,11 +1,10 @@
-import { Context, PluginDefinition } from "@code-engine/types";
+import { BuildSummary, Context, EventName, Logger, PluginDefinition } from "@code-engine/types";
 import { validate } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
 import * as os from "os";
 import { BuildPipeline } from "./build/build-pipeline";
-import { BuildSummary } from "./build/build-summary";
 import { Config } from "./config";
 import { LogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
@@ -16,30 +15,40 @@ import { PluginController } from "./plugins/plugin-controller";
  */
 export class CodeEngine extends EventEmitter {
   /** @internal */
+  private _isDisposed: boolean = false;
+
+  /** @internal */
+  private _config: Required<Config>;
+
+  /** @internal */
+  private _logger: Logger;
+
+  /** @internal */
   private readonly _buildPipeline: BuildPipeline;
 
   /** @internal */
   private readonly _workerPool: WorkerPool;
 
-  /** @internal */
-  private _isDisposed: boolean = false;
-
   public constructor(config: Config = {}) {
     super();
 
-    let concurrency = validate.concurrency(config.concurrency, os.cpus().length);
-    let debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
-
-    let context: Context = {
-      debug,
+    this._config = {
       cwd: config.cwd || process.cwd(),
+      concurrency: validate.positiveInteger("concurrency", config.concurrency, os.cpus().length),
+      watchDelay: validate.positiveInteger("watchDelay", config.watchDelay, 500),
       dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
-      logger: new LogEmitter(this, debug),
+      debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
     };
 
-    this._workerPool = new WorkerPool(concurrency, context);
-    this._workerPool.on("error", (err: Error) => errorHandler(this, err));
-    this._buildPipeline = new BuildPipeline(concurrency, context);
+    this._logger = new LogEmitter(this, this._config.debug);
+
+    this._buildPipeline = new BuildPipeline();
+    this._buildPipeline.on(EventName.BuildStarting, this.emit.bind(this, EventName.BuildStarting));
+    this._buildPipeline.on(EventName.BuildFinished, this.emit.bind(this, EventName.BuildFinished));
+    this._buildPipeline.on(EventName.Error, this.emit.bind(this, EventName.Error));
+
+    this._workerPool = new WorkerPool(this._config.concurrency, this._createContext());
+    this._workerPool.on(EventName.Error, (err: Error) => crashHandler(this, err));
   }
 
   /**
@@ -69,7 +78,8 @@ export class CodeEngine extends EventEmitter {
    */
   public async clean(): Promise<void> {
     assertNotDisposed(this);
-    return this._buildPipeline.clean();
+    let context = this._createContext();
+    return this._buildPipeline.clean(context);
   }
 
   /**
@@ -77,15 +87,18 @@ export class CodeEngine extends EventEmitter {
    */
   public async build(): Promise<BuildSummary> {
     assertNotDisposed(this);
-    return this._buildPipeline.build();
+    let context = this._createContext();
+    return this._buildPipeline.build(this._config.concurrency, context);
   }
 
   /**
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
-  public async watch(): Promise<void> {
+  public watch(): void {
     assertNotDisposed(this);
-    return this._buildPipeline.watch();
+    let context = this._createContext();
+    let { watchDelay, concurrency } = this._config;
+    this._buildPipeline.watch(watchDelay, concurrency, context);
   }
 
   /**
@@ -98,8 +111,9 @@ export class CodeEngine extends EventEmitter {
     }
 
     this._isDisposed = true;
+    let context = this._createContext();
     await Promise.all([
-      this._buildPipeline.dispose(),
+      this._buildPipeline.dispose(context),
       this._workerPool.dispose(),
     ]);
   }
@@ -122,6 +136,16 @@ export class CodeEngine extends EventEmitter {
   public get [Symbol.toStringTag](): string {
     return "CodeEngine";
   }
+
+  /**
+   * Creates a `Context` object for this CodeEngine instance.
+   * @internal
+   */
+  private _createContext(): Context {
+    let { cwd, concurrency, dev, debug } = this._config;
+    let logger = this._logger;
+    return { cwd, concurrency, dev, debug, logger };
+  }
 }
 
 /**
@@ -136,9 +160,9 @@ function assertNotDisposed(engine: CodeEngine) {
 /**
  * Handles unexpected errors, such as worker threads crashing.
  */
-async function errorHandler(engine: CodeEngine, error: Error) {
+async function crashHandler(engine: CodeEngine, error: Error) {
   try {
-    engine.emit("error", error);
+    engine.emit(EventName.Error, error);
   }
   finally {
     await engine.dispose();

@@ -9,20 +9,102 @@ const sinon = require("sinon");
 describe("Context", () => {
   testThreadConsistency((createModule) => {
 
-    it("should have all the expected properties", async () => {
+    function isAnyContext (context) {
+      expect(context).to.be.an("object").and.include.keys("cwd", "concurrency", "debug", "dev", "logger");
+      expect(context.cwd).to.be.a("string").and.not.empty;
+      expect(context.concurrency).to.be.a("number").above(0);
+      expect(context.debug).to.be.a("boolean");
+      expect(context.dev).to.be.a("boolean");
+      expect(context.logger).to.be.an("object");
+      return true;
+    }
+
+    function isContext (context) {
+      isAnyContext(context);
+      expect(context).to.have.keys("cwd", "concurrency", "debug", "dev", "logger");
+      return true;
+    }
+
+    function isBuildContext (context) {
+      isAnyContext(context);
+      expect(context).to.have.keys("cwd", "concurrency", "debug", "dev", "fullBuild", "partialBuild", "changedFiles", "logger");
+      expect(context.fullBuild).to.be.a("boolean");
+      expect(context.partialBuild).to.be.a("boolean");
+      expect(context.changedFiles).to.be.an("array");
+
+      for (let file of context.changedFiles) {
+        expect(file).to.be.a("File").with.keys("path", "");
+      }
+
+      return true;
+    }
+
+    it("should be a Context object in the Plugin.clean method", async () => {
+      let context;
+
       let plugin = {
         name: "Context Test",
-        read () {
-          return { path: "file1.txt" };
-        },
-        processFile: await createModule((file, context) => {
-          file.text = JSON.stringify({
-            keys: Object.keys(context),
-            cwd: context.cwd,
-            dev: context.dev,
-            debug: context.debug,
-          });
+        clean (ctx) { context = { ...ctx }; }
+      };
 
+      let engine = CodeEngine.create();
+      await engine.use(plugin);
+      await engine.clean();
+
+      expect(context).to.satisfy(isContext);
+    });
+
+    it("should be a Context object in the Plugin.dispose method", async () => {
+      let context;
+
+      let plugin = {
+        name: "Context Test",
+        dispose (ctx) { context = { ...ctx }; }
+      };
+
+      let engine = CodeEngine.create();
+      await engine.use(plugin);
+      await engine.dispose();
+
+      expect(context).to.satisfy(isContext);
+    });
+
+    it("should be a BuildContext object in the Plugin.read method", async () => {
+      let context;
+
+      let plugin = {
+        name: "Context Test",
+        read (ctx) { context = { ...ctx }; }
+      };
+
+      let engine = CodeEngine.create();
+      await engine.use(plugin);
+      await engine.build();
+
+      expect(context).to.satisfy(isBuildContext);
+    });
+
+    it("should be a BuildContext object in the Plugin.processFiles method", async () => {
+      let context;
+
+      let plugin = {
+        name: "Context Test",
+        processFiles (files, ctx) { context = { ...ctx }; }
+      };
+
+      let engine = CodeEngine.create();
+      await engine.use(plugin);
+      await engine.build();
+
+      expect(context).to.satisfy(isBuildContext);
+    });
+
+    it("should be a BuildContext object in the Plugin.processFile method", async () => {
+      let plugin = {
+        name: "Context Test",
+        read () { return { path: "file.txt" }; },
+        processFile: await createModule((file, ctx) => {
+          file.text = JSON.stringify({ ...ctx, logger: {}});
           return file;
         })
       };
@@ -37,10 +119,7 @@ describe("Context", () => {
       let file = spy.firstCall.args[0];
       let context = JSON.parse(file.text);
 
-      expect(context.keys).to.have.members(["cwd", "dev", "debug", "logger"]);
-      expect(context.cwd).to.equal(process.cwd());
-      expect(context.dev).to.equal(false);
-      expect(context.debug).to.equal(false);
+      expect(context).to.satisfy(isBuildContext);
     });
 
     it("should log messages", async () => {
