@@ -18,17 +18,24 @@ export function isModuleDefinition(value: unknown): value is string | ModuleDefi
  */
 export function isPlugin(value: unknown): value is Plugin {
   let plugin = value as Plugin;
-  return plugin &&
+  return Boolean(plugin &&
     typeof plugin === "object" &&
     (
-      isModuleDefinition(plugin.processFile) ||
+      // A plugin must implement at least one method
+      plugin.read || plugin.watch || plugin.clean || plugin.dispose ||
+      plugin.processFile || plugin.processFiles
+    )
+    &&
+    (plugin.read === undefined || typeof plugin.read === "function") &&
+    (plugin.watch === undefined || typeof plugin.watch === "function") &&
+    (plugin.clean === undefined || typeof plugin.clean === "function") &&
+    (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
+    (plugin.processFiles === undefined || typeof plugin.processFiles === "function") &&
+    (
+      plugin.processFile === undefined ||
       typeof plugin.processFile === "function" ||
-      typeof plugin.processFiles === "function" ||
-      typeof plugin.read === "function" ||
-      typeof plugin.watch === "function" ||
-      typeof plugin.clean === "function" ||
-      typeof plugin.dispose === "function"
-    );
+      isModuleDefinition(plugin.processFile)
+    ));
 }
 
 

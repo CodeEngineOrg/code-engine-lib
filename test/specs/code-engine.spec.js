@@ -74,7 +74,10 @@ describe("CodeEngine class", () => {
     let engine = new CodeEngine();
 
     try {
-      let invalidPlugins = [12345, true, false, -1, {}, { name: "My Plugin" }, { foo: "bar" }];
+      let invalidPlugins = [
+        12345, true, false, -1, {}, { name: "My Plugin" }, { foo: "bar" }, { read: true },
+        { processFiles: {}}, { read () {}, processFile: {}}, { read () {}, processFile: 123 },
+      ];
 
       for (let invalidPlugin of invalidPlugins) {
         try {
