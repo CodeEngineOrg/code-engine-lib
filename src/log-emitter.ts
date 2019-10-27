@@ -1,4 +1,4 @@
-import { LogEventData, Logger } from "@code-engine/types";
+import { EventName, LogEventData, Logger, LogLevel } from "@code-engine/types";
 import { EventEmitter } from "events";
 
 /**
@@ -18,8 +18,8 @@ export class LogEmitter implements Logger {
    * Emits a log event with a message and possibly additional data.
    */
   public log(message: string, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, message, level: "info" };
-    this._emitter.emit("log", logEventData);
+    let logEventData: LogEventData = { ...data, message, level: LogLevel.Info };
+    this._emitter.emit(EventName.Log, logEventData);
   }
 
   /**
@@ -27,8 +27,8 @@ export class LogEmitter implements Logger {
    */
   public debug(message: string, data?: object | undefined): void {
     if (this._debug) {
-      let logEventData: LogEventData = { ...data, message, level: "debug" };
-      this._emitter.emit("log", logEventData);
+      let logEventData: LogEventData = { ...data, message, level: LogLevel.Debug };
+      this._emitter.emit(EventName.Log, logEventData);
     }
   }
 
@@ -36,16 +36,16 @@ export class LogEmitter implements Logger {
    * Emits a log event with a warning message and possibly additional data.
    */
   public warn(warning: string | Error, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, ...splitError(warning, this._debug), level: "warning" };
-    this._emitter.emit("log", logEventData);
+    let logEventData: LogEventData = { ...data, ...splitError(warning, this._debug), level: LogLevel.Warning };
+    this._emitter.emit(EventName.Log, logEventData);
   }
 
   /**
    * Emits a log event with an error message and possibly additional data.
    */
   public error(error: string | Error, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, ...splitError(error, this._debug), level: "error" };
-    this._emitter.emit("log", logEventData);
+    let logEventData: LogEventData = { ...data, ...splitError(error, this._debug), level: LogLevel.Error };
+    this._emitter.emit(EventName.Log, logEventData);
   }
 }
 
