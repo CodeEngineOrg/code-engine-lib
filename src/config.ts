@@ -17,6 +17,15 @@ export interface Config {
   concurrency?: number;
 
   /**
+   * The time (in milliseconds) to wait after a `Plugin.watch()` method indicates a file change
+   * before starting a build. This allows multiple files that are changed together to all be
+   * re-built together.
+   *
+   * Defaults to 300ms (half a second).
+   */
+  watchDelay?: number;
+
+  /**
    * Indicates whether CodeEngine should run in local development mode.
    * When `true`, many plugins will generate files that are un-minified, un-obfuscated, and may
    * contain references to localhost.

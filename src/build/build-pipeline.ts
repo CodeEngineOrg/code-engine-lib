@@ -58,8 +58,32 @@ export class BuildPipeline extends EventEmitter {
   /**
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
-  public async watch(): Promise<void> {
-    return;
+  public watch(delay: number, concurrency: number, context: Context): void {
+    let fileChanges = watchAllSources(this._plugins, context);
+    let batchedFileChanges = debounceIterable(fileChanges, delay);
+
+    Promise.resolve()
+      .then(async () => {
+        for await (let changedFiles of batchedFileChanges) {
+          let buildContext: BuildContext = {
+            ...context,
+            fullBuild: false,
+            partialBuild: true,
+            changedFiles,
+          };
+
+          this._emitBuildStarting(buildContext);
+
+          // Only build the files that still exist (i.e. not the ones that were deleted)
+          let files = changedFiles.filter((file) => file.change !== FileChange.Deleted);
+
+          let steps = this._plugins.filter(isBuildStep);
+          let summary = await runBuild(iterate(files), steps, concurrency, buildContext);
+
+          this._emitBuildFinished(buildContext, summary);
+        }
+      })
+      .catch(this.emit.bind(this, EventName.Error));
   }
 
   /**
@@ -104,4 +128,12 @@ function readAllSources(plugins: PluginController[], context: BuildContext): Asy
   let fileGenerators = sources.map((source) => source.read(context));
   return joinIterables(...fileGenerators);
 }
+
+/**
+ * Watches all source files for changes.
+ */
+function watchAllSources(plugins: PluginController[], context: Context): AsyncIterable<ChangedFile> {
+  let watchers = plugins.filter(hasWatch);
+  let fileGenerators = watchers.map((watcher) => watcher.watch(context));
+  return joinIterables(...fileGenerators);
 }

@@ -16,6 +16,10 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
     time: { start: new Date(), end: new Date(), elapsed: 0 },
   };
 
+  // Remove the contents from the changed files so the build context is lightweight
+  // for cloning across the thread boundary
+  context.changedFiles = context.changedFiles.map(lightweightChangedFile);
+
   // Collect metrics on the input files
   let input = updateBuildSummary(summary, "input", files);
 

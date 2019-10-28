@@ -74,12 +74,12 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* watch?(context: Context): AsyncGenerator<File> {
+  public async* watch?(context: Context): AsyncGenerator<ChangedFile> {
     try {
       let changedFileInfos = this._plugin.watch!(context);
 
-      for await (let fileInfo of iterate(changedFileInfos)) {
-        yield createFile(fileInfo, this.name);
+      for await (let changedFileInfo of iterate(changedFileInfos)) {
+        yield createChangedFile(changedFileInfo, this.name);
       }
     }
     catch (error) {
