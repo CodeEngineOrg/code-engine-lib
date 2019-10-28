@@ -296,7 +296,7 @@ describe("BuildSummary object", () => {
       time: summary.time,
     });
 
-    expect(summary.time.elapsed).to.be.above(0).and.below(TIME_BUFFER);
+    expect(summary.time.elapsed).to.be.at.least(0).and.below(TIME_BUFFER);
   });
 
   it("should have accurate time data for asynchronous plugins", async () => {
@@ -335,7 +335,7 @@ describe("BuildSummary object", () => {
       time: summary.time,
     });
 
-    expect(summary.time.elapsed).to.be.above(400).and.below(400 + TIME_BUFFER);
+    expect(summary.time.elapsed).to.be.at.least(400).and.below(400 + TIME_BUFFER);
   });
 
 });
