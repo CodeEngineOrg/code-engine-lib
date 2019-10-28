@@ -77,14 +77,22 @@ export class BuildPipeline extends EventEmitter {
    * Emits a "buildStarting" event
    */
   private _emitBuildStarting(context: BuildContext): void {
-    this.emit(EventName.BuildStarting, context);
+    if (this.listenerCount(EventName.BuildStarting) > 0) {
+      context = { ...context };
+      context.changedFiles = context.changedFiles.slice();
+      this.emit(EventName.BuildStarting, context);
+    }
   }
 
   /**
    * Emits a "buildFinished" event
    */
   private _emitBuildFinished(context: BuildContext, summary: BuildSummary): void {
-    this.emit(EventName.BuildFinished, Object.assign(context, summary));
+    if (this.listenerCount(EventName.BuildFinished) > 0) {
+      context = { ...context, ...summary };
+      context.changedFiles = context.changedFiles.slice();
+      this.emit(EventName.BuildFinished, context);
+    }
   }
 }
 
