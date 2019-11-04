@@ -58,7 +58,7 @@
     "@code-engine/types": "^1.0.0-beta.7",
     "@types/chai": "^4.2.4",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.11.7",
+    "@types/node": "^12.12.5",
     "@types/sinon": "^7.0.13",
     "chai": "^4.2.0",
     "coveralls": "^3.0.7",
@@ -69,7 +69,7 @@
     "nyc": "^14.1.1",
     "shx": "^0.3.2",
     "sinon": "^7.4.2",
-    "source-map-support": "^0.5.12",
+    "source-map-support": "^0.5.16",
     "tmp": "^0.1.0",
     "tslint": "^5.20.0",
     "tslint-modular": "^1.4.1",
@@ -78,8 +78,8 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
-    "@code-engine/utils": "^1.0.0-beta.13",
-    "@code-engine/workers": "^1.0.0-beta.8",
+    "@code-engine/utils": "^1.0.0-beta.15",
+    "@code-engine/workers": "^1.0.0-beta.9",
     "file-path-filter": "^2.2.2",
     "ono": "^5.1.0"
   }
