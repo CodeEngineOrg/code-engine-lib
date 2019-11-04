@@ -34,8 +34,8 @@ export class CodeEngine extends EventEmitter {
 
     this._config = {
       cwd: config.cwd || process.cwd(),
-      concurrency: validate.positiveInteger("concurrency", config.concurrency, os.cpus().length),
-      watchDelay: validate.positiveInteger("watchDelay", config.watchDelay, 300),
+      concurrency: validate.positiveInteger(config.concurrency, "concurrency", os.cpus().length),
+      watchDelay: validate.positiveInteger(config.watchDelay, "watchDelay", 300),
       dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
       debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
     };

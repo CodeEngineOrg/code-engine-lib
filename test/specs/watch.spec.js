@@ -397,7 +397,7 @@ describe("Plugin.watch()", () => {
     expect(error).to.be.an.instanceOf(Error);
     expect(error.message).to.equal(
       "An error occurred in Plugin 1 while watching source files for changes. \n" +
-      'Invalid file change value: undefined. Expected "created", "modified", or "deleted".'
+      'The type of file change must be specified ("created", "modified", or "deleted").'
     );
   });
 
