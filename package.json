@@ -1,6 +1,6 @@
 {
   "name": "@code-engine/lib",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "build tool | code generator | static site builder",
   "keywords": [
     "build-tool",
@@ -78,7 +78,7 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
-    "@code-engine/utils": "^1.0.0-beta.15",
+    "@code-engine/utils": "^1.0.0-beta.16",
     "@code-engine/workers": "^1.0.0-beta.9",
     "file-path-filter": "^2.2.2",
     "ono": "^5.1.0"
