@@ -5,7 +5,7 @@ const { delay } = require("../utils/utils");
 const { expect } = require("chai");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 100 : 50;
+const TIME_BUFFER = process.env.CI ? 150 : 50;
 
 describe("BuildSummary object", () => {
 
