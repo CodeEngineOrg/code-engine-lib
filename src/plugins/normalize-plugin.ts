@@ -1,5 +1,5 @@
+import { stringify } from "@code-engine/stringify";
 import { FileProcessor, Plugin, PluginDefinition } from "@code-engine/types";
-import { valueToString } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "ono";
 import { isModuleDefinition, isPlugin } from "./types";
@@ -31,7 +31,7 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       definition = { processFile: definition };
     }
     else if (!isPlugin(definition)) {
-      throw ono.type(`Invalid CodeEngine plugin: ${valueToString(definition)}`);
+      throw ono.type(`Invalid CodeEngine plugin: ${stringify(definition)}`);
     }
 
     let name = definition.name;

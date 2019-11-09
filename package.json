@@ -58,7 +58,7 @@
     "@code-engine/types": "0.0.1",
     "@types/chai": "^4.2.4",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.6",
+    "@types/node": "^12.12.7",
     "@types/sinon": "^7.0.13",
     "chai": "^4.2.0",
     "coveralls": "^3.0.7",
@@ -78,8 +78,10 @@
     "version-bump-prompt": "^5.0.3"
   },
   "dependencies": {
-    "@code-engine/utils": "0.0.1",
-    "@code-engine/workers": "0.0.1",
+    "@code-engine/stringify": "0.0.1",
+    "@code-engine/utils": "0.0.2",
+    "@code-engine/validate": "0.0.1",
+    "@code-engine/workers": "0.0.2",
     "file-path-filter": "^2.2.2",
     "ono": "^5.1.0"
   }

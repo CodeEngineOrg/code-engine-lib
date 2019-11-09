@@ -1,5 +1,5 @@
 import { BuildSummary, Context, EventName, Logger, PluginDefinition } from "@code-engine/types";
-import { validate } from "@code-engine/utils";
+import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
@@ -34,8 +34,8 @@ export class CodeEngine extends EventEmitter {
 
     this._config = {
       cwd: config.cwd || process.cwd(),
-      concurrency: validate.positiveInteger(config.concurrency, "concurrency", os.cpus().length),
-      watchDelay: validate.positiveInteger(config.watchDelay, "watchDelay", 300),
+      concurrency: validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length),
+      watchDelay: validate.number.integer.positive(config.watchDelay, "watchDelay", 300),
       dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
       debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
     };
