@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg } = require("../utils/utils");
+const { delay, getCallArg } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 

@@ -15,8 +15,8 @@ const utils = module.exports = {
    * @param timeout {number} - The number of milliseconds to delay
    * @param [result] {any} - The promise result
    */
-  async delay (timeout, result) {
-    await new Promise((resolve) => setTimeout(() => resolve(result), timeout));
+  delay (timeout, result) {
+    return new Promise((resolve) => setTimeout(() => resolve(result), timeout));
   },
 
 

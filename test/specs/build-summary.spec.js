@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { delay } = require("../utils/utils");
+const { delay } = require("../utils");
 const { expect } = require("chai");
 
 // CI environments are slow, so use a larger time buffer

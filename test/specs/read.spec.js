@@ -3,7 +3,7 @@
 const path = require("path");
 const sinon = require("sinon");
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg, createModule } = require("../utils/utils");
+const { delay, getCallArg, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 
 describe("Plugin.read()", () => {

@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { getCallArg, testThreadConsistency } = require("../utils/utils");
+const { getCallArg, testThreadConsistency } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const path = require("path");
