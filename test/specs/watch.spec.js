@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg } = require("../utils");
+const { delay, getFiles } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
@@ -140,7 +140,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.calledOnce(events.buildFinished);
     sinon.assert.calledTwice(plugin2);
 
-    let files = getCallArg(plugin2);
+    let files = getFiles(plugin2);
     expect(files).to.have.lengthOf(2);
     expect(files[0]).to.have.property("name", "file1.txt");
     expect(files[0]).to.have.property("change", "created");
@@ -232,7 +232,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.calledOnce(events.buildFinished);
     sinon.assert.calledTwice(plugin2);
 
-    let files = getCallArg(plugin2);
+    let files = getFiles(plugin2);
     expect(files).to.have.lengthOf(2);
     expect(files[0]).to.have.property("name", "file1.txt");
     expect(files[0]).to.have.property("text", "Hello, world!");
@@ -272,7 +272,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.calledOnce(events.buildFinished);
     sinon.assert.calledThrice(plugin2);
 
-    let files = getCallArg(plugin2);
+    let files = getFiles(plugin2);
     expect(files).to.have.lengthOf(3);
 
     expect(files[0]).to.have.property("change", "created");

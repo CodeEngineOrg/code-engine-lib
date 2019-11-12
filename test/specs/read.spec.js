@@ -3,7 +3,7 @@
 const path = require("path");
 const sinon = require("sinon");
 const CodeEngine = require("../utils/code-engine");
-const { delay, getCallArg, createModule } = require("../utils");
+const { delay, getFiles, getFilePaths, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 
 describe("Plugin.read()", () => {
@@ -66,7 +66,7 @@ describe("Plugin.read()", () => {
     expect(summary.input.fileCount).to.equal(8);
 
     sinon.assert.callCount(spy, 8);
-    let filePaths = getCallArg(spy).map((file) => file.path);
+    let filePaths = getFilePaths(spy);
     expect(filePaths).to.have.same.members([
       "file1.txt",
       "file2.txt",
@@ -107,7 +107,7 @@ describe("Plugin.read()", () => {
     expect(summary.input.fileCount).to.equal(5);
 
     sinon.assert.callCount(spy, 5);
-    let files = getCallArg(spy);
+    let files = getFiles(spy);
     expect(files[0]).to.have.property("path", "file3.txt");
     expect(files[1]).to.have.property("path", "file4.txt");
     expect(files[2]).to.have.property("path", "file1.txt");
@@ -198,7 +198,7 @@ describe("Plugin.read()", () => {
 
     sinon.assert.callCount(spy, 9);
 
-    let files = getCallArg(spy);
+    let files = getFiles(spy);
     expect(files[0].source).to.equal("code-engine://Plugin-1/file1.txt");
     expect(files[1].source).to.equal("code-engine://This-is-Plugin-2/file2.txt");
     expect(files[2].source).to.equal("code-engine://plugin3/file3.txt");
@@ -234,7 +234,7 @@ describe("Plugin.read()", () => {
     expect(summary.input.fileCount).to.equal(6);
 
     sinon.assert.callCount(spy, 6);
-    let files = getCallArg(spy);
+    let files = getFiles(spy);
     expect(files[0]).to.have.property("path", "file1.txt");
     expect(files[1]).to.have.property("path", path.normalize("path/to/file1.txt"));
     expect(files[2]).to.have.property("path", path.normalize("path/to/another/file1.txt"));
@@ -272,13 +272,15 @@ describe("Plugin.read()", () => {
     expect(summary.input.fileCount).to.equal(6);
 
     sinon.assert.callCount(spy, 6);
-    let files = getCallArg(spy);
-    expect(files[0]).to.have.property("path", "file1.txt");
-    expect(files[1]).to.have.property("path", "file1.txt");
-    expect(files[2]).to.have.property("path", "file2.txt");
-    expect(files[3]).to.have.property("path", "file2.txt");
-    expect(files[4]).to.have.property("path", "file3.txt");
-    expect(files[5]).to.have.property("path", "file3.txt");
+    let filePaths = getFilePaths(spy);
+    expect(filePaths).to.have.same.members([
+      "file1.txt",
+      "file1.txt",
+      "file2.txt",
+      "file2.txt",
+      "file3.txt",
+      "file3.txt",
+    ]);
   });
 
   it("should ignore unknown fields on FileInfo objects", async () => {

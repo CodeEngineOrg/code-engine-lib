@@ -23,12 +23,34 @@ const utils = module.exports = {
   /**
    * Returns the specified argument from each Sinon call.
    *
-   * @param spy {SinonSpy} - The Sinon Spy to return arguments from
-   * @param [argIndex] - The argument to return. Defaults to the first arg.
+   * @param spy SinonSpy - The Sinon Spy to return arguments from
+   * @param argIndex - The argument to return. Defaults to the first arg.
    * @returns {Array}
    */
-  getCallArg (spy, argIndex = 0) {
+  getCallArg (spy, argIndex) {
     return spy.getCalls().map((call) => call.args[argIndex]);
+  },
+
+
+  /**
+   * Returns the file from each `processFile()` call.
+   *
+   * @param spy {SinonSpy} - A Sinon Spy for the `processFile()` method
+   * @returns {Array}
+   */
+  getFiles (spy) {
+    return utils.getCallArg(spy, 0);
+  },
+
+
+  /**
+   * Returns the file path from each `processFile()` call.
+   *
+   * @param spy {SinonSpy} - A Sinon Spy for the `processFile()` method
+   * @returns {string[]}
+   */
+  getFilePaths (spy) {
+    return utils.getFiles(spy).map((file) => file.path);
   },
 
 

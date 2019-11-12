@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { getCallArg, testThreadConsistency } = require("../utils");
+const { getFiles, testThreadConsistency } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const path = require("path");
@@ -43,7 +43,7 @@ describe("Plugin.processFile()", () => {
       await engine.build();
 
       sinon.assert.calledThrice(spy);
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       for (let file of files) {
         expect(file.text).to.equal("Plugin 2 was here");
       }
@@ -74,7 +74,7 @@ describe("Plugin.processFile()", () => {
       sinon.assert.callCount(plugin2, 4);
       sinon.assert.callCount(plugin4, 4);
 
-      let files = getCallArg(plugin4);
+      let files = getFiles(plugin4);
       for (let file of files) {
         expect(file.text).to.equal("Plugin 4 was here");
       }
@@ -114,7 +114,7 @@ describe("Plugin.processFile()", () => {
 
       sinon.assert.callCount(spy, 6);
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files.find((file) => file.path === "file.txt").text).to.equal("1");
       expect(files.find((file) => file.path === "file.html").text).to.equal("13");
       expect(files.find((file) => file.path === path.normalize("subdir/file.txt")).text).to.equal("14");
@@ -150,7 +150,7 @@ describe("Plugin.processFile()", () => {
       await engine.use(source, processor1, processor2, processor3, spy);
       await engine.build();
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(3);
       for (let file of files) {
         expect(file.text).to.equal("123");
@@ -183,7 +183,7 @@ describe("Plugin.processFile()", () => {
       await engine.use(plugin1, plugin2, spy);
       await engine.build();
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(1);
       expect(files[0].text).to.be.oneOf([
         "11111: Plugin A\n22222: Plugin B bar\n",   // Main thread

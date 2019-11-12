@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { getCallArg, testThreadConsistency } = require("../utils");
+const { getFiles, testThreadConsistency } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const path = require("path");
@@ -54,7 +54,7 @@ describe("Plugin.processFiles()", () => {
       await engine.build();
 
       sinon.assert.calledTwice(spy);
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(2);
       expect(files[0].name).to.equal("file1.txt");
       expect(files[1].name).to.equal("file3.txt");
@@ -82,7 +82,7 @@ describe("Plugin.processFiles()", () => {
       await engine.build();
 
       sinon.assert.callCount(spy, 5);
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(5);
       expect(files[0].name).to.equal("file1.txt");
       expect(files[1].name).to.equal("file2.txt");
@@ -113,7 +113,7 @@ describe("Plugin.processFiles()", () => {
       sinon.assert.calledOnce(plugin2.processFiles);
       sinon.assert.callCount(spy, 3);
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(3);
       expect(files[0].name).to.equal("file1.txt");
       expect(files[1].name).to.equal("file2.txt");
@@ -218,7 +218,7 @@ describe("Plugin.processFiles()", () => {
 
       sinon.assert.callCount(spy, 6);
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files.find((file) => file.path === "file.txt").text).to.equal("1");
       expect(files.find((file) => file.path === "file.html").text).to.equal("13");
       expect(files.find((file) => file.path === path.normalize("subdir/file.txt")).text).to.equal("14");
@@ -269,7 +269,7 @@ describe("Plugin.processFiles()", () => {
       await engine.use(source, processor1, processor2, processor3, spy);
       await engine.build();
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       expect(files).to.have.lengthOf(3);
       for (let file of files) {
         expect(file.text).to.equal("123");

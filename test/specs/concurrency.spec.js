@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../utils/code-engine");
-const { getCallArg, testThreadConsistency } = require("../utils");
+const { getFiles, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 const ono = require("ono");
@@ -40,7 +40,7 @@ describe("Concurrent processing", () => {
       let startTime = Date.now();
       let summary = await engine.build();
 
-      let files = getCallArg(spy);
+      let files = getFiles(spy);
       let log = []
         .concat(...files.map((file) => JSON.parse(file.text)))
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
