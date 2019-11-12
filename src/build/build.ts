@@ -1,4 +1,4 @@
-import { AsyncAllGenerator, AsyncAllIterable, BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
+import { AsyncAllIterableIterator, BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
 import { createChangedFile, drainIterable, IterableWriter, iterateAll } from "@code-engine/utils";
 import { BuildStep } from "../plugins/types";
 import { runBuildStep } from "./build-step";
@@ -21,7 +21,8 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
   context.changedFiles = context.changedFiles.map(lightweightChangedFile);
 
   // Collect metrics on the input files
-  let input = updateBuildSummary(summary, "input", files);
+  let input = updateBuildSummary(summary, "input", files) as AsyncAllIterableIterator<File>;
+  input.all = iterateAll;
 
   // Chain the build steps together, with each one accepting the output of the previous one as input
   for (let step of steps) {
@@ -59,18 +60,21 @@ function lightweightChangedFile(changedFile: ChangedFile): ChangedFile {
  * Updates the `input` or `output` metrics of the given `BuildSummary`.
  */
 function updateBuildSummary(summary: BuildSummary, io: "input" | "output", files: AsyncIterable<File>)
-: AsyncAllIterable<File> {
-  let generator = gatherFileMetrics(summary, io, files) as AsyncAllGenerator<File>;
-  generator.all = iterateAll;
-  return generator;
-}
+: AsyncIterable<File> {
+  return {
+    [Symbol.asyncIterator]() {
+      let iterator = files[Symbol.asyncIterator]();
 
-
-// tslint:disable-next-line: no-async-without-await
-async function* gatherFileMetrics(summary: BuildSummary, io: "input" | "output", files: AsyncIterable<File>) {
-  for await (let file of files) {
-    summary[io].fileCount++;
-    summary[io].fileSize += file.size;
-    yield file;
-  }
+      return {
+        async next() {
+          let result = await iterator.next();
+          if (!result.done) {
+            summary[io].fileCount++;
+            summary[io].fileSize += result.value.size;
+          }
+          return result;
+        }
+      };
+    },
+  };
 }
