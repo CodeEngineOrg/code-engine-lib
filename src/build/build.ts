@@ -36,7 +36,7 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
   let finalOutput = updateBuildSummary(summary, "output", input);
 
   // Wait for all build steps to finish
-  promises.push(drainIterable(finalOutput));
+  promises.push(drainIterable(finalOutput, concurrency));
   await Promise.all(promises);
 
   // Update the build summary

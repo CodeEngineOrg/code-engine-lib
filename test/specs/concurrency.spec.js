@@ -7,7 +7,7 @@ const sinon = require("sinon");
 const ono = require("ono");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 300 : 50;
+const TIME_BUFFER = process.env.CI ? 300 : 75;
 
 describe("Concurrent processing", () => {
   testThreadConsistency((createModule) => {
