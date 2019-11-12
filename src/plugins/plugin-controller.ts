@@ -118,7 +118,7 @@ export class PluginController {
       await this._plugin.dispose!(context);
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
+      throw ono(error, `An error occurred in ${this} while cleaning-up.`);
     }
   }
 
