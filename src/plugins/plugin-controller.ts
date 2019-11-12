@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { AsyncAllIterable, BuildContext, ChangedFile, Context, File, FilterFunction } from "@code-engine/types";
+import { AsyncAllIterable, BuildContext, ChangedFile, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
@@ -45,7 +45,6 @@ export class PluginController {
     }
   }
 
-  // tslint:disable-next-line: no-async-without-await
   public async processFile?(file: File, context: BuildContext, output: IterableWriter<File>): Promise<void> {
     try {
       let fileInfos = this._plugin.processFile!(file, context);
@@ -59,18 +58,36 @@ export class PluginController {
     }
   }
 
-  // tslint:disable-next-line: no-async-without-await
-  public async* read?(context: BuildContext): AsyncGenerator<File> {
-    try {
-      let fileInfos = this._plugin.read!(context);
+  public read?(context: BuildContext): AsyncIterable<File> {
+    let iterator: AsyncIterator<FileInfo>;
 
-      for await (let fileInfo of iterate(fileInfos)) {
-        yield createFile(fileInfo, this.name);
-      }
+    try {
+      // NOTE: The reason we don't just use a `for await...of` loop here is that we want to be able to
+      // ead multiple files simultaneously if the `processFile()` plugins are faster than the IO source.
+      let fileInfos = this._plugin.read!(context);
+      iterator = iterate(fileInfos)[Symbol.asyncIterator]();
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while reading source files.`);
     }
+
+    let next = async () => {
+      try {
+        let result = await iterator.next();
+
+        if (result.done) {
+          return result;
+        }
+
+        let file = createFile(result.value, this.name);
+        return { value: file };
+      }
+      catch (error) {
+        throw ono(error, `An error occurred in ${this} while reading source files.`);
+      }
+    };
+
+    return { [Symbol.asyncIterator]: () => ({ next }) };
   }
 
   // tslint:disable-next-line: no-async-without-await
