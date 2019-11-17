@@ -9,6 +9,7 @@ spec:
   # Test specs
   - test/specs/**/*.spec.js
 
+retries: 3
 bail: true
 recursive: true
 require: source-map-support/register
