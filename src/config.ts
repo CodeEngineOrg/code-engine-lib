@@ -21,7 +21,7 @@ export interface Config {
    * before starting a build. This allows multiple files that are changed together to all be
    * re-built together.
    *
-   * Defaults to 300ms (half a second).
+   * Defaults to 300ms.
    */
   watchDelay?: number;
 
