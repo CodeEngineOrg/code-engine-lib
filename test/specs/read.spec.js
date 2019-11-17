@@ -6,6 +6,9 @@ const CodeEngine = require("../utils/code-engine");
 const { delay, getFiles, getFilePaths, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 
+// CI environments are slow, so use a larger time buffer
+const TIME_BUFFER = process.env.CI ? 200 : 75;
+
 describe("Plugin.read()", () => {
 
   it("should call the read() method of all plugins", async () => {
@@ -127,8 +130,8 @@ describe("Plugin.read()", () => {
               return { done: true };
             }
 
-            readTimes.push(Date.now());                               // Trach when read() was called
-            await delay(500);                                         // Each file will take 500ms to read
+            readTimes.push(Date.now());                             // Trach when read() was called
+            await delay(500);                                       // Each file will take 500ms to read
             return { value: { path: `file${i}.txt` }};
           }
         };
@@ -138,77 +141,197 @@ describe("Plugin.read()", () => {
     let engine = CodeEngine.create({ concurrency: 3 });             // We can read 3 files simultaneously
     await engine.use(plugin);
     let summary = await engine.build();
+    readTimes = readTimes.map(t => t - summary.time.start);
 
     // Make sure all 5 files were read
     expect(summary.input.fileCount).to.equal(5);
 
-    // CI environments are slow, so use a larger time buffer
-    const TIME_BUFFER = process.env.CI ? 100 : 50;
+    // 0ms: The first 3 files are read simultaneously
+    expect(readTimes[0]).to.be.at.most(TIME_BUFFER);
+    expect(readTimes[1]).to.be.at.most(TIME_BUFFER);
+    expect(readTimes[2]).to.be.at.most(TIME_BUFFER);
 
-    // The first three files should have been read simultaneously
-    expect(readTimes[0] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(readTimes[1] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(readTimes[2] - summary.time.start).to.be.at.most(TIME_BUFFER);
+    // 500ms: The last two files are read simultaneously
+    expect(readTimes[3]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
+    expect(readTimes[4]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
 
-    // The last two files should have been read simultaneously
-    expect(readTimes[3] - summary.time.start).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
-    expect(readTimes[4] - summary.time.start).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
-
-    // The total read time should have been around 1 second
-    expect(summary.time.elapsed).to.be.above(1000).and.below(1000 + TIME_BUFFER);
+    // 1000ms: All done
+    expect(summary.time.elapsed).to.be.at.least(1000).and.at.most(1000 + TIME_BUFFER);
   });
 
   it("should read multiple files simultaneously from multiple sources, up to the concurrency limit", async () => {
-    function createSource () {
+    function createSource (offset) {
       let readTimes = [];                                           // Keeps track of when each file is read
       return {
         readTimes,
         read () {
-          let i = 0;
+          let i = offset;
           return {
             async next () {
-              if (++i > 3) {
+              if (++i > offset + 3) {                               // 3 files x 3 readers = 9 files total
                 return { done: true };
               }
 
               readTimes.push(Date.now());                           // Trach when read() was called
+              let file = { path: `file${i}.txt` };
               await delay(500);                                     // Each file will take 500ms to read
-              return { value: { path: `file${i}.txt` }};
+              return { value: file };
             }
           };
         }
       };
     }
 
-    let plugin1 = createSource();
-    let plugin2 = createSource();
-    let plugin3 = createSource();
+    let plugin1 = createSource(0);
+    let plugin2 = createSource(3);
+    let plugin3 = createSource(6);
 
     let engine = CodeEngine.create({ concurrency: 5 });             // We can read 5 files simultaneously
     await engine.use(plugin1, plugin2, plugin3);
     let summary = await engine.build();
 
+    plugin1.readTimes = plugin1.readTimes.map(t => t - summary.time.start);
+    plugin2.readTimes = plugin2.readTimes.map(t => t - summary.time.start);
+    plugin3.readTimes = plugin3.readTimes.map(t => t - summary.time.start);
+
     // Make sure all 9 files were read
     expect(summary.input.fileCount).to.equal(9);
 
-    // CI environments are slow, so use a larger time buffer
-    const TIME_BUFFER = process.env.CI ? 100 : 50;
+    // 0ms: The first 5 files are read simultaneously
+    expect(plugin1.readTimes[0]).to.be.at.most(TIME_BUFFER);
+    expect(plugin2.readTimes[0]).to.be.at.most(TIME_BUFFER);
+    expect(plugin3.readTimes[0]).to.be.at.most(TIME_BUFFER);
+    expect(plugin1.readTimes[1]).to.be.at.most(TIME_BUFFER);
+    expect(plugin2.readTimes[1]).to.be.at.most(TIME_BUFFER);
 
-    // The first 5 files should have been read simultaneously
-    expect(plugin1.readTimes[0] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(plugin2.readTimes[0] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(plugin3.readTimes[0] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(plugin1.readTimes[1] - summary.time.start).to.be.at.most(TIME_BUFFER);
-    expect(plugin2.readTimes[1] - summary.time.start).to.be.at.most(TIME_BUFFER);
+    // 500ms: The last 4 files are read simultaneously
+    expect(plugin3.readTimes[1]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
+    expect(plugin1.readTimes[2]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
+    expect(plugin2.readTimes[2]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
+    expect(plugin3.readTimes[2]).to.be.at.least(500).and.at.most(500 + TIME_BUFFER);
 
-    // The last 4 files should have been read simultaneously
-    expect(plugin3.readTimes[1] - summary.time.start).to.be.at.most(500 + TIME_BUFFER);
-    expect(plugin1.readTimes[2] - summary.time.start).to.be.at.most(500 + TIME_BUFFER);
-    expect(plugin2.readTimes[2] - summary.time.start).to.be.at.most(500 + TIME_BUFFER);
-    expect(plugin3.readTimes[2] - summary.time.start).to.be.at.most(500 + TIME_BUFFER);
+    // 1000ms: All done
+    expect(summary.time.elapsed).to.be.at.least(1000).and.at.most(1000 + TIME_BUFFER);
+  });
 
-    // The total read time should have been around 1 second
-    expect(summary.time.elapsed).to.be.above(1000).and.below(1000 + TIME_BUFFER);
+  it("should read multiple files simultaneously, as quickly as the next plugin allows", async () => {
+    let reader = {
+      read () {
+        let i = 0;
+        return {
+          async next () {
+            if (++i > 8) {                                          // 8 files total
+              return { done: true };
+            }
+
+            let file = { path: `file${i}.txt` };
+            let startedReading = Date.now();
+            await delay(300);                                       // Each file takes 300ms to read
+            let finishedReading = Date.now();
+
+            file.text = JSON.stringify({ startedReading, finishedReading });
+            return { value: file };
+          }
+        };
+      },
+    };
+
+    let processor = {
+      async processFile (file) {
+        let json = JSON.parse(file.text);
+        json.startedProcessing = Date.now();
+        await delay(500);                                           // Each file takes 500ms to process
+        json.finishedProcessing = Date.now();
+        file.text = JSON.stringify(json);
+        return file;
+      }
+    };
+
+    let spy = sinon.spy();
+
+    let engine = CodeEngine.create({ concurrency: 3 });             // We can read 3 files simultaneously
+    await engine.use(reader, processor, spy);
+    let summary = await engine.build();
+
+    let files = getFiles(spy).map((file) => {
+      let { startedReading, finishedReading, startedProcessing, finishedProcessing } = JSON.parse(file.text);
+      return {
+        name: file.name,
+        startedReading: startedReading - summary.time.start,
+        finishedReading: finishedReading - summary.time.start,
+        startedProcessing: startedProcessing - summary.time.start,
+        finishedProcessing: finishedProcessing - summary.time.start,
+      };
+    });
+
+    let file1 = files.find((file) => file.name === "file1.txt");
+    let file2 = files.find((file) => file.name === "file2.txt");
+    let file3 = files.find((file) => file.name === "file3.txt");
+    let file4 = files.find((file) => file.name === "file4.txt");
+    let file5 = files.find((file) => file.name === "file5.txt");
+    let file6 = files.find((file) => file.name === "file6.txt");
+    let file7 = files.find((file) => file.name === "file7.txt");
+    let file8 = files.find((file) => file.name === "file8.txt");
+
+    // 0ms: Files 1, 2, 3, start being read
+    expect(file1.startedReading).to.be.at.most(TIME_BUFFER);
+    expect(file2.startedReading).to.be.at.most(TIME_BUFFER);
+    expect(file3.startedReading).to.be.at.most(TIME_BUFFER);
+
+    // 300ms: Files 1, 2, 3 are done being read and start being processed
+    //        Files 4, 5, 6 start being read
+    expect(file1.finishedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file2.finishedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file3.finishedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+
+    expect(file1.startedProcessing).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file2.startedProcessing).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file3.startedProcessing).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+
+    expect(file4.startedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file5.startedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+    expect(file6.startedReading).to.be.at.least(300).and.at.most(300 + TIME_BUFFER);
+
+    // 600ms: Files 4, 5, 6 are done being read, but can't start processing yet.
+    //        File 7 starts being read.
+    expect(file4.finishedReading).to.be.at.least(600).and.at.most(600 + TIME_BUFFER);
+    expect(file5.finishedReading).to.be.at.least(600).and.at.most(600 + TIME_BUFFER);
+    expect(file6.finishedReading).to.be.at.least(600).and.at.most(600 + TIME_BUFFER);
+
+    expect(file7.startedReading).to.be.at.least(600).and.at.most(600 + TIME_BUFFER);
+
+    // 800ms: Files 1, 2, 3 are done processing.
+    //        Files 4, 5, 6 start processing.
+    //        Files 8 starts being read
+    expect(file1.finishedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+    expect(file2.finishedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+    expect(file3.finishedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+
+    expect(file4.startedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+    expect(file5.startedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+    expect(file6.startedProcessing).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+
+    expect(file8.startedReading).to.be.at.least(800).and.at.most(800 + TIME_BUFFER);
+
+    // 900ms: File 7 is done being read, but cannot start processing yet.
+    expect(file7.finishedReading).to.be.at.least(900).and.at.most(900 + TIME_BUFFER);
+
+    // 1100ms: File 8 is done being read, but cannot start processing yet.
+    expect(file8.finishedReading).to.be.at.least(1100).and.at.most(1100 + TIME_BUFFER);
+
+    // 1300ms: Files 4, 5, 6 are done bineg processed.
+    //         Files 7, 8 start processing
+    expect(file4.finishedProcessing).to.be.at.least(1300).and.at.most(1300 + TIME_BUFFER);
+    expect(file5.finishedProcessing).to.be.at.least(1300).and.at.most(1300 + TIME_BUFFER);
+    expect(file6.finishedProcessing).to.be.at.least(1300).and.at.most(1300 + TIME_BUFFER);
+
+    expect(file7.startedProcessing).to.be.at.least(1300).and.at.most(1300 + TIME_BUFFER);
+    expect(file8.startedProcessing).to.be.at.least(1300).and.at.most(1300 + TIME_BUFFER);
+
+    // 1800ms: All done
+    expect(file7.finishedProcessing).to.be.at.least(1800).and.at.most(1800 + TIME_BUFFER);
+    expect(file8.finishedProcessing).to.be.at.least(1800).and.at.most(1800 + TIME_BUFFER);
+    expect(summary.time.elapsed).to.be.at.least(1800).and.at.most(1800 + TIME_BUFFER);
   });
 
   it("should set the source property of all files", async () => {

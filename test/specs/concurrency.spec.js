@@ -7,12 +7,13 @@ const sinon = require("sinon");
 const ono = require("ono");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 300 : 75;
+const TIME_BUFFER = process.env.CI ? 300 : 100;
 
 describe("Concurrent processing", () => {
   testThreadConsistency((createModule) => {
 
     async function runConcurrentPlugins (plugins) {
+      // This file source yields 10 files with no delay (i.e. as fast as the plugins can read them)
       let source = {
         name: "File Source",
         *read () {
@@ -22,6 +23,7 @@ describe("Concurrent processing", () => {
         },
       };
 
+      // Creates a processFile() plugin that takes X milliseconds to process a file
       function factory ({ name, delay }) {
         return async (file) => {
           let array = JSON.parse(file.text);
@@ -34,12 +36,14 @@ describe("Concurrent processing", () => {
 
       plugins = await Promise.all(plugins.map((plugin) => createModule(factory, plugin)));
 
+      // Run CodeEngine using the file soure and plugins
       let spy = sinon.spy();
       let engine = CodeEngine.create({ concurrency: 2 });
       await engine.use(source, ...plugins, spy);
       let startTime = Date.now();
       let summary = await engine.build();
 
+      // Build a sorted log with the timestamps at which each file was processed
       let files = getFiles(spy);
       let log = []
         .concat(...files.map((file) => JSON.parse(file.text)))
@@ -162,7 +166,7 @@ describe("Concurrent processing", () => {
       }
     });
 
-    it("should queue-up one file in each plugin while waiting for the next plugin", async () => {
+    it("should queue-up files in each plugin while waiting for the next plugin", async () => {
       let { summary, log } = await runConcurrentPlugins([
         { name: "Plugin1", delay: 0 },
         { name: "Plugin2", delay: 100 },
@@ -170,12 +174,13 @@ describe("Concurrent processing", () => {
       ]);
 
       try {
-        // 0ms: Plugin1 processes the first two files and yields them to Plugin2.
-        //      Plugin2 starts processing the first two files.
-        //      Plugin1 processes the next two files and yields them to Plugin2.
-        //      Plugin2 queues-up one of the yielded files, but doesn't start process it yet.
-        //      Plugin1 starts processing file5, since one of the yielded files has been handed-off to Plugin2.
-        assertLogEntries(log.slice(0, 7), [
+        // 0ms: Plugin1 processes files 1 & 2 and yields them to Plugin2.
+        //      Plugin2 starts processing files 1 & 2.
+        //      Plugin1 processes files 3 & 4 and yields them to Plugin2.
+        //      Plugin2 queues-up the yielded files, but doesn't start processing them yet.
+        //      Plugin1 processes files 5 & 6, since files 3 & 4 have been handed-off to Plugin2
+        //      Plugin1 starts processing file 7 (this is an unintended side-effect of how joinIterables() works)
+        assertLogEntries(log.slice(0, 9), [
           { timestamp: 0, plugin: "Plugin1", file: "file1.txt" },
           { timestamp: 0, plugin: "Plugin1", file: "file2.txt" },
           { timestamp: 0, plugin: "Plugin2", file: "file1.txt" },
@@ -183,74 +188,76 @@ describe("Concurrent processing", () => {
           { timestamp: 0, plugin: "Plugin1", file: "file3.txt" },
           { timestamp: 0, plugin: "Plugin1", file: "file4.txt" },
           { timestamp: 0, plugin: "Plugin1", file: "file5.txt" },
+          { timestamp: 0, plugin: "Plugin1", file: "file6.txt" },
+          { timestamp: 0, plugin: "Plugin1", file: "file7.txt" },
         ]);
 
         // 100ms: Plugin2 has finished processing files 1 & 2 and yielded them to Plugin3.
         //        Plugin3 starts processing files 1 & 2.
-        //        Plugin2 starts processing files 3 & 4. It queues-up file5.
-        //        Plugin1 starts processing files 6 & 7.
-        assertLogEntries(log.slice(7, 13), [
+        //        Plugin2 starts processing files 3 & 4. It queues-up files 5 & 6.
+        //        Plugin1 is done processing file 7, but Plugin2 isn't ready for it yet (this is an unintended side-effect of how joinIterables() works)
+        //        Plugin1 starts processing files 8 & 9.
+        assertLogEntries(log.slice(9, 15), [
           { timestamp: 100, plugin: "Plugin3", file: "file1.txt" },
           { timestamp: 100, plugin: "Plugin3", file: "file2.txt" },
           { timestamp: 100, plugin: "Plugin2", file: "file3.txt" },
           { timestamp: 100, plugin: "Plugin2", file: "file4.txt" },
-          { timestamp: 100, plugin: "Plugin1", file: "file6.txt" },
-          { timestamp: 100, plugin: "Plugin1", file: "file7.txt" },
+          { timestamp: 100, plugin: "Plugin1", file: "file8.txt" },
+          { timestamp: 100, plugin: "Plugin1", file: "file9.txt" },
         ]);
 
         // 200ms: Plugin2 has finished processing files 3 & 4 and yielded them to Plugin3.
-        //        Plugin3 is still processing files 1 & 2. It queues-up one of the yielded files.
-        //        Plugin1 has finished processing files 6 & 7 and yielded them to Plugin2.
-        //        Plugin2 starts processing file5. It queues-up one of the yielded files.
-        //        Plugin1 starts processing file8.
-        assertLogEntries(log.slice(13, 15), [
+        //        Plugin3 is still processing files 1 & 2. It queues-up the yielded files.
+        //        Plugin2 starts processing files 5 & 6. It queues-up files 7 & 8.
+        //        Plugin1 has finished processing files 8 & 9, but Plugin2 isn't ready for them yet.
+        //        Plugin1 starts processing file 10 (this is an uninteded side-effect how joinIterables() works).
+        assertLogEntries(log.slice(15, 18), [
           { timestamp: 200, plugin: "Plugin2", file: "file5.txt" },
-          { timestamp: 200, plugin: "Plugin1", file: "file8.txt" },
+          { timestamp: 200, plugin: "Plugin2", file: /file[67].txt/ },
+          { timestamp: 200, plugin: "Plugin1", file: "file10.txt" },
         ]);
 
         // 300ms: Plugin3 has finished processing files 1 & 2.
-        //        Plugin3 starts processing files 3 & 4. It queues-up file5.
-        //        Plugin2 has finished processing file5 and yielded it to Plugin3.
-        //        Plugin2 starts processing files 6 & 7. It queues-up file8.
-        //        Plugin1 starts processing files 9 & 10.
-        assertLogEntries(log.slice(15, 21), [
+        //        Plugin3 starts processing files 3 & 4. It queues-up files 5 & 6.
+        //        Plugin2 has finished processing files 5 & 6 and yielded them to Plugin3.
+        //        Plugin2 starts processing files 7 & 8. It queues-up files 9 & 10.
+        //        Plugin1 has finished processing file 10, but Plugin2 isn't ready for it yet.
+        assertLogEntries(log.slice(18, 22), [
           { timestamp: 300, plugin: "Plugin3", file: "file3.txt" },
           { timestamp: 300, plugin: "Plugin3", file: "file4.txt" },
-          { timestamp: 300, plugin: "Plugin2", file: "file6.txt" },
-          { timestamp: 300, plugin: "Plugin2", file: "file7.txt" },
-          { timestamp: 300, plugin: "Plugin1", file: "file9.txt" },
-          { timestamp: 300, plugin: "Plugin1", file: "file10.txt" },
+          { timestamp: 300, plugin: "Plugin2", file: /file[67].txt/ },
+          { timestamp: 300, plugin: "Plugin2", file: /file[89].txt/ },
+        ]);
+
+        // 400ms: Plugin2 has finished processing files 7 & 8, but Plugin3 isn't ready for them yet.
+        //        Plugin3 is still processing files 3 & 4 and already has files 5 & 6 queued-up.
+        //        Plugin2 starts processing file 9 (this is an unintended side-effect of how joinIterables() works).
+        //        Plugin1 is finished.
+        assertLogEntries(log.slice(22, 23), [
+          { timestamp: 400, plugin: "Plugin2", file: /file[89].txt/ },
         ]);
 
         // 500ms: Plugin3 has finished processing files 3 & 4.
-        //        Plugin2 has finished processing files 6 & 7 and yielded them to Plugin3.
-        //        Plugin3 starts processing file5 and either file6 or file7. It queues-up the other one.
-        //        Plugin1 has finished processing files 9 & 10 and yielded them to Plugin2.
-        //        Plugin2 starts processing file8 and either file9 or file10. It queues-up the other one.
-        //        Plugin1 is finished.
-        assertLogEntries(log.slice(21, 25), [
+        //        Plugin3 starts processing files 5 & 6. It queues=up files 7 & 8.
+        //        Plugin2 starts processing file 10.
+        assertLogEntries(log.slice(23, 26), [
           { timestamp: 500, plugin: "Plugin3", file: "file5.txt" },
           { timestamp: 500, plugin: "Plugin3", file: /file[67].txt/ },
-          { timestamp: 500, plugin: "Plugin2", file: "file8.txt" },
-          { timestamp: 500, plugin: "Plugin2", file: /file(9|10).txt/ },
+          { timestamp: 500, plugin: "Plugin2", file: "file10.txt" },
         ]);
 
-        // 700ms: Plugin3 has finished processing file5 & file6/file7.
-        //        Plugin2 has finished processing file8 & file9/file10 and yielded them to Plugin3.
-        //        Plugin3 starts processing file7/file7 & file8. It queues-up file9/file10.
-        //        Plugin2 starts processing file9/file10.  It _could_ process another file too, but there are none.
-        assertLogEntries(log.slice(25, 28), [
+        // 700ms: Plugin3 has finished processing files 5 & 6.
+        //        Plugin3 starts processing files 7 & 8. It queues-up files 9 & 10.
+        //        Plugin2 is finished.
+        assertLogEntries(log.slice(26, 28), [
           { timestamp: 700, plugin: "Plugin3", file: /file[67].txt/ },
-          { timestamp: 700, plugin: "Plugin3", file: "file8.txt" },
-          { timestamp: 700, plugin: "Plugin2", file: /file(9|10).txt/ },
+          { timestamp: 700, plugin: "Plugin3", file: /file[89].txt/ },
         ]);
 
         // 900ms: Plugin3 has finished processing files 7 & 8.
-        //        Plugin2 has finished processing file9/file10 and has yielded it to Plugin3.
         //        Plugin3 starts processing files 9 & 10.
-        //        Plugin2 is finished.
         assertLogEntries(log.slice(28), [
-          { timestamp: 900, plugin: "Plugin3", file: "file9.txt" },
+          { timestamp: 900, plugin: "Plugin3", file: /file[89].txt/ },
           { timestamp: 900, plugin: "Plugin3", file: "file10.txt" },
         ]);
 
