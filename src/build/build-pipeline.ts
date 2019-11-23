@@ -1,4 +1,4 @@
-import { BuildContext, BuildSummary, ChangedFile, Context, EventName, File, FileChange } from "@code-engine/types";
+import { BuildContext, BuildFinishedEventData, BuildSummary, ChangedFile, Context, EventName, File, FileChange } from "@code-engine/types";
 import { debounceIterable, iterate, joinIterables } from "@code-engine/utils";
 import { EventEmitter } from "events";
 import { PluginController } from "../plugins/plugin-controller";
@@ -52,7 +52,13 @@ export class BuildPipeline extends EventEmitter {
     let summary = await runBuild(files, steps, concurrency, buildContext);
 
     this._emitBuildFinished(buildContext, summary);
-    return summary;
+
+    if (summary.error) {
+      throw summary.error;
+    }
+    else {
+      return summary;
+    }
   }
 
   /**
@@ -61,6 +67,7 @@ export class BuildPipeline extends EventEmitter {
   public watch(delay: number, concurrency: number, context: Context): void {
     let fileChanges = watchAllSources(this._plugins, context);
     let batchedFileChanges = debounceIterable(fileChanges, delay);
+    let steps = this._plugins.filter(isBuildStep);
 
     Promise.resolve()
       .then(async () => {
@@ -76,11 +83,13 @@ export class BuildPipeline extends EventEmitter {
 
           // Only build the files that still exist (i.e. not the ones that were deleted)
           let files = changedFiles.filter((file) => file.change !== FileChange.Deleted);
-
-          let steps = this._plugins.filter(isBuildStep);
           let summary = await runBuild(iterate(files), steps, concurrency, buildContext);
 
           this._emitBuildFinished(buildContext, summary);
+
+          if (summary.error) {
+            this.emit(EventName.Error, summary.error);
+          }
         }
       })
       .catch(this.emit.bind(this, EventName.Error));
@@ -113,9 +122,9 @@ export class BuildPipeline extends EventEmitter {
    */
   private _emitBuildFinished(context: BuildContext, summary: BuildSummary): void {
     if (this.listenerCount(EventName.BuildFinished) > 0) {
-      context = { ...context, ...summary };
-      context.changedFiles = context.changedFiles.slice();
-      this.emit(EventName.BuildFinished, context);
+      let data: BuildFinishedEventData = { ...context, ...summary };
+      data.changedFiles = context.changedFiles.slice();
+      this.emit(EventName.BuildFinished, data);
     }
   }
 }

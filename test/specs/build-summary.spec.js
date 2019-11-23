@@ -2,7 +2,8 @@
 
 const CodeEngine = require("../utils/code-engine");
 const { delay } = require("../utils");
-const { expect } = require("chai");
+const { assert, expect } = require("chai");
+const sinon = require("sinon");
 
 // CI environments are slow, so use a larger time buffer
 const TIME_BUFFER = process.env.CI ? 150 : 50;
@@ -336,6 +337,53 @@ describe("BuildSummary object", () => {
     });
 
     expect(summary.time.elapsed).to.be.at.least(400).and.below(400 + TIME_BUFFER);
+  });
+
+  it("should contain error information if the build fails", async () => {
+    let source = {
+      async* read () {
+        yield { path: "file1.txt" };
+        yield { path: "file2.txt", text: "Hello, world!" };
+        yield { path: "file3.txt", contents: Buffer.from("This is a test.") };
+      }
+    };
+    let plugin = {
+      async processFile (file) {
+        if (file.name === "file2.txt") {
+          throw new RangeError("Boom!");
+        }
+        else {
+          return file;
+        }
+      }
+    };
+
+    let engine = CodeEngine.create();
+    let buildFinished = sinon.spy();
+    engine.on("buildFinished", buildFinished);
+    await engine.use(source, plugin);
+
+    try {
+      await engine.build();
+      assert.fail("An error should have been thrown!");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(Error);
+      expect(error).not.to.be.an.instanceOf(RangeError);
+      expect(error.message).to.equal("An error occurred in Plugin 2 while processing file2.txt. \nBoom!");
+
+      sinon.assert.calledOnce(buildFinished);
+      let summary = buildFinished.firstCall.args[0];
+      expect(summary.error).to.equal(error);
+      expect(summary.input).to.deep.equal({
+        fileCount: 3,
+        fileSize: 28,
+      });
+      expect(summary.output).to.deep.equal({
+        fileCount: 2,
+        fileSize: 15,
+      });
+    }
   });
 
 });

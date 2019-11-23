@@ -379,7 +379,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = CodeEngine.create({ watchDelay: 100 });  // Use the same watch delay, even in CI
     let events = createEvents(engine);
     await engine.use(plugin);
     engine.watch();
@@ -427,6 +427,70 @@ describe("Plugin.watch()", () => {
     sinon.assert.callCount(events.buildFinished, 4);
     expect(events.buildStarting.getCalls()[3].args[0].changedFiles).to.have.lengthOf(2);
     expect(events.buildFinished.getCalls()[3].args[0].changedFiles).to.have.lengthOf(2);
+  });
+
+  it("should continue doing builds, even if one fails", async () => {
+    let plugin1 = {
+      async* watch () {
+        // Build #1 succeeds
+        yield { path: "file1.txt", change: "created" };
+        yield { path: "file2.txt", change: "modified" };
+
+        // Build #1 fails (see plugin2 below)
+        await delay(watchDelay + TIME_BUFFER + 50);
+        yield { path: "file3.txt", change: "created" };
+        yield { path: "file4.txt", change: "modified" };
+
+        // Build #3 succeeds
+        await delay(watchDelay + TIME_BUFFER + 50);
+        yield { path: "file5.txt", change: "created" };
+        yield { path: "file6.txt", change: "modified" };
+      }
+    };
+
+    function plugin2 (file) {
+      if (file.name === "file4.txt") {
+        throw new RangeError("Boom!");
+      }
+      else {
+        return file;
+      }
+    }
+
+    let engine = CodeEngine.create({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin1, plugin2);
+    engine.watch();
+
+    await delay(watchDelay + TIME_BUFFER);
+
+    // Build #1 succeeds
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+    expect(events.buildFinished.firstCall.args[0].error).to.equal(undefined);
+
+    await delay(watchDelay + TIME_BUFFER);
+
+    // Build #2 fails
+    sinon.assert.calledOnce(events.error);
+    sinon.assert.calledTwice(events.buildStarting);
+    sinon.assert.calledTwice(events.buildFinished);
+
+    let error = events.error.firstCall.args[0];
+    let summary = events.buildFinished.secondCall.args[0];
+    expect(error).to.be.an.instanceOf(Error);
+    expect(error).not.to.be.an.instanceOf(RangeError);
+    expect(error.message).to.equal("An error occurred in plugin2 while processing file4.txt. \nBoom!");
+    expect(summary.error).to.equal(error);
+
+    await delay(watchDelay + TIME_BUFFER);
+
+    // Build #3 succeeds
+    sinon.assert.calledOnce(events.error);
+    sinon.assert.calledThrice(events.buildStarting);
+    sinon.assert.calledThrice(events.buildFinished);
+    expect(events.buildFinished.thirdCall.args[0].error).to.equal(undefined);
   });
 
   it("should emit an error if an invalid file is yielded", async () => {
