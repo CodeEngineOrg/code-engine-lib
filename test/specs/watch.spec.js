@@ -153,6 +153,59 @@ describe("Plugin.watch()", () => {
     expect(postBuild.output.fileCount).to.equal(2);
   });
 
+  it("should run an empty build if all changes are deletions", async () => {
+    let plugin1 = {
+      async* watch () {
+        await delay();
+        yield { path: "file1.txt", change: "deleted" };
+        yield { path: "file2.txt", change: "deleted" };
+        yield { path: "file3.txt", change: "deleted" };
+      }
+    };
+    let plugin2 = sinon.stub().returnsArg(0);
+    let plugin3 = {
+      processFiles: sinon.stub().returnsArg(0)
+    };
+
+    let engine = CodeEngine.create({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin1, plugin2, plugin3);
+    engine.watch();
+    await delay(watchDelay + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+
+    sinon.assert.calledOnce(events.buildStarting);
+    let preBuild = events.buildStarting.firstCall.args[0];
+    expect(preBuild.changedFiles).to.have.lengthOf(3);
+    expect(preBuild.changedFiles[0]).to.have.property("change", "deleted");
+    expect(preBuild.changedFiles[1]).to.have.property("change", "deleted");
+    expect(preBuild.changedFiles[2]).to.have.property("change", "deleted");
+
+    sinon.assert.calledOnce(events.buildFinished);
+    let postBuild = events.buildFinished.firstCall.args[0];
+    expect(postBuild.changedFiles).to.have.lengthOf(3);
+    expect(postBuild.changedFiles[0]).to.have.property("change", "deleted");
+    expect(postBuild.changedFiles[1]).to.have.property("change", "deleted");
+    expect(postBuild.changedFiles[2]).to.have.property("change", "deleted");
+    expect(postBuild.input.fileCount).to.equal(0);
+    expect(postBuild.input.fileSize).to.equal(0);
+    expect(postBuild.output.fileCount).to.equal(0);
+    expect(postBuild.output.fileSize).to.equal(0);
+
+    // The processFile() plugin DOES NOT get called, since there are no files to process
+    sinon.assert.notCalled(plugin2);
+
+    // The processFiles() plugin DOES get called, with an empty file list and 3 changed files
+    sinon.assert.calledOnce(plugin3.processFiles);
+    let [files, buildContext] = plugin3.processFiles.firstCall.args;
+    expect(await files.all()).to.have.lengthOf(0);
+    expect(buildContext.changedFiles).to.have.lengthOf(3);
+    expect(buildContext.changedFiles[0]).to.have.property("change", "deleted");
+    expect(buildContext.changedFiles[1]).to.have.property("change", "deleted");
+    expect(buildContext.changedFiles[2]).to.have.property("change", "deleted");
+  });
+
   it("should include changed file contents in the buildStarting event", async () => {
     let plugin = {
       async* watch () {
