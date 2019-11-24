@@ -69,15 +69,67 @@ describe("CodeEngine class", () => {
     }
   });
 
+  it("should be removed from the instances array when disposed", async () => {
+    let engine1 = new CodeEngine();
+    expect(CodeEngine.instances).to.deep.equal([engine1]);
+
+    let engine2 = new CodeEngine();
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine2]);
+
+    let engine3 = new CodeEngine();
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine2, engine3]);
+
+    let dispose = engine2.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine3]);
+    await dispose;
+
+    dispose = engine1.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine3]);
+    await dispose;
+
+    dispose = engine3.dispose();
+    expect(CodeEngine.instances).to.have.lengthOf(0);
+    await dispose;
+  });
+
+  it("should ignore multiple dispose() calls", async () => {
+    let engine1 = new CodeEngine();
+    let engine2 = new CodeEngine();
+    let engine3 = new CodeEngine();
+
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine2, engine3]);
+
+    await engine2.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine3]);
+
+    await engine2.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine1, engine3]);
+
+    await engine3.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine1]);
+
+    await engine3.dispose();
+    expect(CodeEngine.instances).to.deep.equal([engine1]);
+
+    await engine1.dispose();
+    expect(CodeEngine.instances).to.have.lengthOf(0);
+
+    await engine1.dispose();
+    expect(CodeEngine.instances).to.have.lengthOf(0);
   });
 
   it("should ignore multiple dispose() calls", async () => {
     let engine = new CodeEngine();
     expect(engine.isDisposed).to.be.false;
+    expect(CodeEngine.instances).to.have.lengthOf(1);
+
     await engine.dispose();
     expect(engine.isDisposed).to.be.true;
+    expect(CodeEngine.instances).to.have.lengthOf(0);
+
     await engine.dispose();
     expect(engine.isDisposed).to.be.true;
+    expect(CodeEngine.instances).to.have.lengthOf(0);
   });
 
   it("should throw an error if used after dispose()", async () => {
