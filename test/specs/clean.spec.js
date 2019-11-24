@@ -1,18 +1,18 @@
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const sinon = require("sinon");
 const { assert, expect } = require("chai");
 
 describe("Plugin.clean()", () => {
 
   it("should do nothing if there are no plugins", async () => {
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.clean();
   });
 
   it("should do nothing if there are no plugins that implement clean()", async () => {
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use({ name: "Some Plugin", read () {} });
     await engine.clean();
   });
@@ -21,7 +21,7 @@ describe("Plugin.clean()", () => {
     let plugin1 = { clean: sinon.spy() };
     let plugin2 = { clean: sinon.spy() };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
     await engine.clean();
 
@@ -33,7 +33,7 @@ describe("Plugin.clean()", () => {
     let plugin1 = { clean: sinon.stub().returns(Promise.resolve()) };
     let plugin2 = { clean: sinon.stub().returns(Promise.resolve()) };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
     await engine.clean();
 
@@ -55,7 +55,7 @@ describe("Plugin.clean()", () => {
       clean: sinon.spy(),
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
     await engine.clean();
 
@@ -71,7 +71,7 @@ describe("Plugin.clean()", () => {
     let plugin2 = { clean: sinon.spy(() => { throw new SyntaxError("Boom!"); }) };
     let plugin3 = { clean: sinon.stub().returns(2) };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, plugin3);
 
     try {
@@ -94,7 +94,7 @@ describe("Plugin.clean()", () => {
     let plugin2 = { name: "Plugin B", clean: sinon.stub().returns(Promise.reject(new TypeError("Boom!"))) };
     let plugin3 = { name: "Plugin A", clean: sinon.stub().returns(Promise.resolve()) };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, plugin3);
 
     try {

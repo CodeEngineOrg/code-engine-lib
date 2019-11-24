@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { delay } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
@@ -35,7 +35,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -67,7 +67,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -99,7 +99,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -133,7 +133,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -165,7 +165,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -198,7 +198,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -247,7 +247,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -280,7 +280,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -319,7 +319,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create({ concurrency: 1 });
+    let engine = new CodeEngine({ concurrency: 1 });
     await engine.use(source, plugin);
     let summary = await engine.build();
 
@@ -358,7 +358,7 @@ describe("BuildSummary object", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     let buildFinished = sinon.spy();
     engine.on("buildFinished", buildFinished);
     await engine.use(source, plugin);

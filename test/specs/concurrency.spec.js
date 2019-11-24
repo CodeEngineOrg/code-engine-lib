@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { getFiles, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
@@ -38,7 +38,7 @@ describe("Concurrent processing", () => {
 
       // Run CodeEngine using the file soure and plugins
       let spy = sinon.spy();
-      let engine = CodeEngine.create({ concurrency: 2 });
+      let engine = new CodeEngine({ concurrency: 2 });
       await engine.use(source, ...plugins, spy);
       let startTime = Date.now();
       let summary = await engine.build();

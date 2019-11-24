@@ -1,7 +1,7 @@
 /* eslint-disable no-new-wrappers, no-new-object */
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { getCallArg, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
@@ -47,7 +47,7 @@ describe("Context", () => {
         clean (ctx) { context = { ...ctx }; }
       };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin);
       await engine.clean();
 
@@ -62,7 +62,7 @@ describe("Context", () => {
         dispose (ctx) { context = { ...ctx }; }
       };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin);
       await engine.dispose();
 
@@ -77,7 +77,7 @@ describe("Context", () => {
         read (ctx) { context = { ...ctx }; }
       };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin);
       await engine.build();
 
@@ -92,7 +92,7 @@ describe("Context", () => {
         processFiles (files, ctx) { context = { ...ctx }; }
       };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin);
       await engine.build();
 
@@ -111,7 +111,7 @@ describe("Context", () => {
 
       let spy = sinon.spy();
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin, spy);
       await engine.build();
 
@@ -136,7 +136,7 @@ describe("Context", () => {
         })
       };
 
-      let engine = CodeEngine.create({ debug: true });
+      let engine = new CodeEngine({ debug: true });
       let log = sinon.spy();
       engine.on("log", log);
       await engine.use(plugin);
@@ -163,7 +163,7 @@ describe("Context", () => {
         })
       };
 
-      let engine = CodeEngine.create({ debug: true });
+      let engine = new CodeEngine({ debug: true });
       let log = sinon.spy();
       engine.on("log", log);
       await engine.use(plugin);

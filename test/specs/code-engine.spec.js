@@ -1,41 +1,23 @@
 "use strict";
 
-const { CodeEngine } = require("../../lib");
+const { CodeEngine } = require("../../");
 const { assert, expect } = require("chai");
 
 describe("CodeEngine class", () => {
 
   it("should work without any arguments", async () => {
     let engine = new CodeEngine();
-
-    try {
-      expect(engine).to.be.a("CodeEngine");
-    }
-    finally {
-      await engine.dispose();
-    }
+    expect(engine).to.be.a("CodeEngine");
   });
 
   it("should work with an empty configuration", async () => {
     let engine = new CodeEngine({});
-
-    try {
-      expect(engine).to.be.a("CodeEngine");
-    }
-    finally {
-      await engine.dispose();
-    }
+    expect(engine).to.be.a("CodeEngine");
   });
 
   it("should ignore unknown configuration properties", async () => {
     let engine = new CodeEngine({ foo: true, bar: 5 });
-
-    try {
-      expect(engine).to.be.a("CodeEngine");
-    }
-    finally {
-      await engine.dispose();
-    }
+    expect(engine).to.be.a("CodeEngine");
   });
 
   it('should not work without the "new" keyword', () => {
@@ -51,48 +33,42 @@ describe("CodeEngine class", () => {
   it("should support toString()", async () => {
     let engine = new CodeEngine();
 
-    try {
-      expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
-      expect(engine.toString()).to.equal("CodeEngine (0 plugins)");
+    expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
+    expect(engine.toString()).to.equal("CodeEngine (0 plugins)");
 
-      await engine.use({ name: "Plugin 1", read () {} });
-      expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
-      expect(engine.toString()).to.equal("CodeEngine (1 plugins)");
+    await engine.use({ name: "Plugin 1", read () {} });
+    expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
+    expect(engine.toString()).to.equal("CodeEngine (1 plugins)");
 
-      await engine.use({ name: "Plugin 2", read () {} }, { name: "Plugin 3", read () {} });
-      expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
-      expect(engine.toString()).to.equal("CodeEngine (3 plugins)");
-    }
-    finally {
-      await engine.dispose();
-      expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
-      expect(engine.toString()).to.equal("CodeEngine (disposed)");
-    }
+    await engine.use({ name: "Plugin 2", read () {} }, { name: "Plugin 3", read () {} });
+    expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
+    expect(engine.toString()).to.equal("CodeEngine (3 plugins)");
+
+    await engine.dispose();
+    expect(Object.prototype.toString.call(engine)).to.equal("[object CodeEngine]");
+    expect(engine.toString()).to.equal("CodeEngine (disposed)");
   });
 
   it("should throw an error for invalid plugins", async () => {
     let engine = new CodeEngine();
 
-    try {
-      let invalidPlugins = [
-        12345, true, false, -1, {}, { name: "My Plugin" }, { foo: "bar" }, { read: true },
-        { processFiles: {}}, { read () {}, processFile: {}}, { read () {}, processFile: 123 },
-      ];
+    let invalidPlugins = [
+      12345, true, false, -1, {}, { name: "My Plugin" }, { foo: "bar" }, { read: true },
+      { processFiles: {}}, { read () {}, processFile: {}}, { read () {}, processFile: 123 },
+    ];
 
-      for (let invalidPlugin of invalidPlugins) {
-        try {
-          await engine.use(invalidPlugin);
-          assert.fail(`CodeEngine should have thrown an error for ${invalidPlugin}`);
-        }
-        catch (error) {
-          expect(error).to.be.an.instanceOf(Error);
-          expect(error.message).to.match(/^Error in Plugin \d\. \nInvalid CodeEngine plugin: /);
-        }
+    for (let invalidPlugin of invalidPlugins) {
+      try {
+        await engine.use(invalidPlugin);
+        assert.fail(`CodeEngine should have thrown an error for ${invalidPlugin}`);
+      }
+      catch (error) {
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.match(/^Error in Plugin \d\. \nInvalid CodeEngine plugin: /);
       }
     }
-    finally {
-      await engine.dispose();
-    }
+  });
+
   });
 
   it("should ignore multiple dispose() calls", async () => {

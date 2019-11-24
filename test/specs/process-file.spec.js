@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { getFiles, testThreadConsistency } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
@@ -15,7 +15,7 @@ describe("Plugin.processFile()", () => {
       };
       let plugin2 = { name: "Plugin 2", read () {} };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin1, plugin2);
       await engine.build();
 
@@ -38,7 +38,7 @@ describe("Plugin.processFile()", () => {
 
       let spy = sinon.spy();
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
       await engine.build();
 
@@ -66,7 +66,7 @@ describe("Plugin.processFile()", () => {
       });
       let plugin4 = sinon.spy();
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, plugin3, plugin4);
       await engine.build();
 
@@ -108,7 +108,7 @@ describe("Plugin.processFile()", () => {
 
       let spy = sinon.spy();
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, plugin3, plugin4, spy);
       await engine.build();
 
@@ -146,7 +146,7 @@ describe("Plugin.processFile()", () => {
       };
 
       let spy = sinon.spy();
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(source, processor1, processor2, processor3, spy);
       await engine.build();
 
@@ -179,7 +179,7 @@ describe("Plugin.processFile()", () => {
       };
 
       let spy = sinon.spy();
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
       await engine.build();
 
@@ -210,7 +210,7 @@ describe("Plugin.processFile()", () => {
         })
       };
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(source, plugin);
 
       try {
@@ -243,7 +243,7 @@ describe("Plugin.processFile()", () => {
         }
       });
 
-      let engine = CodeEngine.create();
+      let engine = new CodeEngine();
       await engine.use(source, plugin);
 
       try {

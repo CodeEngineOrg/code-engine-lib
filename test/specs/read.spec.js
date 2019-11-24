@@ -2,7 +2,7 @@
 
 const path = require("path");
 const sinon = require("sinon");
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { delay, getFiles, getFilePaths, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 
@@ -15,7 +15,7 @@ describe("Plugin.read()", () => {
     let plugin1 = { read: sinon.stub().returns([]) };
     let plugin2 = { read: sinon.stub().returns([]) };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
     let summary = await engine.build();
 
@@ -62,7 +62,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(iterable, iterator, generator, asyncGenerator, spy);
     let summary = await engine.build();
 
@@ -103,7 +103,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, spy);
     let summary = await engine.build();
 
@@ -138,7 +138,7 @@ describe("Plugin.read()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ concurrency: 3 });             // We can read 3 files simultaneously
+    let engine = new CodeEngine({ concurrency: 3 });             // We can read 3 files simultaneously
     await engine.use(plugin);
     let summary = await engine.build();
     readTimes = readTimes.map(t => t - summary.time.start);
@@ -186,7 +186,7 @@ describe("Plugin.read()", () => {
     let plugin2 = createSource(3);
     let plugin3 = createSource(6);
 
-    let engine = CodeEngine.create({ concurrency: 5 });             // We can read 5 files simultaneously
+    let engine = new CodeEngine({ concurrency: 5 });             // We can read 5 files simultaneously
     await engine.use(plugin1, plugin2, plugin3);
     let summary = await engine.build();
 
@@ -249,7 +249,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create({ concurrency: 3 });             // We can read 3 files simultaneously
+    let engine = new CodeEngine({ concurrency: 3 });             // We can read 3 files simultaneously
     await engine.use(reader, processor, spy);
     let summary = await engine.build();
 
@@ -411,7 +411,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create({ concurrency: 1 });
+    let engine = new CodeEngine({ concurrency: 1 });
     await engine.use(plugin1, plugin2, plugin3, plugin4, plugin5, plugin6, plugin7, plugin8, plugin9, spy);
     await engine.build();
 
@@ -446,7 +446,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin, spy);
     let summary = await engine.build();
 
@@ -484,7 +484,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, spy);
     let summary = await engine.build();
 
@@ -516,7 +516,7 @@ describe("Plugin.read()", () => {
 
     let spy = sinon.spy();
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin, spy);
     let summary = await engine.build();
 
@@ -536,7 +536,7 @@ describe("Plugin.read()", () => {
   });
 
   it("should process an empty set if there are no plugins", async () => {
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     let summary = await engine.build();
     expect(summary.input.fileCount).to.equal(0);
     expect(summary.input.fileSize).to.equal(0);
@@ -548,7 +548,7 @@ describe("Plugin.read()", () => {
     let plugin1 = { clean: sinon.spy() };
     let plugin2 = { watch: sinon.spy() };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
     let summary = await engine.build();
 
@@ -568,7 +568,7 @@ describe("Plugin.read()", () => {
       }
     };
 
-    let engine = CodeEngine.create();
+    let engine = new CodeEngine();
     await engine.use(plugin);
 
     try {

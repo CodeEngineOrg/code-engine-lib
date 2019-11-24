@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../utils/code-engine");
+const CodeEngine = require("../../");
 const { delay, getFiles } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
@@ -29,7 +29,7 @@ describe("Plugin.watch()", () => {
     let plugin1 = { clean () {} };
     let plugin2 = { read () {} };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
     engine.watch();
@@ -51,7 +51,7 @@ describe("Plugin.watch()", () => {
       watch: sinon.spy(),
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
     engine.watch();
@@ -74,7 +74,7 @@ describe("Plugin.watch()", () => {
       watch: sinon.spy(),
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     await engine.use(plugin1, plugin2);
     engine.watch();
     await delay(watchDelay + TIME_BUFFER);
@@ -93,7 +93,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     engine.watch();
@@ -130,7 +130,7 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
     engine.watch();
@@ -167,7 +167,7 @@ describe("Plugin.watch()", () => {
       processFiles: sinon.stub().returnsArg(0)
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
     engine.watch();
@@ -216,7 +216,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     engine.watch();
@@ -245,7 +245,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     engine.watch();
@@ -275,7 +275,7 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
     engine.watch();
@@ -305,7 +305,7 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
 
@@ -379,7 +379,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay: 100 });  // Use the same watch delay, even in CI
+    let engine = new CodeEngine({ watchDelay: 100 });  // Use the same watch delay, even in CI
     let events = createEvents(engine);
     await engine.use(plugin);
     engine.watch();
@@ -457,7 +457,7 @@ describe("Plugin.watch()", () => {
       }
     }
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
     engine.watch();
@@ -501,7 +501,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     await engine.watch();
@@ -527,7 +527,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     await engine.watch();
@@ -553,7 +553,7 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = CodeEngine.create({ watchDelay });
+    let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
     await engine.watch();

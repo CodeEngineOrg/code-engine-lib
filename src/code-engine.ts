@@ -10,6 +10,8 @@ import { LogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
 import { PluginController } from "./plugins/plugin-controller";
 
+const instances: CodeEngine[] = [];
+
 /**
  * The main CodeEngine class.
  */
@@ -49,6 +51,15 @@ export class CodeEngine extends EventEmitter {
 
     this._workerPool = new WorkerPool(this._config.concurrency, this._createContext());
     this._workerPool.on(EventName.Error, (err: Error) => crashHandler(this, err));
+
+    instances.push(this);
+  }
+
+  /**
+   * Returns all CodeEngine instances that have been created and not yet disposed.
+   */
+  public static get instances(): ReadonlyArray<CodeEngine> {
+    return instances.slice();
   }
 
   /**
@@ -111,11 +122,25 @@ export class CodeEngine extends EventEmitter {
     }
 
     this._isDisposed = true;
+
+    let index = instances.indexOf(this);
+    index >= 0 && instances.splice(index, 1);
+
     let context = this._createContext();
     await Promise.all([
       this._buildPipeline.dispose(context),
       this._workerPool.dispose(),
     ]);
+  }
+
+  /**
+   * Disposes all CodeEngine instances.
+   */
+  // tslint:disable-next-line: member-ordering
+  public static async disposeAll(): Promise<void> {
+    await Promise.all(
+      instances.splice(0, instances.length).map((engine) => engine.dispose())
+    );
   }
 
   /**
