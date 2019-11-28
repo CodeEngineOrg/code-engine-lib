@@ -16,33 +16,28 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
     time: { start: new Date(), end: new Date(), elapsed: 0 },
   };
 
-  try {
-    // Remove the contents from the changed files so the build context is lightweight
-    // for cloning across the thread boundary
-    context.changedFiles = context.changedFiles.map(lightweightChangedFile);
+  // Remove the contents from the changed files so the build context is lightweight
+  // for cloning across the thread boundary
+  context.changedFiles = context.changedFiles.map(lightweightChangedFile);
 
-    // Collect metrics on the input files
-    let input = updateBuildSummary(summary, "input", files) as AsyncAllIterableIterator<File>;
-    input.all = iterateAll;
+  // Collect metrics on the input files
+  let input = updateBuildSummary(summary, "input", files) as AsyncAllIterableIterator<File>;
+  input.all = iterateAll;
 
-    // Chain the build steps together, with each one accepting the output of the previous one as input
-    for (let step of steps) {
-      let output = new IterableWriter<File>();
-      promise = runBuildStep(step, concurrency, input, output, context);
-      promises.push(promise);
-      input = output.iterable;
-    }
-
-    // Collect metrics on the final output files
-    let finalOutput = updateBuildSummary(summary, "output", input);
-
-    // Wait for all build steps to finish
-    promises.push(drainIterable(finalOutput, concurrency));
-    await Promise.all(promises);
+  // Chain the build steps together, with each one accepting the output of the previous one as input
+  for (let step of steps) {
+    let output = new IterableWriter<File>();
+    promise = runBuildStep(step, concurrency, input, output, context);
+    promises.push(promise);
+    input = output.iterable;
   }
-  catch (error) {
-    summary.error = error as Error;
-  }
+
+  // Collect metrics on the final output files
+  let finalOutput = updateBuildSummary(summary, "output", input);
+
+  // Wait for all build steps to finish
+  promises.push(drainIterable(finalOutput, concurrency));
+  await Promise.all(promises);
 
   // Update the build summary
   summary.time.end = new Date();

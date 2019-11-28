@@ -52,13 +52,7 @@ export class BuildPipeline extends EventEmitter {
     let summary = await runBuild(files, steps, concurrency, buildContext);
 
     this._emitBuildFinished(buildContext, summary);
-
-    if (summary.error) {
-      throw summary.error;
-    }
-    else {
-      return summary;
-    }
+    return summary;
   }
 
   /**
@@ -86,10 +80,6 @@ export class BuildPipeline extends EventEmitter {
           let summary = await runBuild(iterate(files), steps, concurrency, buildContext);
 
           this._emitBuildFinished(buildContext, summary);
-
-          if (summary.error) {
-            this.emit(EventName.Error, summary.error);
-          }
         }
       })
       .catch(this.emit.bind(this, EventName.Error));
