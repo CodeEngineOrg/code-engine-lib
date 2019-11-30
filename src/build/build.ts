@@ -1,5 +1,5 @@
-import { AsyncAllIterableIterator, BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
-import { createChangedFile, drainIterable, IterableWriter, iterateAll } from "@code-engine/utils";
+import { BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
+import { createChangedFile, drainIterable, IterableWriter } from "@code-engine/utils";
 import { BuildStep } from "../plugins/types";
 import { runBuildStep } from "./build-step";
 
@@ -21,8 +21,7 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
   context.changedFiles = context.changedFiles.map(lightweightChangedFile);
 
   // Collect metrics on the input files
-  let input = updateBuildSummary(summary, "input", files) as AsyncAllIterableIterator<File>;
-  input.all = iterateAll;
+  let input = updateBuildSummary(summary, "input", files);
 
   // Chain the build steps together, with each one accepting the output of the previous one as input
   for (let step of steps) {

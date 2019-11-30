@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { AsyncAllIterable, BuildContext, ChangedFile, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
+import { BuildContext, ChangedFile, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
@@ -28,7 +28,7 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* processFiles?(files: AsyncAllIterable<File>, context: BuildContext): AsyncGenerator<File> {
+  public async* processFiles?(files: AsyncIterable<File>, context: BuildContext): AsyncGenerator<File> {
     try {
       let fileInfos = this._plugin.processFiles!(files, context);
 
