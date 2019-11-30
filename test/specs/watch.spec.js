@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../../");
-const { delay, getFiles } = require("../utils");
+const { delay, getFiles, iterateAll } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
@@ -199,7 +199,7 @@ describe("Plugin.watch()", () => {
     // The processFiles() plugin DOES get called, with an empty file list and 3 changed files
     sinon.assert.calledOnce(plugin3.processFiles);
     let [files, buildContext] = plugin3.processFiles.firstCall.args;
-    expect(await files.all()).to.have.lengthOf(0);
+    expect(await iterateAll(files)).to.have.lengthOf(0);
     expect(buildContext.changedFiles).to.have.lengthOf(3);
     expect(buildContext.changedFiles[0]).to.have.property("change", "deleted");
     expect(buildContext.changedFiles[1]).to.have.property("change", "deleted");

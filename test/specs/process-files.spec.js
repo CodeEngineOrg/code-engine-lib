@@ -1,7 +1,7 @@
 "use strict";
 
 const CodeEngine = require("../../");
-const { getFiles, testThreadConsistency } = require("../utils");
+const { getFiles, iterateAll, testThreadConsistency } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const path = require("path");
@@ -70,7 +70,7 @@ describe("Plugin.processFiles()", () => {
       };
       let plugin = {
         async* processFiles (files) {
-          yield* await files.all();
+          yield* await iterateAll(files);
           yield { path: "file4.txt" };
           yield { path: "file5.txt" };
         }
