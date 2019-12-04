@@ -79,8 +79,7 @@ describe("Plugin.clean()", () => {
       assert.fail("CodeEngine should have re-thrown the Promise failure.");
     }
     catch (error) {
-      expect(error).to.be.an.instanceOf(Error);
-      expect(error).not.to.be.an.instanceOf(SyntaxError);
+      expect(error).to.be.an.instanceOf(SyntaxError);
       expect(error.message).to.equal("An error occurred in Plugin 2 while cleaning the destination. \nBoom!");
     }
 
@@ -102,8 +101,7 @@ describe("Plugin.clean()", () => {
       assert.fail("CodeEngine should have re-thrown the Promise failure.");
     }
     catch (error) {
-      expect(error).to.be.an.instanceOf(Error);
-      expect(error).not.to.be.an.instanceOf(TypeError);
+      expect(error).to.be.an.instanceOf(TypeError);
       expect(error.message).to.equal("An error occurred in Plugin B while cleaning the destination. \nBoom!");
     }
 

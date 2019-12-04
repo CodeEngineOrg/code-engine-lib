@@ -474,8 +474,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.buildFinished);
 
     let error = events.error.firstCall.args[0];
-    expect(error).to.be.an.instanceOf(Error);
-    expect(error).not.to.be.an.instanceOf(SyntaxError);
+    expect(error).to.be.an.instanceOf(SyntaxError);
     expect(error.message).to.equal("An error occurred in Synchronous Error Test while watching source files for changes. \nBoom!");
   });
 
@@ -500,8 +499,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.buildFinished);
 
     let error = events.error.firstCall.args[0];
-    expect(error).to.be.an.instanceOf(Error);
-    expect(error).not.to.be.an.instanceOf(URIError);
+    expect(error).to.be.an.instanceOf(URIError);
     expect(error.message).to.equal("An error occurred in Asynchronous Error Test while watching source files for changes. \nBoom!");
   });
 

@@ -1,9 +1,9 @@
 import { stringify } from "@code-engine/stringify";
 import { FileProcessor, Plugin, PluginDefinition } from "@code-engine/types";
+import { typedOno } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "ono";
 import { isModuleDefinition, isPlugin } from "./types";
-
 
 /**
  * A CodeEngine Plugin that has been normalized so that it always has a `name`,
@@ -37,8 +37,8 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
     let name = definition.name;
 
     if (isModuleDefinition(definition.processFile)) {
-      // Load the processFile method on all worker threads
-      definition.processFile = await workerPool.loadFileProcessor(definition.processFile);
+      // Import the FileProcessor on all worker threads
+      definition.processFile = await workerPool.importFileProcessor(definition.processFile);
       name = name || definition.processFile.name;
     }
 
@@ -46,6 +46,6 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
     return definition as NormalizedPlugin;
   }
   catch (error) {
-    throw ono(error, `Error in ${defaultName}.`);
+    throw typedOno(error, `Error in ${defaultName}.`);
   }
 }

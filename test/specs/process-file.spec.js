@@ -218,8 +218,7 @@ describe("Plugin.processFile()", () => {
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error).not.to.be.an.instanceOf(SyntaxError);
+        expect(error).to.be.an.instanceOf(SyntaxError);
         expect(error.message).to.equal("An error occurred in Synchronous Error Test while processing file2.txt. \nBoom!");
       }
     });
@@ -251,8 +250,7 @@ describe("Plugin.processFile()", () => {
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error).not.to.be.an.instanceOf(TypeError);
+        expect(error).to.be.an.instanceOf(TypeError);
         expect(error.message).to.equal("An error occurred in Plugin 2 while processing file3.txt. \nBoom!");
       }
     });

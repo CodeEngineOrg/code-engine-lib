@@ -1,8 +1,7 @@
 // tslint:disable: completed-docs
 import { BuildContext, ChangedFile, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
-import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
+import { createChangedFile, createFile, drainIterable, IterableWriter, iterate, typedOno } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
-import { ono } from "ono";
 import { NormalizedPlugin } from "./normalize-plugin";
 
 /**
@@ -41,7 +40,7 @@ export class PluginController {
       await drainIterable(files);
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while processing files.`);
+      throw typedOno(error, `An error occurred in ${this} while processing files.`);
     }
   }
 
@@ -54,7 +53,7 @@ export class PluginController {
       }
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while processing ${file}.`);
+      throw typedOno(error, `An error occurred in ${this} while processing ${file}.`);
     }
   }
 
@@ -68,7 +67,7 @@ export class PluginController {
       iterator = iterate(fileInfos)[Symbol.asyncIterator]();
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while reading source files.`);
+      throw typedOno(error, `An error occurred in ${this} while reading source files.`);
     }
 
     let next = async () => {
@@ -83,7 +82,7 @@ export class PluginController {
         return { value: file };
       }
       catch (error) {
-        throw ono(error, `An error occurred in ${this} while reading source files.`);
+        throw typedOno(error, `An error occurred in ${this} while reading source files.`);
       }
     };
 
@@ -100,7 +99,7 @@ export class PluginController {
       }
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while watching source files for changes.`);
+      throw typedOno(error, `An error occurred in ${this} while watching source files for changes.`);
     }
   }
 
@@ -109,7 +108,7 @@ export class PluginController {
       await this._plugin.clean!(context);
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while cleaning the destination.`);
+      throw typedOno(error, `An error occurred in ${this} while cleaning the destination.`);
     }
   }
 
@@ -118,7 +117,7 @@ export class PluginController {
       await this._plugin.dispose!(context);
     }
     catch (error) {
-      throw ono(error, `An error occurred in ${this} while cleaning-up.`);
+      throw typedOno(error, `An error occurred in ${this} while cleaning-up.`);
     }
   }
 
