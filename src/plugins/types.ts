@@ -7,8 +7,8 @@ import { PluginController } from "./plugin-controller";
  * or a string that's shorthand for `ModuleDefinition.moduleId`.
  * @internal
  */
-export function isModuleDefinition(value: unknown): value is string | ModuleDefinition {
-  return typeof value === "string" || (value && typeof (value as ModuleDefinition).moduleId === "string");
+export function isModuleDefinition<T>(value: unknown): value is string | ModuleDefinition<T> {
+  return typeof value === "string" || (value && typeof (value as ModuleDefinition<T>).moduleId === "string");
 }
 
 

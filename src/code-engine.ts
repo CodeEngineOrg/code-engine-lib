@@ -1,4 +1,4 @@
-import { BuildSummary, Context, EventName, Logger, PluginDefinition } from "@code-engine/types";
+import { BuildSummary, Context, EventName, Logger, ModuleDefinition, PluginDefinition } from "@code-engine/types";
 import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
@@ -81,6 +81,17 @@ export class CodeEngine extends EventEmitter {
       let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
       let controller = new PluginController(plugin);
       this._buildPipeline.add(controller);
+    }
+  }
+
+  /**
+   * Imports one or more JavaScript modules in all worker threads.
+   */
+  public async import(...modules: Array<string | ModuleDefinition<void>>): Promise<void> {
+    assertNotDisposed(this);
+
+    for (let moduleDefinition of modules) {
+      await this._workerPool.importModule(moduleDefinition);
     }
   }
 

@@ -86,16 +86,20 @@ const utils = module.exports = {
   /**
    * Creates a worker module that exports the given plugin method, optionally accepting the given data.
    *
-   * @param method {function} - The plugin method to return in the module
+   * @param code {function|string} - The module's source code
    * @param [data] {object} - The data (if any) to make available to the plugin method
    * @returns {string|object} - A CodeEngine worker module
    */
-  async createModule (method, data) {
+  async createModule (code, data) {
     // Create a temp file
     let moduleId = await new Promise((resolve, reject) =>
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
 
-    await fs.writeFile(moduleId, `"use strict";\nmodule.exports = ${method};`);
+    if (typeof code !== "string") {
+      code = `"use strict";\nmodule.exports = ${code};`;
+    }
+
+    await fs.writeFile(moduleId, code);
 
     if (data === undefined) {
       return moduleId;
