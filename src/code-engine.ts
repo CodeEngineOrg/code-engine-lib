@@ -47,10 +47,10 @@ export class CodeEngine extends EventEmitter {
     this._buildPipeline = new BuildPipeline();
     this._buildPipeline.on(EventName.BuildStarting, this.emit.bind(this, EventName.BuildStarting));
     this._buildPipeline.on(EventName.BuildFinished, this.emit.bind(this, EventName.BuildFinished));
-    this._buildPipeline.on(EventName.Error, this.emit.bind(this, EventName.Error));
+    this._buildPipeline.on(EventName.Error, this._crash.bind(this));
 
     this._workerPool = new WorkerPool(this._config.concurrency, this._createContext());
-    this._workerPool.on(EventName.Error, (err: Error) => crashHandler(this, err));
+    this._workerPool.on(EventName.Error, this._crash.bind(this));
 
     instances.push(this);
   }
@@ -74,7 +74,7 @@ export class CodeEngine extends EventEmitter {
    * Loads one or more CodeEngine plugins.
    */
   public async use(...plugins: PluginDefinition[]): Promise<void> {
-    assertNotDisposed(this);
+    this._assertNotDisposed();
 
     for (let pluginDefinition of plugins) {
       let defaultName = `Plugin ${this._buildPipeline.size + 1}`;
@@ -88,7 +88,7 @@ export class CodeEngine extends EventEmitter {
    * Imports one or more JavaScript modules in all worker threads.
    */
   public async import(...modules: Array<string | ModuleDefinition<void>>): Promise<void> {
-    assertNotDisposed(this);
+    this._assertNotDisposed();
 
     for (let moduleDefinition of modules) {
       await this._workerPool.importModule(moduleDefinition);
@@ -99,7 +99,7 @@ export class CodeEngine extends EventEmitter {
    * Deletes the contents of the destination(s).
    */
   public async clean(): Promise<void> {
-    assertNotDisposed(this);
+    this._assertNotDisposed();
     let context = this._createContext();
     return this._buildPipeline.clean(context);
   }
@@ -108,7 +108,7 @@ export class CodeEngine extends EventEmitter {
    * Runs a full build of all source files.
    */
   public async build(): Promise<BuildSummary> {
-    assertNotDisposed(this);
+    this._assertNotDisposed();
     let context = this._createContext();
     return this._buildPipeline.build(this._config.concurrency, context);
   }
@@ -117,7 +117,7 @@ export class CodeEngine extends EventEmitter {
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
   public watch(): void {
-    assertNotDisposed(this);
+    this._assertNotDisposed();
     let context = this._createContext();
     let { watchDelay, concurrency } = this._config;
     this._buildPipeline.watch(watchDelay, concurrency, context);
@@ -182,25 +182,27 @@ export class CodeEngine extends EventEmitter {
     let logger = this._logger;
     return { cwd, concurrency, dev, debug, logger };
   }
-}
 
-/**
- * Throws an error if the `CodeEngine` has been disposed.
- */
-function assertNotDisposed(engine: CodeEngine) {
-  if (engine.isDisposed) {
-    throw ono(`CodeEngine cannot be used after it has been disposed.`);
+  /**
+   * Throws an error if the `CodeEngine` has been disposed.
+   * @internal
+   */
+  private _assertNotDisposed() {
+    if (this.isDisposed) {
+      throw ono(`CodeEngine cannot be used after it has been disposed.`);
+    }
   }
-}
 
-/**
- * Handles unexpected errors, such as worker threads crashing.
- */
-async function crashHandler(engine: CodeEngine, error: Error) {
-  try {
-    engine.emit(EventName.Error, error);
-  }
-  finally {
-    await engine.dispose();
+  /**
+   * Handles unexpected errors, such as worker threads crashing.
+   * @internal
+   */
+  private async _crash(error: Error) {
+    try {
+      this.emit(EventName.Error, error);
+    }
+    finally {
+      await this.dispose();
+    }
   }
 }
