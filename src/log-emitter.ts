@@ -5,48 +5,39 @@ import { EventEmitter } from "events";
  * Emits log messages via an EventEmitter.
  * @internal
  */
-export class LogEmitter implements Logger {
-  private readonly _emitter: EventEmitter;
-  private readonly _debug: boolean;
-
-  public constructor(emitter: EventEmitter, debug: boolean) {
-    this._emitter = emitter;
-    this._debug = debug;
-  }
-
-  /**
-   * Emits a log event with a message and possibly additional data.
-   */
-  public log(message: string, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, message, level: LogLevel.Info };
-    this._emitter.emit(EventName.Log, logEventData);
-  }
-
-  /**
-   * Emits a log event, only if debug mode is enabled.
-   */
-  public debug(message: string, data?: object | undefined): void {
-    if (this._debug) {
-      let logEventData: LogEventData = { ...data, message, level: LogLevel.Debug };
-      this._emitter.emit(EventName.Log, logEventData);
+export function createLogEmitter(emitter: EventEmitter, debug: boolean): Logger {
+  function log(message: string | Error, data?: object): void {
+    if (typeof message === "string") {
+      log.info(message, data);
+    }
+    else {
+      log.error(message, data);
     }
   }
 
-  /**
-   * Emits a log event with a warning message and possibly additional data.
-   */
-  public warn(warning: string | Error, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, ...splitError(warning, this._debug), level: LogLevel.Warning };
-    this._emitter.emit(EventName.Log, logEventData);
-  }
+  log.info = (message: string, data?: object | undefined) => {
+    let logEventData: LogEventData = { ...data, message, level: LogLevel.Info };
+    emitter.emit(EventName.Log, logEventData);
+  };
 
-  /**
-   * Emits a log event with an error message and possibly additional data.
-   */
-  public error(error: string | Error, data?: object | undefined): void {
-    let logEventData: LogEventData = { ...data, ...splitError(error, this._debug), level: LogLevel.Error };
-    this._emitter.emit(EventName.Log, logEventData);
-  }
+  log.debug = (message: string, data?: object | undefined) => {
+    if (debug) {
+      let logEventData: LogEventData = { ...data, message, level: LogLevel.Debug };
+      emitter.emit(EventName.Log, logEventData);
+    }
+  };
+
+  log.warn = (warning: string | Error, data?: object | undefined) => {
+    let logEventData: LogEventData = { ...data, ...splitError(warning, debug), level: LogLevel.Warning };
+    emitter.emit(EventName.Log, logEventData);
+  };
+
+  log.error = (error: string | Error, data?: object | undefined) => {
+    let logEventData: LogEventData = { ...data, ...splitError(error, debug), level: LogLevel.Error };
+    emitter.emit(EventName.Log, logEventData);
+  };
+
+  return log;
 }
 
 /**

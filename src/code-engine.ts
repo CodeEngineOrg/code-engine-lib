@@ -6,7 +6,7 @@ import { ono } from "ono";
 import * as os from "os";
 import { BuildPipeline } from "./build/build-pipeline";
 import { Config } from "./config";
-import { LogEmitter } from "./log-emitter";
+import { createLogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
 import { PluginController } from "./plugins/plugin-controller";
 
@@ -42,7 +42,7 @@ export class CodeEngine extends EventEmitter {
       debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
     };
 
-    this._logger = new LogEmitter(this, this._config.debug);
+    this._logger = createLogEmitter(this, this._config.debug);
 
     this._buildPipeline = new BuildPipeline();
     this._buildPipeline.on(EventName.BuildStarting, this.emit.bind(this, EventName.BuildStarting));
@@ -179,8 +179,8 @@ export class CodeEngine extends EventEmitter {
    */
   private _createContext(): Context {
     let { cwd, concurrency, dev, debug } = this._config;
-    let logger = this._logger;
-    return { cwd, concurrency, dev, debug, logger };
+    let log = this._logger;
+    return { cwd, concurrency, dev, debug, log };
   }
 
   /**
