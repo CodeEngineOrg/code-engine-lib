@@ -1,6 +1,5 @@
 import { CodeEngine } from "./code-engine";
 
-export * from "@code-engine/types";
 export { Config } from "./config";
 export { CodeEngine };
 
