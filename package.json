@@ -1,6 +1,6 @@
 {
   "name": "@code-engine/lib",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "build tool | code generator | static site builder",
   "keywords": [
     "build-tool",
@@ -79,7 +79,7 @@
   },
   "dependencies": {
     "@code-engine/stringify": "0.0.1",
-    "@code-engine/utils": "0.0.12",
+    "@code-engine/utils": "0.0.14",
     "@code-engine/validate": "0.0.1",
     "@code-engine/workers": "0.0.7",
     "file-path-filter": "^2.2.2",
