@@ -119,6 +119,136 @@ describe("Plugin.watch()", () => {
     }
   });
 
+  it("should dedupe multiple changes to the same file", async () => {
+    let plugin = {
+      async* watch () {
+        await delay();
+        yield { path: "file1.txt", change: "modified" };
+        yield { path: "file1.txt", change: "modified" };
+        yield { path: "file1.txt", change: "modified" };
+      }
+    };
+
+    let engine = new CodeEngine({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin);
+    engine.watch();
+    await delay(watchDelay + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+
+    let preBuild = events.buildStarting.firstCall.args[0];
+    let postBuild = events.buildFinished.firstCall.args[0];
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(1);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "modified");
+    }
+  });
+
+  it("should dedupe a file that deleted and re-created as a modification", async () => {
+    let plugin = {
+      async* watch () {
+        await delay();
+        yield { path: "file1.txt", change: "deleted", text: "Old contents" };
+        yield { path: "file1.txt", change: "created", text: "New contents" };
+      }
+    };
+
+    let engine = new CodeEngine({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin);
+    engine.watch();
+    await delay(watchDelay + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+
+    let preBuild = events.buildStarting.firstCall.args[0];
+    let postBuild = events.buildFinished.firstCall.args[0];
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(1);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "modified");
+      expect(preBuild.changedFiles[0]).to.have.property("text", "New contents");
+    }
+  });
+
+  it("should dedupe a file that created and then modified a creation", async () => {
+    let plugin = {
+      async* watch () {
+        await delay();
+        yield { path: "file1.txt", change: "created" };
+        yield { path: "file1.txt", change: "modified", text: "Contents added" };
+        yield { path: "file1.txt", change: "modified", text: "Contents changed" };
+      }
+    };
+
+    let engine = new CodeEngine({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin);
+    engine.watch();
+    await delay(watchDelay + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+
+    let preBuild = events.buildStarting.firstCall.args[0];
+    let postBuild = events.buildFinished.firstCall.args[0];
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(1);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "created");
+      expect(preBuild.changedFiles[0]).to.have.property("text", "Contents changed");
+    }
+  });
+
+  it("should dedupe a file that modified and then deleted as a deletion", async () => {
+    let plugin = {
+      async* watch () {
+        await delay();
+        yield { path: "file1.txt", change: "created" };
+        yield { path: "file1.txt", change: "modified", text: "Contents changed" };
+        yield { path: "file1.txt", change: "deleted" };
+      }
+    };
+
+    let engine = new CodeEngine({ watchDelay });
+    let events = createEvents(engine);
+    await engine.use(plugin);
+    engine.watch();
+    await delay(watchDelay + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+
+    let preBuild = events.buildStarting.firstCall.args[0];
+    let postBuild = events.buildFinished.firstCall.args[0];
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(1);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "deleted");
+      expect(preBuild.changedFiles[0]).to.have.property("text", "Contents changed");
+    }
+  });
+
   it("should not include deleted files in the build", async () => {
     let plugin1 = {
       async* watch () {
