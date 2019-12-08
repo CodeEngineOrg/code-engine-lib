@@ -1,7 +1,8 @@
 // tslint:disable: completed-docs
-import { BuildContext, ChangedFile, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
+import { BuildContext, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate, typedOno } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
+import { Change } from "../build/watch";
 import { NormalizedPlugin } from "./normalize-plugin";
 
 /**
@@ -90,12 +91,18 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* watch?(context: Context): AsyncGenerator<ChangedFile> {
+  public async* watch?(context: Context): AsyncGenerator<Change> {
     try {
       let changedFileInfos = this._plugin.watch!(context);
 
       for await (let changedFileInfo of iterate(changedFileInfos)) {
-        yield createChangedFile(changedFileInfo, this.name);
+        let file = createChangedFile(changedFileInfo, this.name);
+
+        // Return an additional flag that indicates whether any contents were actually specified.
+        // This is necessary because the ChangedFile object has defaults applied.
+        let hasContents = Boolean(changedFileInfo.contents || changedFileInfo.text);
+
+        yield { file, hasContents };
       }
     }
     catch (error) {

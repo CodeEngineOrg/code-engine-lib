@@ -1,9 +1,10 @@
-import { BuildContext, BuildFinishedEventData, BuildSummary, ChangedFile, Context, EventName, File, FileChange } from "@code-engine/types";
-import { debounceIterable, iterate, joinIterables } from "@code-engine/utils";
+import { BuildContext, BuildFinishedEventData, BuildSummary, Context, EventName, File, FileChange } from "@code-engine/types";
+import { iterate, joinIterables } from "@code-engine/utils";
 import { EventEmitter } from "events";
 import { PluginController } from "../plugins/plugin-controller";
-import { hasClean, hasDispose, hasWatch, isBuildStep, isFileSource } from "../plugins/types";
+import { hasClean, hasDispose, isBuildStep, isFileSource } from "../plugins/types";
 import { runBuild } from "./build";
+import { watchAllSources } from "./watch";
 
 /**
  * A sequence of CodeEngine plugins that can be used to run builds.
@@ -59,13 +60,11 @@ export class BuildPipeline extends EventEmitter {
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
   public watch(delay: number, concurrency: number, context: Context): void {
-    let fileChanges = watchAllSources(this._plugins, context);
-    let batchedFileChanges = debounceIterable(fileChanges, delay);
     let steps = this._plugins.filter(isBuildStep);
 
     Promise.resolve()
       .then(async () => {
-        for await (let changedFiles of batchedFileChanges) {
+        for await (let changedFiles of watchAllSources(this._plugins, delay, context)) {
           let buildContext: BuildContext = {
             ...context,
             fullBuild: false,
@@ -125,14 +124,5 @@ export class BuildPipeline extends EventEmitter {
 function readAllSources(plugins: PluginController[], context: BuildContext): AsyncIterable<File> {
   let sources = plugins.filter(isFileSource);
   let fileGenerators = sources.map((source) => source.read(context));
-  return joinIterables(...fileGenerators);
-}
-
-/**
- * Watches all source files for changes.
- */
-function watchAllSources(plugins: PluginController[], context: Context): AsyncIterable<ChangedFile> {
-  let watchers = plugins.filter(hasWatch);
-  let fileGenerators = watchers.map((watcher) => watcher.watch(context));
   return joinIterables(...fileGenerators);
 }
