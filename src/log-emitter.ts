@@ -43,7 +43,7 @@ export function createLogEmitter(emitter: EventEmitter, debug: boolean): Logger 
 /**
  * Splits an Error or error message into two separate values.
  */
-export function splitError(arg: string | Error, debug: boolean) {
+function splitError(arg: string | Error, debug: boolean) {
   if (typeof arg === "string") {
     return { message: arg };
   }

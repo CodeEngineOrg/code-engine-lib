@@ -21,6 +21,7 @@ export async function* watchAllSources(plugins: PluginController[], delay: numbe
 
 /**
  * A changed file, with additional metadata that's needed internally by CodeEngine.
+ * @internal
  */
 export interface Change {
   file: ChangedFile;
