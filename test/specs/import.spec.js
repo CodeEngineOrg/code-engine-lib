@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../../lib");
+const { CodeEngine } = require("../../");
 const { getFiles, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");

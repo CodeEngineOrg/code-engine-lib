@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../../");
+const { CodeEngine } = require("../../");
 const { delay } = require("../utils");
 const { expect } = require("chai");
 

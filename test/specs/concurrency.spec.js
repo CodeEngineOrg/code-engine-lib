@@ -1,6 +1,6 @@
 "use strict";
 
-const CodeEngine = require("../../");
+const { CodeEngine } = require("../../");
 const { getFiles, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");

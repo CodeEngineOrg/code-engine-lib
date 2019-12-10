@@ -2,7 +2,7 @@
 
 const path = require("path");
 const sinon = require("sinon");
-const CodeEngine = require("../../");
+const { CodeEngine } = require("../../");
 const { delay, getFiles, getFilePaths, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 

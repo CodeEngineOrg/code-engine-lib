@@ -1,7 +1,7 @@
 /* eslint-disable no-new-wrappers, no-new-object */
 "use strict";
 
-const CodeEngine = require("../../");
+const { CodeEngine } = require("../../");
 const { getCallArg, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
