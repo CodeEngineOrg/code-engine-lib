@@ -1,6 +1,17 @@
 CodeEngine lib
 ======================================
 
+[![Cross-Platform Compatibility](https://engine.codes/img/badges/os-badges.svg)](https://travis-ci.com/CodeEngineOrg/code-engine-lib)
+[![Build Status](https://api.travis-ci.com/CodeEngineOrg/code-engine-lib.svg?branch=master)](https://travis-ci.com/CodeEngineOrg/code-engine-lib)
+
+[![Coverage Status](https://coveralls.io/repos/github/CodeEngineOrg/code-engine-lib/badge.svg?branch=master)](https://coveralls.io/github/CodeEngineOrg/code-engine-lib)
+[![Dependencies](https://david-dm.org/CodeEngineOrg/code-engine-lib.svg)](https://david-dm.org/CodeEngineOrg/code-engine-lib)
+
+[![npm](https://img.shields.io/npm/v/@code-engine/lib.svg)](https://www.npmjs.com/package/@code-engine/lib)
+[![License](https://img.shields.io/npm/l/@code-engine/lib.svg)](LICENSE)
+
+
+
 This is the core library for [CodeEngine](https://engine.codes/). It exports the `CodeEngine` class, which manages plugins, worker threads, events, builds, and watching functionality.
 
 > **NOTE:** This is an **internal library** that is only intended to be used by CodeEngine. Using it outside of CodeEngine is discouraged. Use the [code-engine npm package](https://www.npmjs.com/package/code-engine) instead.
