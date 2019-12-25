@@ -10,8 +10,13 @@ import { watchAllSources } from "./watch";
  * A sequence of CodeEngine plugins that can be used to run builds.
  * @internal
  */
-export class BuildPipeline extends EventEmitter {
+export class BuildPipeline {
   private _plugins: PluginController[] = [];
+  private _events: EventEmitter;
+
+  public constructor(emitter: EventEmitter) {
+    this._events = emitter;
+  }
 
   /**
    * The number of plugins in the build pipeline.
@@ -81,7 +86,9 @@ export class BuildPipeline extends EventEmitter {
           this._emitBuildFinished(buildContext, summary);
         }
       })
-      .catch(this.emit.bind(this, EventName.Error));
+      .catch((error: Error) => {
+        this._events.emit(EventName.Error, error);
+      });
   }
 
   /**
@@ -99,10 +106,10 @@ export class BuildPipeline extends EventEmitter {
    * Emits a "buildStarting" event
    */
   private _emitBuildStarting(context: BuildContext): void {
-    if (this.listenerCount(EventName.BuildStarting) > 0) {
+    if (this._events.listenerCount(EventName.BuildStarting) > 0) {
       context = { ...context };
       context.changedFiles = context.changedFiles.slice();
-      this.emit(EventName.BuildStarting, context);
+      this._events.emit(EventName.BuildStarting, context);
     }
   }
 
@@ -110,10 +117,10 @@ export class BuildPipeline extends EventEmitter {
    * Emits a "buildFinished" event
    */
   private _emitBuildFinished(context: BuildContext, summary: BuildSummary): void {
-    if (this.listenerCount(EventName.BuildFinished) > 0) {
+    if (this._events.listenerCount(EventName.BuildFinished) > 0) {
       let data: BuildFinishedEventData = { ...context, ...summary };
       data.changedFiles = context.changedFiles.slice();
-      this.emit(EventName.BuildFinished, data);
+      this._events.emit(EventName.BuildFinished, data);
     }
   }
 }

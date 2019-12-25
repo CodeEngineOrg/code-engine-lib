@@ -43,14 +43,9 @@ export class CodeEngine extends EventEmitter {
     };
 
     this._logger = createLogEmitter(this, this._config.debug);
-
-    this._buildPipeline = new BuildPipeline();
-    this._buildPipeline.on(EventName.BuildStarting, this.emit.bind(this, EventName.BuildStarting));
-    this._buildPipeline.on(EventName.BuildFinished, this.emit.bind(this, EventName.BuildFinished));
-    this._buildPipeline.on(EventName.Error, this._crash.bind(this));
-
+    this._buildPipeline = new BuildPipeline(this);
     this._workerPool = new WorkerPool(this._config.concurrency, this._createContext());
-    this._workerPool.on(EventName.Error, this._crash.bind(this));
+    this._workerPool.on(EventName.Error, this.emit.bind(this, EventName.Error));
 
     instances.push(this);
   }
@@ -212,19 +207,6 @@ export class CodeEngine extends EventEmitter {
   private _assertNotDisposed() {
     if (this.isDisposed) {
       throw ono(`CodeEngine cannot be used after it has been disposed.`);
-    }
-  }
-
-  /**
-   * Handles unexpected errors, such as worker threads crashing.
-   * @internal
-   */
-  private async _crash(error: Error) {
-    try {
-      this.emit(EventName.Error, error);
-    }
-    finally {
-      await this.dispose();
     }
   }
 }
