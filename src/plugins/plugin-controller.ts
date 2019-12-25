@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { BuildContext, Context, File, FileInfo, FilterFunction } from "@code-engine/types";
+import { BuildContext, BuildFinishedEventData, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate, typedOno } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { Change } from "../build/watch";
@@ -25,6 +25,10 @@ export class PluginController {
     plugin.watch || (this.watch = undefined);
     plugin.clean || (this.clean = undefined);
     plugin.dispose || (this.dispose = undefined);
+    plugin.onBuildStarting || (this.onBuildStarting = undefined);
+    plugin.onBuildFinished || (this.onBuildFinished = undefined);
+    plugin.onError || (this.onError = undefined);
+    plugin.onLog || (this.onLog = undefined);
   }
 
   // tslint:disable-next-line: no-async-without-await
@@ -125,6 +129,39 @@ export class PluginController {
     }
     catch (error) {
       throw typedOno(error, `An error occurred in ${this} while cleaning-up.`);
+    }
+  }
+
+  public onBuildStarting?(context: BuildContext): void {
+    this._callEventListener(EventName.BuildStarting, this._plugin.onBuildStarting!, context);
+  }
+
+  public onBuildFinished?(summary: BuildFinishedEventData): void {
+    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary);
+  }
+
+  public onError?(error: Error): void {
+    this._callEventListener(EventName.Error, this._plugin.onError!, error);
+  }
+
+  public onLog?(data: LogEventData): void {
+    this._callEventListener(EventName.Log, this._plugin.onLog!, data);
+  }
+
+  private _callEventListener<T>(eventName: EventName, listener: (arg: T) => void | Promise<void>, arg: T): void {
+    try {
+      let promise = listener.call(this._plugin, arg);
+
+      if (promise) {
+        // Wrap and re-throw async errors, just like synchronous errors
+        Promise.resolve(promise)
+          .catch((error: Error) => {
+            throw typedOno(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
+          });
+      }
+    }
+    catch (error) {
+      throw typedOno(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
     }
   }
 

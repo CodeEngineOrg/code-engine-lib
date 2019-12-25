@@ -18,24 +18,31 @@ export function isModuleDefinition<T>(value: unknown): value is string | ModuleD
  */
 export function isPlugin(value: unknown): value is Plugin {
   let plugin = value as Plugin;
+
+  // tslint:disable-next-line: cyclomatic-complexity
   return Boolean(plugin &&
     typeof plugin === "object" &&
     (
       // A plugin must implement at least one method
+      plugin.processFile || plugin.processFiles ||
       plugin.read || plugin.watch || plugin.clean || plugin.dispose ||
-      plugin.processFile || plugin.processFiles
+      plugin.onBuildStarting || plugin.onBuildFinished || plugin.onError || plugin.onLog
     )
     &&
-    (plugin.read === undefined || typeof plugin.read === "function") &&
-    (plugin.watch === undefined || typeof plugin.watch === "function") &&
-    (plugin.clean === undefined || typeof plugin.clean === "function") &&
-    (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
-    (plugin.processFiles === undefined || typeof plugin.processFiles === "function") &&
     (
       plugin.processFile === undefined ||
       typeof plugin.processFile === "function" ||
       isModuleDefinition(plugin.processFile)
-    ));
+    )) &&
+    (plugin.processFiles === undefined || typeof plugin.processFiles === "function") &&
+    (plugin.read === undefined || typeof plugin.read === "function") &&
+    (plugin.watch === undefined || typeof plugin.watch === "function") &&
+    (plugin.clean === undefined || typeof plugin.clean === "function") &&
+    (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
+    (plugin.onBuildStarting === undefined || typeof plugin.onBuildStarting === "function") &&
+    (plugin.onBuildFinished === undefined || typeof plugin.onBuildFinished === "function") &&
+    (plugin.onError === undefined || typeof plugin.onError === "function") &&
+    (plugin.onLog === undefined || typeof plugin.onLog === "function");
 }
 
 

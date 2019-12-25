@@ -77,9 +77,18 @@ export class CodeEngine extends EventEmitter {
     this._assertNotDisposed();
 
     for (let pluginDefinition of plugins) {
+      // Normalize the plugin
       let defaultName = `Plugin ${this._buildPipeline.size + 1}`;
       let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
       let controller = new PluginController(plugin);
+
+      // Register any event handlers
+      controller.onBuildStarting && this.on(EventName.BuildStarting, controller.onBuildStarting.bind(controller));
+      controller.onBuildFinished && this.on(EventName.BuildFinished, controller.onBuildFinished.bind(controller));
+      controller.onError && this.on(EventName.Error, controller.onError.bind(controller));
+      controller.onLog && this.on(EventName.Log, controller.onLog.bind(controller));
+
+      // Add the plugin to the build pipeline
       this._buildPipeline.add(controller);
     }
   }
@@ -110,7 +119,20 @@ export class CodeEngine extends EventEmitter {
   public async build(): Promise<BuildSummary> {
     this._assertNotDisposed();
     let context = this._createContext();
-    return this._buildPipeline.build(this._config.concurrency, context);
+
+    try {
+      let summary = await this._buildPipeline.build(this._config.concurrency, context);
+      return summary;
+    }
+    catch (error) {
+      // Emit the "Error" event if there are any handlers registered
+      if (this.listenerCount(EventName.Error) > 0) {
+        this.emit(EventName.Error, error as Error);
+      }
+
+      // Re-throw the error, regardless of whether there were event handlers
+      throw error;
+    }
   }
 
   /**
