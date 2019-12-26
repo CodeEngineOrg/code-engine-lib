@@ -18,6 +18,7 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
 
   // Remove the contents from the changed files so the build context is lightweight
   // for cloning across the thread boundary
+  // @ts-ignore
   context.changedFiles = context.changedFiles.map(lightweightChangedFile);
 
   // Collect metrics on the input files

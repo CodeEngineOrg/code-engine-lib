@@ -424,13 +424,12 @@ describe("Plugin.watch()", () => {
     expect(files[1]).to.have.property("text", "Hello again, world!");
   });
 
-  it("should include changes made in the buildStarting event in the build", async () => {
+  it("should not include changes made in the buildStarting event in the build", async () => {
     let plugin1 = {
       async* watch () {
         await delay();
         yield { path: "file1.txt", change: "created", text: "Hello, world!" };
         yield { path: "file2.txt", change: "modified", text: "Hello again, world!" };
-        yield { path: "file3.txt", change: "deleted", text: "Goodbye, cruel world!" };
       }
     };
     let plugin2 = sinon.stub().returnsArg(0);
@@ -440,12 +439,7 @@ describe("Plugin.watch()", () => {
     await engine.use(plugin1, plugin2);
 
     engine.on("buildStarting", ({ changedFiles }) => {
-      for (let file of changedFiles) {
-        file.change = "created";
-        file.extension = ".html";
-        file.text += "!!!";
-        file.metadata.foo = "bar";
-      }
+      changedFiles.push({ path: "file3.txt", change: "created", text: "Yo, world" });
     });
 
     engine.watch();
@@ -454,29 +448,21 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
-    sinon.assert.calledThrice(plugin2);
 
     let files = getFiles(plugin2);
-    expect(files).to.have.lengthOf(3);
+    expect(files).to.have.lengthOf(2);
 
     expect(files[0]).to.have.property("change", "created");
-    expect(files[0]).to.have.property("name", "file1.html");
-    expect(files[0]).to.have.property("text", "Hello, world!!!!");
-    expect(files[0].metadata).to.have.property("foo", "bar");
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("text", "Hello, world!");
 
-    expect(files[1]).to.have.property("change", "created");
-    expect(files[1]).to.have.property("name", "file2.html");
-    expect(files[1]).to.have.property("text", "Hello again, world!!!!");
-    expect(files[1].metadata).to.have.property("foo", "bar");
-
-    expect(files[2]).to.have.property("change", "created");
-    expect(files[2]).to.have.property("name", "file3.html");
-    expect(files[2]).to.have.property("text", "Goodbye, cruel world!!!!");
-    expect(files[2].metadata).to.have.property("foo", "bar");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("text", "Hello again, world!");
 
     let postBuild = events.buildFinished.firstCall.args[0];
-    expect(postBuild.input.fileCount).to.equal(3);
-    expect(postBuild.output.fileCount).to.equal(3);
+    expect(postBuild.input.fileCount).to.equal(2);
+    expect(postBuild.output.fileCount).to.equal(2);
   });
 
   it("should do multiple builds", async () => {
