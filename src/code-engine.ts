@@ -34,18 +34,18 @@ export class CodeEngine extends EventEmitter {
   public constructor(config: Config = {}) {
     super();
 
-    this._config = {
-      cwd: config.cwd || process.cwd(),
-      concurrency: validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length),
-      watchDelay: validate.number.integer.positive(config.watchDelay, "watchDelay", 300),
-      dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
-      debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
-    };
+    let cwd = config.cwd || process.cwd();
+    let concurrency = validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length);
+    let watchDelay = validate.number.integer.positive(config.watchDelay, "watchDelay", 300);
+    let dev = config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev;
+    let debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
+    let log = createLogEmitter(this, debug);
+    let emitter = this;  // tslint:disable-line: no-this-assignment
 
-    this._logger = createLogEmitter(this, this._config.debug);
-    this._buildPipeline = new BuildPipeline(this);
-    this._workerPool = new WorkerPool(this._config.concurrency, this._createContext());
-    this._workerPool.on(EventName.Error, this.emit.bind(this, EventName.Error));
+    this._logger = log;
+    this._config = { cwd, concurrency, dev, debug, watchDelay };
+    this._buildPipeline = new BuildPipeline(emitter);
+    this._workerPool = new WorkerPool({ cwd, concurrency, debug, log, emitter });
 
     instances.push(this);
   }
