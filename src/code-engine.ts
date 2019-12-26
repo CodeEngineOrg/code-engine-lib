@@ -1,4 +1,5 @@
 import { BuildSummary, Context, EventName, Logger, ModuleDefinition, PluginDefinition } from "@code-engine/types";
+import { createLogEmitter } from "@code-engine/utils";
 import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
@@ -6,7 +7,6 @@ import { ono } from "ono";
 import * as os from "os";
 import { BuildPipeline } from "./build/build-pipeline";
 import { Config } from "./config";
-import { createLogEmitter } from "./log-emitter";
 import { normalizePlugin } from "./plugins/normalize-plugin";
 import { PluginController } from "./plugins/plugin-controller";
 
