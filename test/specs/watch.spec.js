@@ -556,7 +556,7 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
-    await engine.watch();
+    engine.watch();
     await delay(watchDelay + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
@@ -582,7 +582,7 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
-    await engine.watch();
+    engine.watch();
     await delay(watchDelay + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
@@ -607,7 +607,7 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine({ watchDelay });
     let events = createEvents(engine);
     await engine.use(plugin);
-    await engine.watch();
+    engine.watch();
     await delay(watchDelay + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
