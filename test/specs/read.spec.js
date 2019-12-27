@@ -7,7 +7,7 @@ const { delay, getFiles, getFilePaths, createModule } = require("../utils");
 const { assert, expect } = require("chai");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 200 : 75;
+const TIME_BUFFER = process.env.CI ? 300 : 75;
 
 describe("Plugin.read()", () => {
 

@@ -6,7 +6,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 200 : 75;
+const TIME_BUFFER = process.env.CI ? 300 : 75;
 const watchDelay = process.env.CI ? 300 : 100;
 
 describe("Plugin.watch()", () => {
