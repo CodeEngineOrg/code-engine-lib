@@ -57,7 +57,7 @@ export class BuildPipeline {
     let steps = this._plugins.filter(isBuildStep);
     let summary = await runBuild(files, steps, concurrency, buildContext);
 
-    this._emitBuildFinished(buildContext, summary);
+    this._emitBuildFinished(summary);
     return summary;
   }
 
@@ -83,7 +83,7 @@ export class BuildPipeline {
           let files = changedFiles.filter((file) => file.change !== FileChange.Deleted);
           let summary = await runBuild(iterate(files), steps, concurrency, buildContext);
 
-          this._emitBuildFinished(buildContext, summary);
+          this._emitBuildFinished(summary);
         }
       })
       .catch((error: Error) => {
@@ -122,9 +122,9 @@ export class BuildPipeline {
   /**
    * Emits a "buildFinished" event
    */
-  private _emitBuildFinished(context: BuildContext, summary: BuildSummary): void {
+  private _emitBuildFinished(summary: BuildSummary): void {
     if (this._events.listenerCount(EventName.BuildFinished) > 0) {
-      this._events.emit(EventName.BuildFinished, summary, context);
+      this._events.emit(EventName.BuildFinished, summary);
     }
   }
 }

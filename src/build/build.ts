@@ -10,16 +10,17 @@ import { runBuildStep } from "./build-step";
 export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], concurrency: number, context: BuildContext): Promise<BuildSummary> {
   let promises: Array<Promise<void>> = [], promise: Promise<void>;
 
-  let summary: BuildSummary = {
-    input: { fileCount: 0, fileSize: 0 },
-    output: { fileCount: 0, fileSize: 0 },
-    time: { start: new Date(), end: new Date(), elapsed: 0 },
-  };
-
   // Remove the contents from the changed files so the build context is lightweight
   // for cloning across the thread boundary
   // @ts-ignore
   context.changedFiles = context.changedFiles.map(lightweightChangedFile);
+
+  let summary: BuildSummary = {
+    ...context,
+    input: { fileCount: 0, fileSize: 0 },
+    output: { fileCount: 0, fileSize: 0 },
+    time: { start: new Date(), end: new Date(), elapsed: 0 },
+  };
 
   // Collect metrics on the input files
   let input = updateBuildSummary(summary, "input", files);

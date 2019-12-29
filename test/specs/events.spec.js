@@ -24,14 +24,12 @@ describe("Plugin events", () => {
     sinon.assert.calledOn(plugin2.onBuildStarting, plugin2);
 
     // The same arguments should have beeen passed to both plugins
-    let [context, nullish] = plugin2.onBuildStarting.firstCall.args;
+    let [context] = plugin2.onBuildStarting.firstCall.args;
 
-    sinon.assert.calledWithExactly(plugin1.onBuildStarting, context, nullish);
+    sinon.assert.calledWithExactly(plugin1.onBuildStarting, context);
 
     expect(context).to.be.an("object").with.keys(
       "concurrency", "cwd", "debug", "dev", "log", "fullBuild", "partialBuild", "changedFiles");
-
-    expect(nullish).to.equal(undefined);
   });
 
   it("should call BuildFinished event listeners", async () => {
@@ -51,14 +49,13 @@ describe("Plugin events", () => {
     sinon.assert.calledOn(plugin2.onBuildFinished, plugin2);
 
     // The same arguments should have beeen passed to both plugins
-    let [summary, context] = plugin2.onBuildFinished.firstCall.args;
+    let [summary] = plugin2.onBuildFinished.firstCall.args;
 
-    sinon.assert.calledWithExactly(plugin1.onBuildFinished, summary, context);
+    sinon.assert.calledWithExactly(plugin1.onBuildFinished, summary);
 
-    expect(summary).to.be.an("object").with.keys("input", "output", "time");
-
-    expect(context).to.be.an("object").with.keys(
-      "concurrency", "cwd", "debug", "dev", "fullBuild", "partialBuild", "changedFiles", "log");
+    expect(summary).to.be.an("object").with.keys(
+      "concurrency", "cwd", "debug", "dev", "fullBuild", "partialBuild", "changedFiles", "log",
+      "input", "output", "time");
   });
 
   it("should call Log event listeners", async () => {

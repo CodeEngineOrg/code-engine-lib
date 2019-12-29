@@ -137,8 +137,8 @@ export class PluginController {
     this._callEventListener(EventName.BuildStarting, this._plugin.onBuildStarting!, context);
   }
 
-  public onBuildFinished?(summary: BuildSummary, context: BuildContext): void {
-    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary, context);
+  public onBuildFinished?(summary: BuildSummary): void {
+    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary);
   }
 
   public onError?(error: Error, context: Context): void {
@@ -150,9 +150,9 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: ban-types
-  private _callEventListener(eventName: EventName, listener: Function, arg1: unknown, arg2?: unknown): void {
+  private _callEventListener(eventName: EventName, listener: Function, ...args: unknown[]): void {
     try {
-      let promise = listener.call(this._plugin, arg1, arg2);
+      let promise = listener.apply(this._plugin, args);
 
       if (promise) {
         // Wrap and re-throw async errors, just like synchronous errors
