@@ -1,6 +1,7 @@
 "use strict";
 
 const { CodeEngine } = require("../../lib");
+const { delay } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
 const ono = require("ono");
@@ -330,6 +331,47 @@ describe("Plugin events", () => {
     expect(error).not.to.have.property("foo");
 
     expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
+  });
+
+  it("should re-throw asynchronous errors from event handlers", async () => {
+    let unhandledRejection = sinon.spy();
+    process.once("unhandledRejection", unhandledRejection);
+
+    let plugin1 = {
+      async onBuildStarting () {
+        await delay(100);
+        throw ono.range({ foo: "bar" }, "Boom!");
+      }
+    };
+
+    let plugin2 = {
+      onBuildStarting: sinon.spy(),
+      onError: sinon.spy()
+    };
+
+    let engine = new CodeEngine();
+    let errorHandler = sinon.spy();
+    engine.on("error", errorHandler);
+    await engine.use(plugin1, plugin2);
+
+    // The build runs successfully, because the error is thrown asynchronously
+    await engine.build();
+    await delay(100);
+
+    // Plugin 2's onBuildStarting handler was called before the error was thrown
+    sinon.assert.calledOnce(plugin2.onBuildStarting);
+
+    // None of the CodeEngine error handlers were called, because the error was thrown asynchronously
+    sinon.assert.notCalled(plugin2.onError);
+    sinon.assert.notCalled(errorHandler);
+
+    // The error was caught by the global unhandled rejection handler
+    sinon.assert.calledOnce(unhandledRejection);
+    let [error] = unhandledRejection.firstCall.args;
+
+    expect(error).to.be.an.instanceOf(RangeError);
+    expect(error.message).to.be.equal('An error occurred in Plugin 1 while handling a "buildStarting" event. \nBoom!');
+    expect(error.foo).to.equal("bar");
   });
 
 });
