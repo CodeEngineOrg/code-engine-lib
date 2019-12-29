@@ -7,7 +7,7 @@ const sinon = require("sinon");
 
 // CI environments are slow, so use a larger time buffer
 const TIME_BUFFER = process.env.CI ? 300 : 75;
-const watchDelay = process.env.CI ? 300 : 100;
+const WATCH_DELAY = process.env.CI ? 300 : 100;
 
 describe("Plugin.watch()", () => {
 
@@ -29,11 +29,11 @@ describe("Plugin.watch()", () => {
     let plugin1 = { clean () {} };
     let plugin2 = { read () {} };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.notCalled(events.buildStarting);
@@ -51,11 +51,11 @@ describe("Plugin.watch()", () => {
       watch: sinon.spy(),
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(plugin1.watch);
     sinon.assert.calledOnce(plugin2.watch);
@@ -74,10 +74,10 @@ describe("Plugin.watch()", () => {
       watch: sinon.spy(),
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOn(plugin1.watch, plugin1);
     sinon.assert.calledOn(plugin2.watch, plugin2);
@@ -93,11 +93,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -132,11 +132,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -166,11 +166,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -202,11 +202,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -238,11 +238,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -275,11 +275,11 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -312,11 +312,11 @@ describe("Plugin.watch()", () => {
       processFiles: sinon.stub().returnsArg(0)
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
 
@@ -361,11 +361,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -390,11 +390,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -423,11 +423,11 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -452,7 +452,7 @@ describe("Plugin.watch()", () => {
     };
     let plugin2 = sinon.stub().returnsArg(0);
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
 
@@ -460,8 +460,8 @@ describe("Plugin.watch()", () => {
       changedFiles.push({ path: "file3.txt", change: "created", text: "Yo, world" });
     });
 
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
@@ -513,10 +513,10 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay: 100 });  // Use the same watch delay, even in CI
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
+    engine.watch(100);          // Use the same watch delay, even in CI
 
     // 100ms: A file was yielded at 50ms, so the build won't start until 150ms
     await delay(100);
@@ -571,11 +571,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);
@@ -600,11 +600,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);
@@ -628,11 +628,11 @@ describe("Plugin.watch()", () => {
       }
     };
 
-    let engine = new CodeEngine({ watchDelay });
+    let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
-    engine.watch();
-    await delay(watchDelay + TIME_BUFFER);
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);

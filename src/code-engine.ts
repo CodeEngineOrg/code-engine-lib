@@ -37,7 +37,6 @@ export class CodeEngine extends EventEmitter {
     this._config = {
       cwd: config.cwd || process.cwd(),
       concurrency: validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length),
-      watchDelay: validate.number.integer.positive(config.watchDelay, "watchDelay", 300),
       dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
       debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
     };
@@ -82,6 +81,7 @@ export class CodeEngine extends EventEmitter {
       // Register any event handlers
       controller.onBuildStarting && this.on(EventName.BuildStarting, controller.onBuildStarting.bind(controller));
       controller.onBuildFinished && this.on(EventName.BuildFinished, controller.onBuildFinished.bind(controller));
+      controller.onFileChanged && this.on(EventName.FileChanged, controller.onFileChanged.bind(controller));
       controller.onError && this.on(EventName.Error, controller.onError.bind(controller));
       controller.onLog && this.on(EventName.Log, controller.onLog.bind(controller));
 
@@ -134,12 +134,18 @@ export class CodeEngine extends EventEmitter {
 
   /**
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
+   *
+   * @param delay
+   * The time (in milliseconds) to wait after a file change is detected before starting a build.
+   * This allows multiple files that are changed together to all be re-built together.
    */
-  public watch(): void {
+  public watch(delay?: number): void {
+    delay = validate.number.integer.positive(delay, "watch delay", 300);
     this._assertNotDisposed();
+
     let context = this._createContext();
-    let { watchDelay, concurrency } = this._config;
-    this._buildPipeline.watch(watchDelay, concurrency, context);
+    let { concurrency } = this._config;
+    this._buildPipeline.watch(delay, concurrency, context);
   }
 
   /**
