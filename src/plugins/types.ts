@@ -26,7 +26,8 @@ export function isPlugin(value: unknown): value is Plugin {
       // A plugin must implement at least one method
       plugin.processFile || plugin.processFiles ||
       plugin.read || plugin.watch || plugin.clean || plugin.dispose ||
-      plugin.onBuildStarting || plugin.onBuildFinished || plugin.onError || plugin.onLog
+      plugin.onBuildStarting || plugin.onBuildFinished || plugin.onFileChanged ||
+      plugin.onError || plugin.onLog
     )
     &&
     (
@@ -41,6 +42,7 @@ export function isPlugin(value: unknown): value is Plugin {
     (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
     (plugin.onBuildStarting === undefined || typeof plugin.onBuildStarting === "function") &&
     (plugin.onBuildFinished === undefined || typeof plugin.onBuildFinished === "function") &&
+    (plugin.onFileChanged === undefined || typeof plugin.onFileChanged === "function") &&
     (plugin.onError === undefined || typeof plugin.onError === "function") &&
     (plugin.onLog === undefined || typeof plugin.onLog === "function");
 }

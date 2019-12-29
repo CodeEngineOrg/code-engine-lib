@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { BuildContext, BuildSummary, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
+import { BuildContext, BuildSummary, ChangedFile, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
@@ -28,6 +28,7 @@ export class PluginController {
     plugin.dispose || (this.dispose = undefined);
     plugin.onBuildStarting || (this.onBuildStarting = undefined);
     plugin.onBuildFinished || (this.onBuildFinished = undefined);
+    plugin.onFileChanged || (this.onFileChanged = undefined);
     plugin.onError || (this.onError = undefined);
     plugin.onLog || (this.onLog = undefined);
   }
@@ -139,6 +140,10 @@ export class PluginController {
 
   public onBuildFinished?(summary: BuildSummary): void {
     this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary);
+  }
+
+  public onFileChanged?(file: ChangedFile, context: Context): void {
+    this._callEventListener(EventName.FileChanged, this._plugin.onFileChanged!, file, context);
   }
 
   public onError?(error: Error, context: Context): void {

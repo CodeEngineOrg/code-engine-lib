@@ -1,16 +1,16 @@
-import { ChangedFile, Context, FileChange } from "@code-engine/types";
+import { ChangedFile, CodeEngineEventEmitter, Context, EventName, FileChange } from "@code-engine/types";
 import { debounceIterable, joinIterables } from "@code-engine/utils";
 import { PluginController } from "../plugins/plugin-controller";
-import { hasWatch } from "../plugins/types";
+import { hasWatch, HasWatch } from "../plugins/types";
 
 /**
  * Watches all source files for changes and de-dupes changes that occur within the specified delay window.
  * @internal
  */
 // tslint:disable-next-line: no-async-without-await
-export async function* watchAllSources(plugins: PluginController[], delay: number, context: Context) {
+export async function* watchAllSources(plugins: PluginController[], emitter: CodeEngineEventEmitter, delay: number, context: Context) {
   let watchers = plugins.filter(hasWatch);
-  let fileGenerators = watchers.map((watcher) => watcher.watch(context));
+  let fileGenerators = watchers.map((watcher) => emitFileChanges(watcher, emitter, context));
   let batchedFileChanges = debounceIterable(joinIterables(...fileGenerators), delay);
 
   for await (let changes of batchedFileChanges) {
@@ -18,6 +18,19 @@ export async function* watchAllSources(plugins: PluginController[], delay: numbe
     yield dedupeFileChanges(groupedChanges);
   }
 }
+
+/**
+ * Emits FileChange events whenever a file change is detected.
+ */
+// tslint:disable-next-line: no-async-without-await
+async function* emitFileChanges(watcher: HasWatch, emitter: CodeEngineEventEmitter, context: Context)
+: AsyncGenerator<Change> {
+  for await (let change of watcher.watch(context)) {
+    emitter.emit(EventName.FileChanged, change.file, context);
+    yield change;
+  }
+}
+
 
 /**
  * A changed file, with additional metadata that's needed internally by CodeEngine.

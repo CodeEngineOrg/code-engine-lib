@@ -68,7 +68,7 @@ export class BuildPipeline {
 
     Promise.resolve()
       .then(async () => {
-        for await (let changedFiles of watchAllSources(this._plugins, delay, context)) {
+        for await (let changedFiles of watchAllSources(this._plugins, this._events, delay, context)) {
           let buildContext: BuildContext = {
             ...context,
             fullBuild: false,
