@@ -1,6 +1,5 @@
-import { BuildContext, BuildSummary, Context, EventName, File, FileChange } from "@code-engine/types";
+import { BuildContext, BuildSummary, CodeEngineEventEmitter, Context, EventName, File, FileChange } from "@code-engine/types";
 import { iterate, joinIterables } from "@code-engine/utils";
-import { EventEmitter } from "events";
 import { PluginController } from "../plugins/plugin-controller";
 import { hasClean, hasDispose, isBuildStep, isFileSource } from "../plugins/types";
 import { runBuild } from "./build";
@@ -12,9 +11,9 @@ import { watchAllSources } from "./watch";
  */
 export class BuildPipeline {
   private _plugins: PluginController[] = [];
-  private _events: EventEmitter;
+  private _events: CodeEngineEventEmitter;
 
-  public constructor(emitter: EventEmitter) {
+  public constructor(emitter: CodeEngineEventEmitter) {
     this._events = emitter;
   }
 

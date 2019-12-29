@@ -1,4 +1,4 @@
-import { BuildSummary, Context, EventName, Logger, ModuleDefinition, PluginDefinition } from "@code-engine/types";
+import { BuildSummary, CodeEngineEventEmitter, Context, EventName, Logger, ModuleDefinition, PluginDefinition } from "@code-engine/types";
 import { createLogEmitter } from "@code-engine/utils";
 import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
@@ -12,10 +12,13 @@ import { PluginController } from "./plugins/plugin-controller";
 
 const instances: CodeEngine[] = [];
 
+// Hacky workaround to inherit from EventEmitter while also implementing the CodeEngineEventEmitter interface
+const codeEngineEventEmitter = EventEmitter as unknown as (new() => CodeEngineEventEmitter);
+
 /**
  * The main CodeEngine class.
  */
-export class CodeEngine extends EventEmitter {
+export class CodeEngine extends codeEngineEventEmitter {
   /** @internal */
   private _isDisposed: boolean = false;
 
@@ -39,12 +42,11 @@ export class CodeEngine extends EventEmitter {
       log: (undefined as unknown as Logger),
     };
 
-    let emitter = this;  // tslint:disable-line: no-this-assignment
-    createLogEmitter(emitter, context);
+    createLogEmitter(this, context);
 
     this._context = context;
-    this._buildPipeline = new BuildPipeline(emitter);
-    this._workerPool = new WorkerPool(emitter, context);
+    this._buildPipeline = new BuildPipeline(this);
+    this._workerPool = new WorkerPool(this, context);
 
     instances.push(this);
   }
