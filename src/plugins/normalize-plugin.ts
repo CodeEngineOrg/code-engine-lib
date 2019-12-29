@@ -1,6 +1,5 @@
 import { stringify } from "@code-engine/stringify";
 import { FileProcessor, Plugin, PluginDefinition } from "@code-engine/types";
-import { typedOno } from "@code-engine/utils";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "ono";
 import { isModuleDefinition, isPlugin } from "./types";
@@ -46,6 +45,6 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
     return definition as NormalizedPlugin;
   }
   catch (error) {
-    throw typedOno(error, `Error in ${defaultName}.`);
+    throw ono(error, `Error in ${defaultName}.`);
   }
 }
