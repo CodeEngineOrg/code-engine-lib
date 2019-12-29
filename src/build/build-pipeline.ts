@@ -1,4 +1,4 @@
-import { BuildContext, BuildFinishedEventData, BuildSummary, Context, EventName, File, FileChange } from "@code-engine/types";
+import { BuildContext, BuildSummary, Context, EventName, File, FileChange } from "@code-engine/types";
 import { iterate, joinIterables } from "@code-engine/utils";
 import { EventEmitter } from "events";
 import { PluginController } from "../plugins/plugin-controller";
@@ -87,7 +87,7 @@ export class BuildPipeline {
         }
       })
       .catch((error: Error) => {
-        this._events.emit(EventName.Error, error);
+        this._events.emit(EventName.Error, error, context);
       });
   }
 
@@ -107,7 +107,7 @@ export class BuildPipeline {
    */
   private _emitBuildStarting(context: BuildContext): void {
     if (this._events.listenerCount(EventName.BuildStarting) > 0) {
-      // Clone the BuildContext
+      // Clone the BuildContext to prevent listeners from mutating it and affecting the build
       context = {
         ...context,
         changedFiles: [
@@ -124,16 +124,7 @@ export class BuildPipeline {
    */
   private _emitBuildFinished(context: BuildContext, summary: BuildSummary): void {
     if (this._events.listenerCount(EventName.BuildFinished) > 0) {
-      // Merge the BuildContext and BuildSummary into a new object
-      let data: BuildFinishedEventData = {
-        ...context,
-        ...summary,
-        changedFiles: [
-          ...context.changedFiles
-        ]
-      };
-
-      this._events.emit(EventName.BuildFinished, data);
+      this._events.emit(EventName.BuildFinished, summary, context);
     }
   }
 }

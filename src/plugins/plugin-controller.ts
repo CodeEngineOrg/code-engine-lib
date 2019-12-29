@@ -1,6 +1,6 @@
 // tslint:disable: completed-docs
-import { BuildContext, BuildFinishedEventData, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
-import { createChangedFile, createFile, drainIterable, IterableWriter, iterate, typedOno } from "@code-engine/utils";
+import { BuildContext, BuildSummary, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
+import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { Change } from "../build/watch";
@@ -137,32 +137,33 @@ export class PluginController {
     this._callEventListener(EventName.BuildStarting, this._plugin.onBuildStarting!, context);
   }
 
-  public onBuildFinished?(summary: BuildFinishedEventData): void {
-    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary);
+  public onBuildFinished?(summary: BuildSummary, context: BuildContext): void {
+    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary, context);
   }
 
-  public onError?(error: Error): void {
-    this._callEventListener(EventName.Error, this._plugin.onError!, error);
+  public onError?(error: Error, context: Context): void {
+    this._callEventListener(EventName.Error, this._plugin.onError!, error, context);
   }
 
-  public onLog?(data: LogEventData): void {
-    this._callEventListener(EventName.Log, this._plugin.onLog!, data);
+  public onLog?(data: LogEventData, context: Context): void {
+    this._callEventListener(EventName.Log, this._plugin.onLog!, data, context);
   }
 
-  private _callEventListener<T>(eventName: EventName, listener: (arg: T) => void | Promise<void>, arg: T): void {
+  // tslint:disable-next-line: ban-types
+  private _callEventListener(eventName: EventName, listener: Function, arg1: unknown, arg2?: unknown): void {
     try {
-      let promise = listener.call(this._plugin, arg);
+      let promise = listener.call(this._plugin, arg1, arg2);
 
       if (promise) {
         // Wrap and re-throw async errors, just like synchronous errors
         Promise.resolve(promise)
           .catch((error: Error) => {
-            throw typedOno(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
+            throw ono(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
           });
       }
     }
     catch (error) {
-      throw typedOno(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
+      throw ono(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
     }
   }
 

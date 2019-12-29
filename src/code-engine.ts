@@ -124,7 +124,7 @@ export class CodeEngine extends EventEmitter {
     catch (error) {
       // Emit the "Error" event if there are any handlers registered
       if (this.listenerCount(EventName.Error) > 0) {
-        this.emit(EventName.Error, error as Error);
+        this.emit(EventName.Error, error as Error, context);
       }
 
       // Re-throw the error, regardless of whether there were event handlers
