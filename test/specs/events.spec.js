@@ -24,11 +24,41 @@ describe("Plugin events", () => {
     sinon.assert.calledOn(plugin2.onBuildStarting, plugin2);
 
     // The same arguments should have beeen passed to both plugins
-    sinon.assert.calledWithExactly(plugin1.onBuildStarting, ...plugin2.onBuildStarting.firstCall.args);
+    let [context, nullish] = plugin2.onBuildStarting.firstCall.args;
 
-    let context = plugin1.onBuildStarting.firstCall.args[0];
-    expect(context).to.be.an("object").and.include.keys(
-      "changedFiles", "concurrency", "cwd", "debug", "dev", "log", "fullBuild", "partialBuild");
+    sinon.assert.calledWithExactly(plugin1.onBuildStarting, context, nullish);
+
+    expect(context).to.be.an("object").with.keys(
+      "concurrency", "cwd", "debug", "dev", "log", "fullBuild", "partialBuild", "changedFiles");
+
+    expect(nullish).to.equal(undefined);
+  });
+
+  it("should call BuildFinished event listeners", async () => {
+    let plugin1 = { onBuildFinished: sinon.spy() };
+    let plugin2 = { onBuildFinished: sinon.spy() };
+
+    let engine = new CodeEngine();
+    await engine.use(plugin1, plugin2);
+    await engine.build();
+
+    // The BuildFinished event handler of each plugin should have been called
+    sinon.assert.calledOnce(plugin1.onBuildFinished);
+    sinon.assert.calledOnce(plugin2.onBuildFinished);
+
+    // The evvent handler should have been called with the plugin as its `this` context
+    sinon.assert.calledOn(plugin1.onBuildFinished, plugin1);
+    sinon.assert.calledOn(plugin2.onBuildFinished, plugin2);
+
+    // The same arguments should have beeen passed to both plugins
+    let [summary, context] = plugin2.onBuildFinished.firstCall.args;
+
+    sinon.assert.calledWithExactly(plugin1.onBuildFinished, summary, context);
+
+    expect(summary).to.be.an("object").with.keys("input", "output", "time");
+
+    expect(context).to.be.an("object").with.keys(
+      "concurrency", "cwd", "debug", "dev", "fullBuild", "partialBuild", "changedFiles", "log");
   });
 
   it("should call Log event listeners", async () => {
@@ -49,14 +79,17 @@ describe("Plugin events", () => {
     sinon.assert.calledOn(plugin3.onLog, plugin3);
 
     // The same arguments should have beeen passed to both plugins
-    sinon.assert.calledWithExactly(plugin1.onLog, ...plugin3.onLog.firstCall.args);
+    let [log, context] = plugin3.onLog.firstCall.args;
 
-    let log = plugin1.onLog.firstCall.args[0];
+    sinon.assert.calledWithExactly(plugin1.onLog, log, context);
+
     expect(log).to.deep.equal({
       level: "info",
       message: "This is a log message",
       foo: "bar",
     });
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
   it("should call Error event listeners", async () => {
@@ -88,10 +121,13 @@ describe("Plugin events", () => {
     // The same arguments should have beeen passed to both plugins
     sinon.assert.calledWithExactly(plugin1.onError, ...plugin3.onError.firstCall.args);
 
-    let error = plugin1.onError.firstCall.args[0];
+    let [error, context] = plugin1.onError.firstCall.args;
+
     expect(error).to.be.an.instanceOf(RangeError);
     expect(error.message).to.equal("An error occurred in Plugin 2 while reading source files. \nBoom!");
     expect(error.foo).to.equal("bar");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
   it("should re-throw errors from BuildStarting event handlers", async () => {
@@ -132,10 +168,13 @@ describe("Plugin events", () => {
     // The same error object should have been passed to both handlers
     sinon.assert.calledWithExactly(errorHandler, ...plugin2.onError.firstCall.args);
 
-    let error = errorHandler.firstCall.args[0];
+    let [error, context] = errorHandler.firstCall.args;
+
     expect(error).to.be.an.instanceOf(RangeError);
     expect(error.message).to.be.equal('An error occurred in Plugin 1 while handling a "buildStarting" event. \nBoom!');
     expect(error.foo).to.equal("bar");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
   it("should re-throw errors from BuildFinished event handlers", async () => {
@@ -176,10 +215,13 @@ describe("Plugin events", () => {
     // The same error object should have been passed to both handlers
     sinon.assert.calledWithExactly(errorHandler, ...plugin2.onError.firstCall.args);
 
-    let error = errorHandler.firstCall.args[0];
+    let [error, context] = errorHandler.firstCall.args;
+
     expect(error).to.be.an.instanceOf(RangeError);
     expect(error.message).to.be.equal('An error occurred in Plugin 1 while handling a "buildFinished" event. \nBoom!');
     expect(error.foo).to.equal("bar");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
   it("should re-throw errors from Log event handlers", async () => {
@@ -230,7 +272,8 @@ describe("Plugin events", () => {
     // The same error object should have been passed to both handlers
     sinon.assert.calledWithExactly(errorHandler, ...plugin2.onError.firstCall.args);
 
-    let error = errorHandler.firstCall.args[0];
+    let [error, context] = errorHandler.firstCall.args;
+
     expect(error).to.be.an.instanceOf(RangeError);
     expect(error.message).to.be.equal(
       "An error occurred in Plugin 3 while reading source files. \n" +
@@ -238,6 +281,8 @@ describe("Plugin events", () => {
       "Boom!"
     );
     expect(error.foo).to.equal("bar");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
   it("should re-throw errors from Error event handlers", async () => {
@@ -280,11 +325,14 @@ describe("Plugin events", () => {
     // The error event should have been emitted
     sinon.assert.calledOnce(errorHandler);
 
-    let error = errorHandler.firstCall.args[0];
+    let [error, context] = errorHandler.firstCall.args;
+
     expect(error).to.be.an.instanceOf(URIError);
     expect(error.message).to.be.equal("An error occurred in Plugin 3 while reading source files. \nOnoes!");
     expect(error.fizz).to.equal("buzz");
     expect(error).not.to.have.property("foo");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
   });
 
 });
