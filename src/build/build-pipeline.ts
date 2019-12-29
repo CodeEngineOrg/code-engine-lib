@@ -43,7 +43,7 @@ export class BuildPipeline {
   /**
    * Runs a full build of all source files.
    */
-  public async build(concurrency: number, context: Context): Promise<BuildSummary> {
+  public async build(context: Context): Promise<BuildSummary> {
     let buildContext: BuildContext = {
       ...context,
       fullBuild: true,
@@ -55,7 +55,7 @@ export class BuildPipeline {
 
     let files = readAllSources(this._plugins, buildContext);
     let steps = this._plugins.filter(isBuildStep);
-    let summary = await runBuild(files, steps, concurrency, buildContext);
+    let summary = await runBuild(files, steps, buildContext);
 
     this._emitBuildFinished(summary);
     return summary;
@@ -64,7 +64,7 @@ export class BuildPipeline {
   /**
    * Watches source files for changes and runs incremental re-builds whenever changes are detected.
    */
-  public watch(delay: number, concurrency: number, context: Context): void {
+  public watch(delay: number, context: Context): void {
     let steps = this._plugins.filter(isBuildStep);
 
     Promise.resolve()
@@ -81,7 +81,7 @@ export class BuildPipeline {
 
           // Only build the files that still exist (i.e. not the ones that were deleted)
           let files = changedFiles.filter((file) => file.change !== FileChange.Deleted);
-          let summary = await runBuild(iterate(files), steps, concurrency, buildContext);
+          let summary = await runBuild(iterate(files), steps, buildContext);
 
           this._emitBuildFinished(summary);
         }

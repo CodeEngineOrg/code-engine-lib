@@ -7,7 +7,7 @@ import { runBuildStep } from "./build-step";
  * Runs files through a series of plugins.
  * @internal
  */
-export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], concurrency: number, context: BuildContext): Promise<BuildSummary> {
+export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], context: BuildContext): Promise<BuildSummary> {
   let promises: Array<Promise<void>> = [], promise: Promise<void>;
 
   // Remove the contents from the changed files so the build context is lightweight
@@ -28,7 +28,7 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
   // Chain the build steps together, with each one accepting the output of the previous one as input
   for (let step of steps) {
     let output = new IterableWriter<File>();
-    promise = runBuildStep(step, concurrency, input, output, context);
+    promise = runBuildStep(step, input, output, context);
     promises.push(promise);
     input = output.iterable;
   }
@@ -37,7 +37,7 @@ export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], c
   let finalOutput = updateBuildSummary(summary, "output", input);
 
   // Wait for all build steps to finish
-  promises.push(drainIterable(finalOutput, concurrency));
+  promises.push(drainIterable(finalOutput, context.concurrency));
   await Promise.all(promises);
 
   // Update the build summary

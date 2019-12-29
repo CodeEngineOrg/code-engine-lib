@@ -6,19 +6,17 @@ import { BuildStep } from "../plugins/types";
  * Runs a single build step
  *
  * @param step - The build step (CodeEngine plugin) to run
- * @param concurrency - The number of files to process concurrently
  * @param input - An async iterable of input files from the previous build step
  * @param output - An async iterable writer that sends output files to the next build step
  * @param context - Contextual information about the current build
  * @internal
  */
 export async function runBuildStep(
-step: BuildStep, concurrency: number, input: AsyncIterable<File>, output: IterableWriter<File>, context: BuildContext)
-: Promise<void> {
-  let concurrentTasks = new ConcurrentTasks(concurrency);
+  step: BuildStep, input: AsyncIterable<File>, output: IterableWriter<File>, context: BuildContext): Promise<void> {
+  let concurrentTasks = new ConcurrentTasks(context.concurrency);
   let processFilesIO = setupProcessFilesIO(step, output, context);
 
-  for await (let file of iterateParallel(input, concurrency)) {
+  for await (let file of iterateParallel(input, context.concurrency)) {
     await concurrentTasks.waitForAvailability();
 
     if (!step.filter(file, context)) {
