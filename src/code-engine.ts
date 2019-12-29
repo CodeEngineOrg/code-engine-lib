@@ -20,10 +20,7 @@ export class CodeEngine extends EventEmitter {
   private _isDisposed: boolean = false;
 
   /** @internal */
-  private _config: Required<Config>;
-
-  /** @internal */
-  private _logger: Logger;
+  private _context: Context;
 
   /** @internal */
   private readonly _buildPipeline: BuildPipeline;
@@ -34,17 +31,18 @@ export class CodeEngine extends EventEmitter {
   public constructor(config: Config = {}) {
     super();
 
-    this._config = {
+    let context: Context = {
       cwd: config.cwd || process.cwd(),
       concurrency: validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length),
       dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
       debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
+      log: (undefined as unknown as Logger),
     };
 
-    let context = this._createContext();
     let emitter = this;  // tslint:disable-line: no-this-assignment
+    createLogEmitter(emitter, context);
 
-    this._logger = createLogEmitter(emitter, context);
+    this._context = context;
     this._buildPipeline = new BuildPipeline(emitter);
     this._workerPool = new WorkerPool(emitter, context);
 
@@ -106,7 +104,7 @@ export class CodeEngine extends EventEmitter {
    */
   public async clean(): Promise<void> {
     this._assertNotDisposed();
-    let context = this._createContext();
+    let context = { ...this._context };
     return this._buildPipeline.clean(context);
   }
 
@@ -115,10 +113,10 @@ export class CodeEngine extends EventEmitter {
    */
   public async build(): Promise<BuildSummary> {
     this._assertNotDisposed();
-    let context = this._createContext();
+    let context = { ...this._context };
 
     try {
-      let summary = await this._buildPipeline.build(this._config.concurrency, context);
+      let summary = await this._buildPipeline.build(context);
       return summary;
     }
     catch (error) {
@@ -143,9 +141,8 @@ export class CodeEngine extends EventEmitter {
     delay = validate.number.integer.positive(delay, "watch delay", 300);
     this._assertNotDisposed();
 
-    let context = this._createContext();
-    let { concurrency } = this._config;
-    this._buildPipeline.watch(delay, concurrency, context);
+    let context = { ...this._context };
+    this._buildPipeline.watch(delay, context);
   }
 
   /**
@@ -162,7 +159,7 @@ export class CodeEngine extends EventEmitter {
     let index = instances.indexOf(this);
     index >= 0 && instances.splice(index, 1);
 
-    let context = this._createContext();
+    let context = { ...this._context };
     await Promise.all([
       this._buildPipeline.dispose(context),
       this._workerPool.dispose(),
@@ -196,16 +193,6 @@ export class CodeEngine extends EventEmitter {
    */
   public get [Symbol.toStringTag](): string {
     return "CodeEngine";
-  }
-
-  /**
-   * Creates a `Context` object for this CodeEngine instance.
-   * @internal
-   */
-  private _createContext(): Context {
-    let { cwd, concurrency, dev, debug } = this._config;
-    let log = this._logger;
-    return { cwd, concurrency, dev, debug, log };
   }
 
   /**
