@@ -1,6 +1,7 @@
 "use strict";
 
 const { CodeEngine } = require("../../");
+const { delay } = require("../utils");
 const { assert, expect } = require("chai");
 
 describe("CodeEngine class", () => {
@@ -161,6 +162,47 @@ describe("CodeEngine class", () => {
     catch (error) {
       expect(error).to.be.an.instanceOf(Error);
       expect(error.message).to.equal("CodeEngine cannot be used after it has been disposed.");
+    }
+  });
+
+  it("should re-throw synchronous errors that occur during dispose()", async () => {
+    let badPlugin = {
+      dispose () {
+        throw new RangeError("Boom!");
+      }
+    };
+
+    let engine = new CodeEngine();
+    await engine.use(badPlugin);
+
+    try {
+      await engine.dispose();
+      assert.fail("CodeEngine should have thrown an error");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(RangeError);
+      expect(error.message).to.equal("An error occurred in Plugin 1 while cleaning-up. \nBoom!");
+    }
+  });
+
+  it("should re-throw asynchronous errors that occur during dispose()", async () => {
+    let badPlugin = {
+      async dispose () {
+        await delay(100);
+        throw new RangeError("Boom!");
+      }
+    };
+
+    let engine = new CodeEngine();
+    await engine.use(badPlugin);
+
+    try {
+      await engine.dispose();
+      assert.fail("CodeEngine should have thrown an error");
+    }
+    catch (error) {
+      expect(error).to.be.an.instanceOf(RangeError);
+      expect(error.message).to.equal("An error occurred in Plugin 1 while cleaning-up. \nBoom!");
     }
   });
 
