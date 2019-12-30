@@ -15,12 +15,14 @@ describe("Plugin.watch()", () => {
     let events = {
       buildStarting: sinon.spy(),
       buildFinished: sinon.spy(),
+      fileChanged: sinon.spy(),
       error: sinon.spy(),
     };
 
     engine.on("error", events.error);
     engine.on("buildStarting", events.buildStarting);
     engine.on("buildFinished", events.buildFinished);
+    engine.on("fileChanged", events.fileChanged);
 
     return events;
   }
@@ -32,12 +34,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.notCalled(events.fileChanged);
   });
 
   it("should call the watch() method of all plugins", async () => {
@@ -54,6 +58,7 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
@@ -64,6 +69,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.notCalled(events.fileChanged);
   });
 
   it("should be called with the plugin's `this` context", async () => {
@@ -76,6 +82,7 @@ describe("Plugin.watch()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
@@ -96,12 +103,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [preBuild] = events.buildStarting.firstCall.args;
     let [postBuild] = events.buildFinished.firstCall.args;
@@ -120,6 +129,15 @@ describe("Plugin.watch()", () => {
 
     expect(postBuild.input).to.deep.equal({ fileCount: 2, fileSize: 0 });
     expect(postBuild.output).to.deep.equal({ fileCount: 2, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
   });
 
   it("should dedupe multiple changes to the same file", async () => {
@@ -135,12 +153,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [preBuild] = events.buildStarting.firstCall.args;
     let [postBuild] = events.buildFinished.firstCall.args;
@@ -155,6 +175,15 @@ describe("Plugin.watch()", () => {
 
     expect(postBuild.input).to.deep.equal({ fileCount: 1, fileSize: 0 });
     expect(postBuild.output).to.deep.equal({ fileCount: 1, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "modified");
+    expect(files[1]).to.have.property("name", "file1.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("name", "file1.txt");
+    expect(files[2]).to.have.property("change", "modified");
   });
 
   it("should dedupe a file that deleted and re-created as a modification", async () => {
@@ -169,12 +198,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledTwice(events.fileChanged);
 
     let [preBuild] = events.buildStarting.firstCall.args;
     let [postBuild] = events.buildFinished.firstCall.args;
@@ -190,6 +221,15 @@ describe("Plugin.watch()", () => {
 
     expect(postBuild.input).to.deep.equal({ fileCount: 1, fileSize: 12 });
     expect(postBuild.output).to.deep.equal({ fileCount: 1, fileSize: 12 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(2);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "deleted");
+    expect(files[0]).to.have.property("text", "Old contents");
+    expect(files[1]).to.have.property("name", "file1.txt");
+    expect(files[1]).to.have.property("change", "created");
+    expect(files[1]).to.have.property("text", "New contents");
   });
 
   it("should dedupe a file that created and then modified a creation", async () => {
@@ -205,12 +245,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [preBuild] = events.buildStarting.firstCall.args;
     let [postBuild] = events.buildFinished.firstCall.args;
@@ -226,6 +268,18 @@ describe("Plugin.watch()", () => {
 
     expect(postBuild.input).to.deep.equal({ fileCount: 1, fileSize: 16 });
     expect(postBuild.output).to.deep.equal({ fileCount: 1, fileSize: 16 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[0]).to.have.property("text", "");
+    expect(files[1]).to.have.property("name", "file1.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[1]).to.have.property("text", "Contents added");
+    expect(files[2]).to.have.property("name", "file1.txt");
+    expect(files[2]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("text", "Contents changed");
   });
 
   it("should dedupe a file that modified and then deleted as a deletion", async () => {
@@ -241,12 +295,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [preBuild] = events.buildStarting.firstCall.args;
     let [postBuild] = events.buildFinished.firstCall.args;
@@ -262,6 +318,17 @@ describe("Plugin.watch()", () => {
 
     expect(postBuild.input).to.deep.equal({ fileCount: 0, fileSize: 0 });
     expect(postBuild.output).to.deep.equal({ fileCount: 0, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[0]).to.have.property("text", "");
+    expect(files[1]).to.have.property("name", "file1.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[1]).to.have.property("text", "Contents changed");
+    expect(files[2]).to.have.property("name", "file1.txt");
+    expect(files[2]).to.have.property("change", "deleted");
   });
 
   it("should not include deleted files in the build", async () => {
@@ -278,12 +345,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
     sinon.assert.calledTwice(plugin2);
 
     let files = getFiles(plugin2);
@@ -296,6 +365,18 @@ describe("Plugin.watch()", () => {
     let [summary] = events.buildFinished.firstCall.args;
     expect(summary.input.fileCount).to.equal(2);
     expect(summary.output.fileCount).to.equal(2);
+
+    files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[0]).to.have.property("text", "");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[1]).to.have.property("text", "");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
+    expect(files[2]).to.have.property("text", "");
   });
 
   it("should run an empty build if all changes are deletions", async () => {
@@ -315,20 +396,24 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2, plugin3);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
 
     sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
+
     let [preBuild] = events.buildStarting.firstCall.args;
+    let [postBuild] = events.buildFinished.firstCall.args;
+
     expect(preBuild.changedFiles).to.have.lengthOf(3);
     expect(preBuild.changedFiles[0]).to.have.property("change", "deleted");
     expect(preBuild.changedFiles[1]).to.have.property("change", "deleted");
     expect(preBuild.changedFiles[2]).to.have.property("change", "deleted");
 
-    sinon.assert.calledOnce(events.buildFinished);
-    let [postBuild] = events.buildFinished.firstCall.args;
     expect(postBuild.changedFiles).to.have.lengthOf(3);
     expect(postBuild.changedFiles[0]).to.have.property("change", "deleted");
     expect(postBuild.changedFiles[1]).to.have.property("change", "deleted");
@@ -349,6 +434,18 @@ describe("Plugin.watch()", () => {
     expect(buildContext.changedFiles[0]).to.have.property("change", "deleted");
     expect(buildContext.changedFiles[1]).to.have.property("change", "deleted");
     expect(buildContext.changedFiles[2]).to.have.property("change", "deleted");
+
+    files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "deleted");
+    expect(files[0]).to.have.property("text", "");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "deleted");
+    expect(files[1]).to.have.property("text", "");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
+    expect(files[2]).to.have.property("text", "");
   });
 
   it("should include changed file contents in the buildStarting event", async () => {
@@ -364,12 +461,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [buildContext] = events.buildStarting.firstCall.args;
     expect(buildContext.changedFiles[0]).to.have.property("name", "file1.txt");
@@ -393,12 +492,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
 
     let [summary] = events.buildFinished.firstCall.args;
     expect(summary.changedFiles[0]).to.have.property("name", "file1.txt");
@@ -426,12 +527,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin1, plugin2);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
     sinon.assert.calledTwice(plugin2);
 
     let files = getFiles(plugin2);
@@ -466,6 +569,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledTwice(events.fileChanged);
 
     let files = getFiles(plugin2);
     expect(files).to.have.lengthOf(2);
@@ -516,6 +620,7 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(100);          // Use the same watch delay, even in CI
 
     // 100ms: A file was yielded at 50ms, so the build won't start until 150ms
@@ -523,26 +628,30 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.callCount(events.fileChanged, 3);
 
     // 200ms: A build occurred at 150ms
     await delay(100);
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.callCount(events.fileChanged, 3);
     expect(events.buildStarting.firstCall.args[0].changedFiles).to.have.lengthOf(3);
     expect(events.buildFinished.firstCall.args[0].changedFiles).to.have.lengthOf(3);
 
-    // 400ms: A file was yielded at 350ms and another at 400ms, so the build won't start until 500ms
-    await delay(200);
+    // 450ms: A file was yielded at 350ms and another at 400ms, so the build won't start until 500ms
+    await delay(250);
     sinon.assert.notCalled(events.error);
     sinon.assert.calledOnce(events.buildStarting);
     sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.callCount(events.fileChanged, 5);
 
     // 600ms: A build occurred at 500ms
     await delay(200);
     sinon.assert.notCalled(events.error);
     sinon.assert.calledTwice(events.buildStarting);
     sinon.assert.calledTwice(events.buildFinished);
+    sinon.assert.callCount(events.fileChanged, 5);
     expect(events.buildStarting.secondCall.args[0].changedFiles).to.have.lengthOf(2);
     expect(events.buildFinished.secondCall.args[0].changedFiles).to.have.lengthOf(2);
 
@@ -551,6 +660,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.calledThrice(events.buildStarting);
     sinon.assert.calledThrice(events.buildFinished);
+    sinon.assert.callCount(events.fileChanged, 6);
     expect(events.buildStarting.thirdCall.args[0].changedFiles).to.have.lengthOf(1);
     expect(events.buildFinished.thirdCall.args[0].changedFiles).to.have.lengthOf(1);
 
@@ -559,6 +669,7 @@ describe("Plugin.watch()", () => {
     sinon.assert.notCalled(events.error);
     sinon.assert.callCount(events.buildStarting, 4);
     sinon.assert.callCount(events.buildFinished, 4);
+    sinon.assert.callCount(events.fileChanged, 8);
     expect(events.buildStarting.getCalls()[3].args[0].changedFiles).to.have.lengthOf(2);
     expect(events.buildFinished.getCalls()[3].args[0].changedFiles).to.have.lengthOf(2);
   });
@@ -574,12 +685,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.notCalled(events.fileChanged);
 
     let [error, context] = events.error.firstCall.args;
 
@@ -603,12 +716,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.notCalled(events.fileChanged);
 
     let [error, context] = events.error.firstCall.args;
 
@@ -631,12 +746,14 @@ describe("Plugin.watch()", () => {
     let engine = new CodeEngine();
     let events = createEvents(engine);
     await engine.use(plugin);
+
     engine.watch(WATCH_DELAY);
     await delay(WATCH_DELAY + TIME_BUFFER);
 
     sinon.assert.calledOnce(events.error);
     sinon.assert.notCalled(events.buildStarting);
     sinon.assert.notCalled(events.buildFinished);
+    sinon.assert.notCalled(events.fileChanged);
 
     let [error, context] = events.error.firstCall.args;
 
