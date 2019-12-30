@@ -59,6 +59,41 @@ describe("Plugin events", () => {
       "input", "output", "time");
   });
 
+  it("should call FileChanged event listeners", async () => {
+    let plugin1 = { onFileChanged: sinon.spy() };
+    let plugin2 = {
+      async* watch () {
+        await delay(100);
+        yield { path: "file1.txt", change: "modified", text: "New contents" };
+      }
+    };
+    let plugin3 = { onFileChanged: sinon.spy() };
+
+    let engine = new CodeEngine();
+    await engine.use(plugin1, plugin2, plugin3);
+    engine.watch();
+    await delay(500);
+
+    // The FileChanged event handler of each plugin should have been called
+    sinon.assert.calledOnce(plugin1.onFileChanged);
+    sinon.assert.calledOnce(plugin3.onFileChanged);
+
+    // The evvent handler should have been called with the plugin as its `this` context
+    sinon.assert.calledOn(plugin1.onFileChanged, plugin1);
+    sinon.assert.calledOn(plugin3.onFileChanged, plugin3);
+
+    // The same arguments should have beeen passed to both plugins
+    let [file, context] = plugin3.onFileChanged.firstCall.args;
+
+    sinon.assert.calledWithExactly(plugin1.onFileChanged, file, context);
+
+    expect(file).to.have.property("path", "file1.txt");
+    expect(file).to.have.property("change", "modified");
+    expect(file).to.have.property("text", "New contents");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
+  });
+
   it("should call Log event listeners", async () => {
     let plugin1 = { onLog: sinon.spy() };
     let plugin2 = { read: (context) => context.log("This is a log message", { foo: "bar" }) };
@@ -217,6 +252,53 @@ describe("Plugin events", () => {
 
     expect(error).to.be.an.instanceOf(RangeError);
     expect(error.message).to.be.equal('An error occurred in Plugin 1 while handling a "buildFinished" event. \nBoom!');
+    expect(error.foo).to.equal("bar");
+
+    expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
+  });
+
+  it("should emit errors from FileChanged event handlers", async () => {
+    let plugin1 = {
+      onFileChanged () {
+        throw ono.range({ foo: "bar" }, "Boom!");
+      }
+    };
+
+    let plugin2 = {
+      async* watch () {
+        await delay(100);
+        yield { path: "file1.txt", change: "modified", text: "New contents" };
+      }
+    };
+
+    let plugin3 = {
+      onFileChanged: sinon.spy(),
+      onError: sinon.spy()
+    };
+
+    let engine = new CodeEngine();
+    let errorHandler = sinon.spy();
+    engine.on("error", errorHandler);
+    await engine.use(plugin1, plugin2, plugin3);
+
+    engine.watch();
+    await delay(500);
+
+    // The second FileChanged event handler should NOT have been called,
+    // because the first handler threw an error
+    sinon.assert.notCalled(plugin3.onFileChanged);
+
+    // The error event should have been emitted, and the onError handler called
+    sinon.assert.calledOnce(errorHandler);
+    sinon.assert.calledOnce(plugin3.onError);
+
+    // The same error object should have been passed to both handlers
+    sinon.assert.calledWithExactly(errorHandler, ...plugin3.onError.firstCall.args);
+
+    let [error, context] = errorHandler.firstCall.args;
+
+    expect(error).to.be.an.instanceOf(RangeError);
+    expect(error.message).to.be.equal('An error occurred in Plugin 1 while handling a "fileChanged" event. \nBoom!');
     expect(error.foo).to.equal("bar");
 
     expect(context).to.be.an("object").with.keys("concurrency", "cwd", "debug", "dev", "log");
