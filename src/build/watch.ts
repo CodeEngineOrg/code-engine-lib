@@ -1,5 +1,5 @@
 import { ChangedFile, CodeEngineEventEmitter, Context, EventName, FileChange } from "@code-engine/types";
-import { debounceIterable, joinIterables } from "@code-engine/utils";
+import { createChangedFile, debounceIterable, joinIterables } from "@code-engine/utils";
 import { PluginController } from "../plugins/plugin-controller";
 import { hasWatch, HasWatch } from "../plugins/types";
 
@@ -73,19 +73,26 @@ function dedupeFileChanges(groupedChanges: GroupedFileChanges): ChangedFile[] {
       let first = changes[0];
       let last = changes[changes.length - 1];
 
+      // Most of the time, the de-duped file will be the last change that occurred,
+      // with the latest contents that we have available
+      let dedupedFile = createChangedFile({
+        ...last.file,
+        contents: getLatestContents(changes),
+      });
+
       switch (last.file.change) {
         case FileChange.Created:
           if (first.file.change !== FileChange.Created) {
             // The file was re-created after being deleted/modified,
             // so this is actually just a modification
-            last.file.change = FileChange.Modified;
+            dedupedFile.change = FileChange.Modified;
           }
           break;
 
         case FileChange.Modified:
           if (first.file.change === FileChange.Created) {
             // The file was created and then modified, so this is actually a creation
-            last.file.change = FileChange.Created;
+            dedupedFile.change = FileChange.Created;
           }
           break;
 
@@ -95,9 +102,7 @@ function dedupeFileChanges(groupedChanges: GroupedFileChanges): ChangedFile[] {
           break;
       }
 
-      // Always use the latest contents we have
-      last.file.contents = getLatestContents(changes);
-      changedFiles.push(last.file);
+      changedFiles.push(dedupedFile);
     }
     else {
       // Nothig to de-dupe
