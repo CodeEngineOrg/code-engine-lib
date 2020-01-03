@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { BuildContext, BuildSummary, ChangedFile, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
+import { BuildContext, BuildSummary, ChangedFile, ChangedFileInfo, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
@@ -99,9 +99,35 @@ export class PluginController {
   // tslint:disable-next-line: no-async-without-await
   public async* watch?(context: Context): AsyncGenerator<Change> {
     try {
-      let changedFileInfos = this._plugin.watch!(context);
+      // Create a callback function that yields a changed file
+      let writer = new IterableWriter<ChangedFileInfo>();
+      let callback = (file: ChangedFileInfo) => writer.write(file);
 
-      for await (let changedFileInfo of iterate(changedFileInfos)) {
+      let changedFileInfos = this._plugin.watch!(context, callback);
+
+      if (changedFileInfos) {
+        // The plugin returned an async iterable, so read from it
+        // in addition to any values that are written via the callback function.
+        let iterator = iterate(changedFileInfos)[Symbol.asyncIterator]();
+
+        writer.onRead = async () => {
+          try {
+            let result = await iterator.next();
+
+            if (result.done) {
+              await writer.end();
+            }
+            else {
+              await writer.write(result.value);
+            }
+          }
+          catch (error) {
+            await writer.throw(error as Error);
+          }
+        };
+      }
+
+      for await (let changedFileInfo of writer.iterable) {
         let file = createChangedFile(changedFileInfo, this.name);
 
         // Return an additional flag that indicates whether any contents were actually specified.
