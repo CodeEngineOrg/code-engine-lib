@@ -90,12 +90,176 @@ describe("Plugin.watch()", () => {
     sinon.assert.calledOn(plugin2.watch, plugin2);
   });
 
-  it("should start a new build with changed files", async () => {
+  it("should support iterable syntax", async () => {
     let plugin = {
       async* watch () {
         await delay();
         yield { path: "file1.txt", change: "created" };
         yield { path: "file2.txt", change: "modified" };
+        yield { path: "file3.txt", change: "deleted" };
+      }
+    };
+
+    let engine = new CodeEngine();
+    let events = createEvents(engine);
+    await engine.use(plugin);
+
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
+
+    let [preBuild] = events.buildStarting.firstCall.args;
+    let [postBuild] = events.buildFinished.firstCall.args;
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(3);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "created");
+      expect(build.changedFiles[1]).to.have.property("name", "file2.txt");
+      expect(build.changedFiles[1]).to.have.property("change", "modified");
+      expect(build.changedFiles[2]).to.have.property("name", "file3.txt");
+      expect(build.changedFiles[2]).to.have.property("change", "deleted");
+    }
+
+    expect(postBuild.input).to.deep.equal({ fileCount: 2, fileSize: 0 });
+    expect(postBuild.output).to.deep.equal({ fileCount: 2, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
+  });
+
+  it("should support callback syntax", async () => {
+    let plugin = {
+      async watch (context, fileChanged) {
+        await delay();
+        fileChanged({ path: "file1.txt", change: "created" });
+        fileChanged({ path: "file2.txt", change: "modified" });
+        fileChanged({ path: "file3.txt", change: "deleted" });
+      }
+    };
+
+    let engine = new CodeEngine();
+    let events = createEvents(engine);
+    await engine.use(plugin);
+
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
+
+    let [preBuild] = events.buildStarting.firstCall.args;
+    let [postBuild] = events.buildFinished.firstCall.args;
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(3);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "created");
+      expect(build.changedFiles[1]).to.have.property("name", "file2.txt");
+      expect(build.changedFiles[1]).to.have.property("change", "modified");
+      expect(build.changedFiles[2]).to.have.property("name", "file3.txt");
+      expect(build.changedFiles[2]).to.have.property("change", "deleted");
+    }
+
+    expect(postBuild.input).to.deep.equal({ fileCount: 2, fileSize: 0 });
+    expect(postBuild.output).to.deep.equal({ fileCount: 2, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
+  });
+
+  it("should support iterator syntax", async () => {
+    let plugin = {
+      watch () {
+        let files = [
+          { path: "file1.txt", change: "created" },
+          { path: "file2.txt", change: "modified" },
+          { path: "file3.txt", change: "deleted" },
+        ];
+        let i = -1;
+
+        return {
+          async next () {
+            await delay();
+            if (++i < files.length) {
+              return { value: files[i] };
+            }
+            else {
+              return { done: true };
+            }
+          }
+        }
+      }
+    };
+
+    let engine = new CodeEngine();
+    let events = createEvents(engine);
+    await engine.use(plugin);
+
+    engine.watch(WATCH_DELAY);
+    await delay(WATCH_DELAY + TIME_BUFFER);
+
+    sinon.assert.notCalled(events.error);
+    sinon.assert.calledOnce(events.buildStarting);
+    sinon.assert.calledOnce(events.buildFinished);
+    sinon.assert.calledThrice(events.fileChanged);
+
+    let [preBuild] = events.buildStarting.firstCall.args;
+    let [postBuild] = events.buildFinished.firstCall.args;
+
+    for (let build of [preBuild, postBuild]) {
+      expect(build.fullBuild).to.equal(false);
+      expect(build.partialBuild).to.equal(true);
+      expect(build.changedFiles).to.have.lengthOf(3);
+      expect(build.changedFiles[0]).to.have.property("name", "file1.txt");
+      expect(build.changedFiles[0]).to.have.property("change", "created");
+      expect(build.changedFiles[1]).to.have.property("name", "file2.txt");
+      expect(build.changedFiles[1]).to.have.property("change", "modified");
+      expect(build.changedFiles[2]).to.have.property("name", "file3.txt");
+      expect(build.changedFiles[2]).to.have.property("change", "deleted");
+    }
+
+    expect(postBuild.input).to.deep.equal({ fileCount: 2, fileSize: 0 });
+    expect(postBuild.output).to.deep.equal({ fileCount: 2, fileSize: 0 });
+
+    let files = getFiles(events.fileChanged);
+    expect(files).to.have.lengthOf(3);
+    expect(files[0]).to.have.property("name", "file1.txt");
+    expect(files[0]).to.have.property("change", "created");
+    expect(files[1]).to.have.property("name", "file2.txt");
+    expect(files[1]).to.have.property("change", "modified");
+    expect(files[2]).to.have.property("name", "file3.txt");
+    expect(files[2]).to.have.property("change", "deleted");
+  });
+
+  it("should support a mix of iterable and callback syntaxes", async () => {
+    let plugin = {
+      async* watch (context, fileChanged) {
+        await delay();
+        yield { path: "file1.txt", change: "created" };
+        fileChanged({ path: "file2.txt", change: "modified" });
         yield { path: "file3.txt", change: "deleted" };
       }
     };
