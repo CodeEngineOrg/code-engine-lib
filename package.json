@@ -1,6 +1,6 @@
 {
   "name": "@code-engine/lib",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "build tool | code generator | static site builder",
   "keywords": [
     "build-tool",
