@@ -210,7 +210,7 @@ describe("Plugin.watch()", () => {
               return { done: true };
             }
           }
-        }
+        };
       }
     };
 
