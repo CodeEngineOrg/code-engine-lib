@@ -1,9 +1,9 @@
 // tslint:disable: completed-docs
-import { BuildContext, BuildSummary, ChangedFile, ChangedFileInfo, Context, EventName, File, FileInfo, FilterFunction, LogEventData } from "@code-engine/types";
+import { ChangedFile, ChangedFileInfo, EventName, File, FileInfo, FilterFunction, Run, Summary } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
-import { Change } from "../build/watch";
+import { Change } from "../run/watch";
 import { NormalizedPlugin } from "./normalize-plugin";
 
 /**
@@ -26,24 +26,22 @@ export class PluginController {
     plugin.watch || (this.watch = undefined);
     plugin.clean || (this.clean = undefined);
     plugin.dispose || (this.dispose = undefined);
-    plugin.onBuildStarting || (this.onBuildStarting = undefined);
-    plugin.onBuildFinished || (this.onBuildFinished = undefined);
-    plugin.onFileChanged || (this.onFileChanged = undefined);
-    plugin.onError || (this.onError = undefined);
-    plugin.onLog || (this.onLog = undefined);
+    plugin.start || (this.start = undefined);
+    plugin.finish || (this.finish = undefined);
+    plugin.fileChanged || (this.fileChanged = undefined);
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* processFiles?(files: AsyncIterable<File>, context: BuildContext): AsyncGenerator<File> {
+  public async* processFiles?(files: AsyncIterable<File>, run: Run): AsyncGenerator<File> {
     try {
-      let fileInfos = this._plugin.processFiles!(files, context);
+      let fileInfos = this._plugin.processFiles!(files, run);
 
       for await (let fileInfo of iterate(fileInfos)) {
         yield createFile(fileInfo, this.name);
       }
 
       // Ensure that all input files are read, even if the plugin doesn't actually read them.
-      // Otherwise the build will never complete.
+      // Otherwise the run will never complete.
       await drainIterable(files);
     }
     catch (error) {
@@ -51,9 +49,9 @@ export class PluginController {
     }
   }
 
-  public async processFile?(file: File, context: BuildContext, output: IterableWriter<File>): Promise<void> {
+  public async processFile?(file: File, run: Run, output: IterableWriter<File>): Promise<void> {
     try {
-      let fileInfos = this._plugin.processFile!(file, context);
+      let fileInfos = this._plugin.processFile!(file, run);
 
       for await (let fileInfo of iterate(fileInfos)) {
         await output.write(createFile(fileInfo, this.name));
@@ -64,13 +62,13 @@ export class PluginController {
     }
   }
 
-  public read?(context: BuildContext): AsyncIterable<File> {
+  public read?(run: Run): AsyncIterable<File> {
     let iterator: AsyncIterator<FileInfo>;
 
     try {
       // NOTE: The reason we don't just use a `for await...of` loop here is that we want to be able to
       // ead multiple files simultaneously if the `processFile()` plugins are faster than the IO source.
-      let fileInfos = this._plugin.read!(context);
+      let fileInfos = this._plugin.read!(run);
       iterator = iterate(fileInfos)[Symbol.asyncIterator]();
     }
     catch (error) {
@@ -97,13 +95,13 @@ export class PluginController {
   }
 
   // tslint:disable-next-line: no-async-without-await
-  public async* watch?(context: Context): AsyncGenerator<Change> {
+  public async* watch?(): AsyncGenerator<Change> {
     try {
       // Create a callback function that yields a changed file
       let writer = new IterableWriter<ChangedFileInfo>();
       let callback = (file: ChangedFileInfo) => writer.write(file);
 
-      let changedFileInfos = this._plugin.watch!(context, callback);
+      let changedFileInfos = this._plugin.watch!(callback);
 
       if (changedFileInfos) {
         // The plugin returned an async iterable, so read from it
@@ -142,42 +140,34 @@ export class PluginController {
     }
   }
 
-  public async clean?(context: Context): Promise<void> {
+  public async clean?(): Promise<void> {
     try {
-      await this._plugin.clean!(context);
+      await this._plugin.clean!();
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while cleaning the destination.`);
     }
   }
 
-  public async dispose?(context: Context): Promise<void> {
+  public async dispose?(): Promise<void> {
     try {
-      await this._plugin.dispose!(context);
+      await this._plugin.dispose!();
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while cleaning-up.`);
     }
   }
 
-  public onBuildStarting?(context: BuildContext): void {
-    this._callEventListener(EventName.BuildStarting, this._plugin.onBuildStarting!, context);
+  public start?(run: Run): void {
+    this._callEventListener(EventName.Start, this._plugin.start!, run);
   }
 
-  public onBuildFinished?(summary: BuildSummary): void {
-    this._callEventListener(EventName.BuildFinished, this._plugin.onBuildFinished!, summary);
+  public finish?(summary: Summary): void {
+    this._callEventListener(EventName.Finish, this._plugin.finish!, summary);
   }
 
-  public onFileChanged?(file: ChangedFile, context: Context): void {
-    this._callEventListener(EventName.FileChanged, this._plugin.onFileChanged!, file, context);
-  }
-
-  public onError?(error: Error, context: Context): void {
-    this._callEventListener(EventName.Error, this._plugin.onError!, error, context);
-  }
-
-  public onLog?(data: LogEventData, context: Context): void {
-    this._callEventListener(EventName.Log, this._plugin.onLog!, data, context);
+  public fileChanged?(file: ChangedFile): void {
+    this._callEventListener(EventName.FileChanged, this._plugin.fileChanged!, file);
   }
 
   // tslint:disable-next-line: ban-types

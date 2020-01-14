@@ -1,32 +1,32 @@
-import { BuildContext, File } from "@code-engine/types";
+import { File, Run } from "@code-engine/types";
 import { ConcurrentTasks, IterableWriter, iterateParallel } from "@code-engine/utils";
-import { BuildStep } from "../plugins/types";
+import { FileProcessorPlugin } from "../plugins/types";
 
 /**
- * Runs a single build step
+ * Runs a single step of the pipeline
  *
- * @param step - The build step (CodeEngine plugin) to run
- * @param input - An async iterable of input files from the previous build step
- * @param output - An async iterable writer that sends output files to the next build step
- * @param context - Contextual information about the current build
+ * @param step - The CodeEngine plugin to run
+ * @param input - An async iterable of input files from the previous step
+ * @param output - An async iterable writer that sends output files to the next step
+ * @param run - Information about the run
  * @internal
  */
-export async function runBuildStep(
-  step: BuildStep, input: AsyncIterable<File>, output: IterableWriter<File>, context: BuildContext): Promise<void> {
-  let concurrentTasks = new ConcurrentTasks(context.concurrency);
-  let processFilesIO = setupProcessFilesIO(step, output, context);
+export async function runStep(
+  step: FileProcessorPlugin, input: AsyncIterable<File>, output: IterableWriter<File>, run: Run): Promise<void> {
+  let concurrentTasks = new ConcurrentTasks(run.concurrency);
+  let processFilesIO = setupProcessFilesIO(step, output, run);
 
-  for await (let file of iterateParallel(input, context.concurrency)) {
+  for await (let file of iterateParallel(input, run.concurrency)) {
     await concurrentTasks.waitForAvailability();
 
-    if (!step.filter(file, context)) {
+    if (!step.filter(file, run)) {
       // This file doesn't match the plugin's filter criteria, so just forward it on
       let promise = output.write(file);
       concurrentTasks.add(promise);
     }
     else {
       if (step.processFile) {
-        let promise = step.processFile(file, context, output);
+        let promise = step.processFile(file, run, output);
         concurrentTasks.add(promise);
       }
 
@@ -47,16 +47,16 @@ export async function runBuildStep(
 }
 
 /**
- * If the build step has a `processFiles()` method, then this function creates the input and output iterables for it.
+ * If the step has a `processFiles()` (plural) method, then this function creates the input and output iterables for it.
  */
-function setupProcessFilesIO(step: BuildStep, output: IterableWriter<File>, context: BuildContext) {
+function setupProcessFilesIO(step: FileProcessorPlugin, output: IterableWriter<File>, run: Run) {
   if (step.processFiles) {
     // Create the input/output iterables for the processFiles() method
     let processFilesInput = new IterableWriter<File>();
-    let processFilesOutput = step.processFiles(processFilesInput.iterable, context)[Symbol.asyncIterator]();
+    let processFilesOutput = step.processFiles(processFilesInput.iterable, run)[Symbol.asyncIterator]();
     let finished = false;
 
-    // Connect the processFiles() output to the build step's output
+    // Connect the processFiles() output to the step's output
     output.onRead = pipeOutput;
 
     return {
@@ -65,7 +65,7 @@ function setupProcessFilesIO(step: BuildStep, output: IterableWriter<File>, cont
     };
 
     /**
-     * Pipes output from the `processFiles()` method to the next build step.
+     * Pipes output from the `processFiles()` method to the next step.
      */
     async function pipeOutput() {
       try {

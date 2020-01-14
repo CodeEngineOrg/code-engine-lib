@@ -25,7 +25,7 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
       // This plugin is just a main-thread processFile() method
       definition = { name: definition.name, processFile: definition };
     }
-    else if (isModuleDefinition(definition)) {
+    else if (typeof definition === "string" || isModuleDefinition(definition)) {
       // This plugin is just a worker-thread processFile() method
       definition = { processFile: definition };
     }
@@ -35,10 +35,18 @@ export async function normalizePlugin(definition: PluginDefinition, workerPool: 
 
     let name = definition.name;
 
+    if (typeof definition.processFile === "string") {
+      definition.processFile = { moduleId: definition.processFile };
+    }
+
     if (isModuleDefinition(definition.processFile)) {
       // Import the FileProcessor on all worker threads
-      definition.processFile = await workerPool.importFileProcessor(definition.processFile);
-      name = name || definition.processFile.name;
+      let { moduleId, data } = definition.processFile;
+      let processFile = await workerPool.importFileProcessor(moduleId, data);
+
+      // Replace the ModuleDefinition with the FileProcessor
+      definition.processFile = processFile;
+      name = name || processFile.name;
     }
 
     definition.name = String(name || defaultName);

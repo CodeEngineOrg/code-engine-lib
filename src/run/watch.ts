@@ -1,16 +1,16 @@
-import { ChangedFile, CodeEngineEventEmitter, Context, EventName, FileChange } from "@code-engine/types";
+import { ChangedFile, CodeEngineEventEmitter, EventName, FileChange } from "@code-engine/types";
 import { createChangedFile, debounceIterable, joinIterables } from "@code-engine/utils";
 import { PluginController } from "../plugins/plugin-controller";
-import { hasWatch, HasWatch } from "../plugins/types";
+import { isWatcherPlugin, WatcherPlugin } from "../plugins/types";
 
 /**
  * Watches all source files for changes and de-dupes changes that occur within the specified delay window.
  * @internal
  */
 // tslint:disable-next-line: no-async-without-await
-export async function* watchAllSources(plugins: PluginController[], emitter: CodeEngineEventEmitter, delay: number, context: Context) {
-  let watchers = plugins.filter(hasWatch);
-  let fileGenerators = watchers.map((watcher) => emitFileChanges(watcher, emitter, context));
+export async function* watchAllSources(plugins: PluginController[], emitter: CodeEngineEventEmitter, delay: number) {
+  let watchers = plugins.filter(isWatcherPlugin);
+  let fileGenerators = watchers.map((watcher) => emitFileChanges(watcher, emitter));
   let batchedFileChanges = debounceIterable(joinIterables(...fileGenerators), delay);
 
   for await (let changes of batchedFileChanges) {
@@ -23,10 +23,10 @@ export async function* watchAllSources(plugins: PluginController[], emitter: Cod
  * Emits FileChange events whenever a file change is detected.
  */
 // tslint:disable-next-line: no-async-without-await
-async function* emitFileChanges(watcher: HasWatch, emitter: CodeEngineEventEmitter, context: Context)
+async function* emitFileChanges(watcher: WatcherPlugin, emitter: CodeEngineEventEmitter)
 : AsyncGenerator<Change> {
-  for await (let change of watcher.watch(context)) {
-    emitter.emit(EventName.FileChanged, change.file, context);
+  for await (let change of watcher.watch()) {
+    emitter.emit(EventName.FileChanged, change.file);
     yield change;
   }
 }

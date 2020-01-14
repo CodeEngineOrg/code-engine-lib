@@ -7,8 +7,8 @@ import { PluginController } from "./plugin-controller";
  * or a string that's shorthand for `ModuleDefinition.moduleId`.
  * @internal
  */
-export function isModuleDefinition<T>(value: unknown): value is string | ModuleDefinition<T> {
-  return typeof value === "string" || (value && typeof (value as ModuleDefinition<T>).moduleId === "string");
+export function isModuleDefinition<T>(value: unknown): value is ModuleDefinition<T> {
+  return value && typeof (value as ModuleDefinition<T>).moduleId === "string";
 }
 
 
@@ -26,13 +26,13 @@ export function isPlugin(value: unknown): value is Plugin {
       // A plugin must implement at least one method
       plugin.processFile || plugin.processFiles ||
       plugin.read || plugin.watch || plugin.clean || plugin.dispose ||
-      plugin.onBuildStarting || plugin.onBuildFinished || plugin.onFileChanged ||
-      plugin.onError || plugin.onLog
+      plugin.start || plugin.finish || plugin.fileChanged
     )
     &&
     (
       plugin.processFile === undefined ||
       typeof plugin.processFile === "function" ||
+      typeof plugin.processFile === "string" ||
       isModuleDefinition(plugin.processFile)
     )) &&
     (plugin.processFiles === undefined || typeof plugin.processFiles === "function") &&
@@ -40,11 +40,9 @@ export function isPlugin(value: unknown): value is Plugin {
     (plugin.watch === undefined || typeof plugin.watch === "function") &&
     (plugin.clean === undefined || typeof plugin.clean === "function") &&
     (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
-    (plugin.onBuildStarting === undefined || typeof plugin.onBuildStarting === "function") &&
-    (plugin.onBuildFinished === undefined || typeof plugin.onBuildFinished === "function") &&
-    (plugin.onFileChanged === undefined || typeof plugin.onFileChanged === "function") &&
-    (plugin.onError === undefined || typeof plugin.onError === "function") &&
-    (plugin.onLog === undefined || typeof plugin.onLog === "function");
+    (plugin.start === undefined || typeof plugin.start === "function") &&
+    (plugin.finish === undefined || typeof plugin.finish === "function") &&
+    (plugin.fileChanged === undefined || typeof plugin.fileChanged === "function");
 }
 
 
@@ -52,13 +50,13 @@ export function isPlugin(value: unknown): value is Plugin {
  * A plugin that implements the `read()` method.
  * @internal
  */
-export type FileSource = PluginController & Required<Pick<PluginController, "read">>;
+export type FileSourcePlugin = PluginController & Required<Pick<PluginController, "read">>;
 
 /**
  * Determines whether the given Plugin implements the `read()` method
  * @internal
  */
-export function isFileSource(plugin: PluginController): plugin is FileSource {
+export function isFileSourcePlugin(plugin: PluginController): plugin is FileSourcePlugin {
   return !!plugin.read;
 }
 
@@ -67,14 +65,14 @@ export function isFileSource(plugin: PluginController): plugin is FileSource {
  * A plugin that implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export type BuildStep = PluginController &
+export type FileProcessorPlugin = PluginController &
   (Required<Pick<PluginController, "processFile">> | Required<Pick<PluginController, "processFiles">>);
 
 /**
  * Determines whether the given Plugin implements the `processFile()` and/or `processFiles()` methods.
  * @internal
  */
-export function isBuildStep(plugin: PluginController): plugin is BuildStep {
+export function isFileProcessorPlugin(plugin: PluginController): plugin is FileProcessorPlugin {
   return !!plugin.processFile || !!plugin.processFiles;
 }
 
@@ -83,13 +81,13 @@ export function isBuildStep(plugin: PluginController): plugin is BuildStep {
  * A plugin that implements the `watch()` method.
  * @internal
  */
-export type HasWatch = PluginController & Required<Pick<PluginController, "watch">>;
+export type WatcherPlugin = PluginController & Required<Pick<PluginController, "watch">>;
 
 /**
  * Determines whether the given Plugin implements the `watch()` method
  * @internal
  */
-export function hasWatch(plugin: PluginController): plugin is HasWatch {
+export function isWatcherPlugin(plugin: PluginController): plugin is WatcherPlugin {
   return !!plugin.watch;
 }
 
@@ -98,13 +96,13 @@ export function hasWatch(plugin: PluginController): plugin is HasWatch {
  * A plugin that implements the `clean()` method.
  * @internal
  */
-export type HasClean = PluginController & Required<Pick<PluginController, "clean">>;
+export type CleanerPlugin = PluginController & Required<Pick<PluginController, "clean">>;
 
 /**
  * Determines whether the given Plugin implements the `clean()` method
  * @internal
  */
-export function hasClean(plugin: PluginController): plugin is HasClean {
+export function isCleanerPlugin(plugin: PluginController): plugin is CleanerPlugin {
   return !!plugin.clean;
 }
 
@@ -113,12 +111,12 @@ export function hasClean(plugin: PluginController): plugin is HasClean {
  * A plugin that implements the `dispose()` method.
  * @internal
  */
-export type HasDispose = PluginController & Required<Pick<PluginController, "dispose">>;
+export type DisposablePlugin = PluginController & Required<Pick<PluginController, "dispose">>;
 
 /**
  * Determines whether the given Plugin implements the `dispose()` method
  * @internal
  */
-export function hasDispose(plugin: PluginController): plugin is HasDispose {
+export function isDisposablePlugin(plugin: PluginController): plugin is DisposablePlugin {
   return !!plugin.dispose;
 }

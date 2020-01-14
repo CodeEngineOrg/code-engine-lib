@@ -1,46 +1,46 @@
-import { BuildContext, BuildSummary, ChangedFile, File } from "@code-engine/types";
+import { ChangedFile, File, Run, Summary } from "@code-engine/types";
 import { createChangedFile, drainIterable, IterableWriter } from "@code-engine/utils";
-import { BuildStep } from "../plugins/types";
-import { runBuildStep } from "./build-step";
+import { FileProcessorPlugin } from "../plugins/types";
+import { runStep } from "./run-step";
 
 /**
  * Runs files through a series of plugins.
  * @internal
  */
-export async function runBuild(files: AsyncIterable<File>, steps: BuildStep[], context: BuildContext): Promise<BuildSummary> {
+export async function runPipeline(files: AsyncIterable<File>, steps: FileProcessorPlugin[], run: Run): Promise<Summary> {
   let promises: Array<Promise<void>> = [], promise: Promise<void>;
 
-  // Remove the contents from the changed files so the build context is lightweight
+  // Remove the contents from the changed files so the Run is lightweight
   // for cloning across the thread boundary
   // @ts-ignore
-  context.changedFiles = context.changedFiles.map(lightweightChangedFile);
+  run.changedFiles = run.changedFiles.map(lightweightChangedFile);
 
-  let summary: BuildSummary = {
-    ...context,
+  let summary: Summary = {
+    ...run,
     input: { fileCount: 0, fileSize: 0 },
     output: { fileCount: 0, fileSize: 0 },
     time: { start: new Date(), end: new Date(), elapsed: 0 },
   };
 
   // Collect metrics on the input files
-  let input = updateBuildSummary(summary, "input", files);
+  let input = updateSummary(summary, "input", files);
 
-  // Chain the build steps together, with each one accepting the output of the previous one as input
+  // Chain the steps together, with each one accepting the output of the previous one as input
   for (let step of steps) {
     let output = new IterableWriter<File>();
-    promise = runBuildStep(step, input, output, context);
+    promise = runStep(step, input, output, run);
     promises.push(promise);
     input = output.iterable;
   }
 
   // Collect metrics on the final output files
-  let finalOutput = updateBuildSummary(summary, "output", input);
+  let finalOutput = updateSummary(summary, "output", input);
 
-  // Wait for all build steps to finish
-  promises.push(drainIterable(finalOutput, context.concurrency));
+  // Wait for all steps to finish
+  promises.push(drainIterable(finalOutput, run.concurrency));
   await Promise.all(promises);
 
-  // Update the build summary
+  // Update the summary
   summary.time.end = new Date();
   summary.time.elapsed = summary.time.end.getTime() - summary.time.start.getTime();
 
@@ -59,9 +59,9 @@ function lightweightChangedFile(changedFile: ChangedFile): ChangedFile {
 
 
 /**
- * Updates the `input` or `output` metrics of the given `BuildSummary`.
+ * Updates the `input` or `output` metrics of the given `Summary`.
  */
-function updateBuildSummary(summary: BuildSummary, io: "input" | "output", files: AsyncIterable<File>)
+function updateSummary(summary: Summary, io: "input" | "output", files: AsyncIterable<File>)
 : AsyncIterable<File> {
   return {
     [Symbol.asyncIterator]() {

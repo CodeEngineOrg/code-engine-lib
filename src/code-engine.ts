@@ -1,14 +1,14 @@
-import { BuildSummary, CodeEngineEventEmitter, Context, EventName, Logger, ModuleDefinition, PluginDefinition } from "@code-engine/types";
+import { Cloneable, CodeEngine as ICodeEngine, CodeEngineEventEmitter, EventName, Logger, PluginDefinition, Summary } from "@code-engine/types";
 import { createLogEmitter } from "@code-engine/utils";
 import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
 import { EventEmitter } from "events";
 import { ono } from "ono";
 import * as os from "os";
-import { BuildPipeline } from "./build/build-pipeline";
 import { Config } from "./config";
 import { normalizePlugin } from "./plugins/normalize-plugin";
 import { PluginController } from "./plugins/plugin-controller";
+import { Pipeline } from "./run/pipeline";
 
 const instances: CodeEngine[] = [];
 
@@ -18,15 +18,27 @@ const codeEngineEventEmitter = EventEmitter as unknown as (new() => CodeEngineEv
 /**
  * The main CodeEngine class.
  */
-export class CodeEngine extends codeEngineEventEmitter {
+export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
   /** @internal */
-  private _isDisposed: boolean = false;
+  private _cwd: string;
 
   /** @internal */
-  private _context: Context;
+  private _concurrency: number;
 
   /** @internal */
-  private readonly _buildPipeline: BuildPipeline;
+  private _dev: boolean;
+
+  /** @internal */
+  private _debug: boolean;
+
+  /** @internal */
+  private _disposed: boolean = false;
+
+  /** @internal */
+  private _log: Logger;
+
+  /** @internal */
+  private readonly _pipeline: Pipeline;
 
   /** @internal */
   private readonly _workerPool: WorkerPool;
@@ -34,19 +46,13 @@ export class CodeEngine extends codeEngineEventEmitter {
   public constructor(config: Config = {}) {
     super();
 
-    let context: Context = {
-      cwd: config.cwd || process.cwd(),
-      concurrency: validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length),
-      dev: config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev,
-      debug: config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug,
-      log: (undefined as unknown as Logger),
-    };
-
-    createLogEmitter(this, context);
-
-    this._context = context;
-    this._buildPipeline = new BuildPipeline(this);
-    this._workerPool = new WorkerPool(this, context);
+    this._cwd = config.cwd || process.cwd();
+    this._concurrency = validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length);
+    this._dev = config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev;
+    this._debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
+    this._log = createLogEmitter(this, this.debug);
+    this._pipeline = new Pipeline(this);
+    this._workerPool = new WorkerPool(this);
 
     instances.push(this);
   }
@@ -59,11 +65,49 @@ export class CodeEngine extends codeEngineEventEmitter {
   }
 
   /**
-   * Indicates whether the `dispose()` method has been called.
-   * Once disposed, a CodeEngine instance is no longer usable.
+   * The directory that should be used to resolve all relative paths.
    */
-  public get isDisposed(): boolean {
-    return this._isDisposed;
+  public get cwd(): string {
+    return this._cwd;
+  }
+
+  /**
+   * The number of files that CodeEngine can process concurrently.
+   */
+  public get concurrency(): number {
+    return this._concurrency;
+  }
+
+  /**
+   * Indicates whether CodeEngine is running in local development mode.
+   * When `true`, plugins should generate files that are un-minified, un-obfuscated, and may
+   * contain references to localhost.
+   */
+  public get dev(): boolean {
+    return this._dev;
+  }
+
+  /**
+   * Indicates whether CodeEngine is running in debug mode, which enables additional logging
+   * and error stack traces.
+   */
+  public get debug(): boolean {
+    return this._debug;
+  }
+
+  /**
+   * Indicates whether the `dispose()` method has been called.
+   * Once disposed, the CodeEngine instance is no longer usable.
+   */
+  public get disposed(): boolean {
+    return this._disposed;
+  }
+
+  /**
+   * logs messages and errors
+   */
+  public get log(): Logger {
+    return this._log;
   }
 
   /**
@@ -74,31 +118,26 @@ export class CodeEngine extends codeEngineEventEmitter {
 
     for (let pluginDefinition of plugins) {
       // Normalize the plugin
-      let defaultName = `Plugin ${this._buildPipeline.size + 1}`;
+      let defaultName = `Plugin ${this._pipeline.size + 1}`;
       let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
       let controller = new PluginController(plugin);
 
       // Register any event handlers
-      controller.onBuildStarting && this.on(EventName.BuildStarting, controller.onBuildStarting.bind(controller));
-      controller.onBuildFinished && this.on(EventName.BuildFinished, controller.onBuildFinished.bind(controller));
-      controller.onFileChanged && this.on(EventName.FileChanged, controller.onFileChanged.bind(controller));
-      controller.onError && this.on(EventName.Error, controller.onError.bind(controller));
-      controller.onLog && this.on(EventName.Log, controller.onLog.bind(controller));
+      controller.start && this.on(EventName.Start, controller.start.bind(controller));
+      controller.finish && this.on(EventName.Finish, controller.finish.bind(controller));
+      controller.fileChanged && this.on(EventName.FileChanged, controller.fileChanged.bind(controller));
 
-      // Add the plugin to the build pipeline
-      this._buildPipeline.add(controller);
+      // Add the plugin to the pipeline
+      this._pipeline.add(controller);
     }
   }
 
   /**
    * Imports one or more JavaScript modules in all worker threads.
    */
-  public async import(...modules: Array<string | ModuleDefinition<void>>): Promise<void> {
+  public async import(moduleId: string, data?: Cloneable): Promise<void> {
     this._assertNotDisposed();
-
-    for (let moduleDefinition of modules) {
-      await this._workerPool.importModule(moduleDefinition);
-    }
+    await this._workerPool.importModule(moduleId, data);
   }
 
   /**
@@ -106,25 +145,23 @@ export class CodeEngine extends codeEngineEventEmitter {
    */
   public async clean(): Promise<void> {
     this._assertNotDisposed();
-    let context = { ...this._context };
-    return this._buildPipeline.clean(context);
+    return this._pipeline.clean();
   }
 
   /**
-   * Runs a full build of all source files.
+   * Runs CodeEngine, processing all source files using all currently-loaded plugins.
    */
-  public async build(): Promise<BuildSummary> {
+  public async run(): Promise<Summary> {
     this._assertNotDisposed();
-    let context = { ...this._context };
 
     try {
-      let summary = await this._buildPipeline.build(context);
+      let summary = await this._pipeline.run();
       return summary;
     }
     catch (error) {
       // Emit the "Error" event if there are any handlers registered
       if (this.listenerCount(EventName.Error) > 0) {
-        this.emit(EventName.Error, error as Error, context);
+        this.emit(EventName.Error, error as Error);
       }
 
       // Re-throw the error, regardless of whether there were event handlers
@@ -133,18 +170,17 @@ export class CodeEngine extends codeEngineEventEmitter {
   }
 
   /**
-   * Watches source files for changes and runs incremental re-builds whenever changes are detected.
+   * Watches source files for changes and performs incremental runs whenever changes are detected.
    *
    * @param delay
-   * The time (in milliseconds) to wait after a file change is detected before starting a build.
+   * The time (in milliseconds) to wait after a file change is detected before starting a run.
    * This allows multiple files that are changed together to all be re-built together.
    */
   public watch(delay?: number): void {
     delay = validate.number.integer.positive(delay, "watch delay", 300);
     this._assertNotDisposed();
 
-    let context = { ...this._context };
-    this._buildPipeline.watch(delay, context);
+    this._pipeline.watch(delay);
   }
 
   /**
@@ -152,18 +188,17 @@ export class CodeEngine extends codeEngineEventEmitter {
    * Once `dispose()` is called, the CodeEngine instance is no longer usable.
    */
   public async dispose(): Promise<void> {
-    if (this._isDisposed) {
+    if (this._disposed) {
       return;
     }
 
-    this._isDisposed = true;
+    this._disposed = true;
 
     let index = instances.indexOf(this);
     index >= 0 && instances.splice(index, 1);
 
-    let context = { ...this._context };
     await Promise.all([
-      this._buildPipeline.dispose(context),
+      this._pipeline.dispose(),
       this._workerPool.dispose(),
     ]);
   }
@@ -182,11 +217,11 @@ export class CodeEngine extends codeEngineEventEmitter {
    * Returns a string representation of the CodeEngine instance.
    */
   public toString(): string {
-    if (this._isDisposed) {
+    if (this._disposed) {
       return `CodeEngine (disposed)`;
     }
     else {
-      return `CodeEngine (${this._buildPipeline.size} plugins)`;
+      return `CodeEngine (${this._pipeline.size} plugins)`;
     }
   }
 
@@ -202,7 +237,7 @@ export class CodeEngine extends codeEngineEventEmitter {
    * @internal
    */
   private _assertNotDisposed() {
-    if (this.isDisposed) {
+    if (this.disposed) {
       throw ono(`CodeEngine cannot be used after it has been disposed.`);
     }
   }
