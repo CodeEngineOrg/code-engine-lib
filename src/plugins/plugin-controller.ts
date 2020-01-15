@@ -4,7 +4,6 @@ import { createChangedFile, createFile, drainIterable, IterableWriter, iterate }
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
 import { Change } from "../run/watch";
-import { NormalizedPlugin } from "./normalize-plugin";
 
 /**
  * Wraps a plugin's functionality in a consistent interface.
@@ -13,9 +12,9 @@ import { NormalizedPlugin } from "./normalize-plugin";
 export class PluginController {
   public readonly name: string;
   public readonly filter: FilterFunction;
-  private readonly _plugin: NormalizedPlugin;
+  private readonly _plugin: MountedPlugin;
 
-  public constructor(plugin: NormalizedPlugin) {
+  public constructor(plugin: MountedPlugin) {
     this.name = plugin.name;
     this.filter = createFilter({ map }, plugin.filter === undefined ? true : plugin.filter);
     this._plugin = plugin;

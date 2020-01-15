@@ -6,7 +6,7 @@ import { EventEmitter } from "events";
 import { ono } from "ono";
 import * as os from "os";
 import { Config } from "./config";
-import { normalizePlugin } from "./plugins/normalize-plugin";
+import { mountPlugin } from "./plugins/mount";
 import { PluginController } from "./plugins/plugin-controller";
 import { Pipeline } from "./run/pipeline";
 
@@ -119,16 +119,16 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
     for (let pluginDefinition of plugins) {
       // Normalize the plugin
       let defaultName = `Plugin ${this._pipeline.size + 1}`;
-      let plugin = await normalizePlugin(pluginDefinition, this._workerPool, defaultName);
+      let plugin = await mountPlugin(this, this._workerPool, pluginDefinition, defaultName);
       let controller = new PluginController(plugin);
-
-      // Register any event handlers
-      controller.start && this.on(EventName.Start, controller.start.bind(controller));
-      controller.finish && this.on(EventName.Finish, controller.finish.bind(controller));
-      controller.fileChanged && this.on(EventName.FileChanged, controller.fileChanged.bind(controller));
 
       // Add the plugin to the pipeline
       this._pipeline.add(controller);
+
+      // Initialize the plugin, if necessary
+      if (controller.initialize) {
+        await controller.initialize();
+      }
     }
   }
 
