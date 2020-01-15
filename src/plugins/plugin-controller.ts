@@ -1,5 +1,5 @@
 // tslint:disable: completed-docs
-import { ChangedFile, ChangedFileInfo, EventName, File, FileInfo, FilterFunction, Run, Summary } from "@code-engine/types";
+import { ChangedFileInfo, File, FileInfo, FilterFunction, MountedPlugin, Run } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "file-path-filter";
 import { ono } from "ono";
@@ -20,15 +20,22 @@ export class PluginController {
     this.filter = createFilter({ map }, plugin.filter === undefined ? true : plugin.filter);
     this._plugin = plugin;
 
+    plugin.initialize || (this.initialize = undefined);
     plugin.processFile || (this.processFile = undefined);
     plugin.processFiles || (this.processFiles = undefined);
     plugin.read || (this.read = undefined);
     plugin.watch || (this.watch = undefined);
     plugin.clean || (this.clean = undefined);
     plugin.dispose || (this.dispose = undefined);
-    plugin.start || (this.start = undefined);
-    plugin.finish || (this.finish = undefined);
-    plugin.fileChanged || (this.fileChanged = undefined);
+  }
+
+  public async initialize?(): Promise<void> {
+    try {
+      await this._plugin.initialize!();
+    }
+    catch (error) {
+      throw ono(error, `An error occurred in ${this} while it was initializing.`);
+    }
   }
 
   // tslint:disable-next-line: no-async-without-await
@@ -155,36 +162,6 @@ export class PluginController {
     }
     catch (error) {
       throw ono(error, `An error occurred in ${this} while cleaning-up.`);
-    }
-  }
-
-  public start?(run: Run): void {
-    this._callEventListener(EventName.Start, this._plugin.start!, run);
-  }
-
-  public finish?(summary: Summary): void {
-    this._callEventListener(EventName.Finish, this._plugin.finish!, summary);
-  }
-
-  public fileChanged?(file: ChangedFile): void {
-    this._callEventListener(EventName.FileChanged, this._plugin.fileChanged!, file);
-  }
-
-  // tslint:disable-next-line: ban-types
-  private _callEventListener(eventName: EventName, listener: Function, ...args: unknown[]): void {
-    try {
-      let promise = listener.apply(this._plugin, args);
-
-      if (promise) {
-        // Wrap and re-throw async errors, just like synchronous errors
-        Promise.resolve(promise)
-          .catch((error: Error) => {
-            throw ono(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
-          });
-      }
-    }
-    catch (error) {
-      throw ono(error, `An error occurred in ${this} while handling a "${eventName}" event.`);
     }
   }
 

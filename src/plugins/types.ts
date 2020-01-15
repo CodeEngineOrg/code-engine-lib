@@ -24,9 +24,8 @@ export function isPlugin(value: unknown): value is Plugin {
     typeof plugin === "object" &&
     (
       // A plugin must implement at least one method
-      plugin.processFile || plugin.processFiles ||
-      plugin.read || plugin.watch || plugin.clean || plugin.dispose ||
-      plugin.start || plugin.finish || plugin.fileChanged
+      plugin.initialize || plugin.processFile || plugin.processFiles ||
+      plugin.read || plugin.watch || plugin.clean || plugin.dispose
     )
     &&
     (
@@ -35,14 +34,12 @@ export function isPlugin(value: unknown): value is Plugin {
       typeof plugin.processFile === "string" ||
       isModuleDefinition(plugin.processFile)
     )) &&
+    (plugin.initialize === undefined || typeof plugin.initialize === "function") &&
     (plugin.processFiles === undefined || typeof plugin.processFiles === "function") &&
     (plugin.read === undefined || typeof plugin.read === "function") &&
     (plugin.watch === undefined || typeof plugin.watch === "function") &&
     (plugin.clean === undefined || typeof plugin.clean === "function") &&
-    (plugin.dispose === undefined || typeof plugin.dispose === "function") &&
-    (plugin.start === undefined || typeof plugin.start === "function") &&
-    (plugin.finish === undefined || typeof plugin.finish === "function") &&
-    (plugin.fileChanged === undefined || typeof plugin.fileChanged === "function");
+    (plugin.dispose === undefined || typeof plugin.dispose === "function");
 }
 
 
