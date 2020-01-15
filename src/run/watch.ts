@@ -26,7 +26,7 @@ export async function* watchAllSources(plugins: PluginController[], emitter: Cod
 async function* emitFileChanges(watcher: WatcherPlugin, emitter: CodeEngineEventEmitter)
 : AsyncGenerator<Change> {
   for await (let change of watcher.watch()) {
-    emitter.emit(EventName.FileChanged, change.file);
+    emitter.emit(EventName.Change, change.file);
     yield change;
   }
 }
