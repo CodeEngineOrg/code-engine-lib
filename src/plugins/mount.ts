@@ -76,5 +76,5 @@ export function normalizePluginDefinition(definition: PluginDefinition): Normali
     throw ono.type(`Invalid CodeEngine plugin: ${stringify(definition)}`);
   }
 
-  return definition as NormalizedPlugin;
+  return normalized;
 }
