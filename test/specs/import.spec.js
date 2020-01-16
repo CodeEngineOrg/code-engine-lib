@@ -19,14 +19,14 @@ describe("CodeEngine.import()", () => {
       return file;
     });
 
-    let module = await createModule("global.text = 'This text came from the module';");
+    let moduleId = await createModule("global.text = 'This text came from the module';");
 
     let spy = sinon.spy();
 
     let engine = new CodeEngine();
-    await engine.import(module);
+    await engine.import(moduleId);
     await engine.use(source, processor, spy);
-    await engine.build();
+    await engine.run();
 
     sinon.assert.calledOnce(spy);
     let file = getFiles(spy)[0];
@@ -45,14 +45,14 @@ describe("CodeEngine.import()", () => {
       return file;
     });
 
-    let module = await createModule(() => global.text = "This text was set by the factory function");
+    let moduleId = await createModule(() => global.text = "This text was set by the factory function");
 
     let spy = sinon.spy();
 
     let engine = new CodeEngine();
-    await engine.import(module);
+    await engine.import(moduleId);
     await engine.use(source, processor, spy);
-    await engine.build();
+    await engine.run();
 
     sinon.assert.calledOnce(spy);
     let file = getFiles(spy)[0];
@@ -71,17 +71,16 @@ describe("CodeEngine.import()", () => {
       return file;
     });
 
-    let module = await createModule(
-      (data) => global.text = data.text,
-      { text: "This text came from the data object" }
+    let moduleId = await createModule(
+      (data) => global.text = data.text
     );
 
     let spy = sinon.spy();
 
     let engine = new CodeEngine();
-    await engine.import(module);
+    await engine.import(moduleId, { text: "This text came from the data object" });
     await engine.use(source, processor, spy);
-    await engine.build();
+    await engine.run();
 
     sinon.assert.calledOnce(spy);
     let file = getFiles(spy)[0];
@@ -100,23 +99,22 @@ describe("CodeEngine.import()", () => {
       return file;
     });
 
-    let module = await createModule(
+    let moduleId = await createModule(
       async (data) => {
         await new Promise((resolve) => setTimeout(resolve, data.delay));
         global.text = data.text;
-      },
-      {
-        delay: 300,
-        text: "This text was set asynchronously"
       }
     );
 
     let spy = sinon.spy();
 
     let engine = new CodeEngine();
-    await engine.import(module);
+    await engine.import(moduleId, {
+      delay: 300,
+      text: "This text was set asynchronously"
+    });
     await engine.use(source, processor, spy);
-    await engine.build();
+    await engine.run();
 
     sinon.assert.calledOnce(spy);
     let file = getFiles(spy)[0];
@@ -124,32 +122,32 @@ describe("CodeEngine.import()", () => {
   });
 
   it("should throw an error if the module has errors", async () => {
-    let module = await createModule("hello world");
+    let moduleId = await createModule("hello world");
     let engine = new CodeEngine();
 
     try {
-      await engine.import(module);
+      await engine.import(moduleId);
       assert.fail("An error should have been thrown");
     }
     catch (error) {
       expect(error).to.be.an.instanceOf(SyntaxError);
-      expect(error.message).to.equal(`Error importing module: ${module} \nUnexpected identifier`);
+      expect(error.message).to.equal(`Error importing module: ${moduleId} \nUnexpected identifier`);
     }
   });
 
   it("should re-throw errors from the factory function", async () => {
-    let module = await createModule(() => {
+    let moduleId = await createModule(() => {
       throw new RangeError("Boom!");
     });
     let engine = new CodeEngine();
 
     try {
-      await engine.import(module);
+      await engine.import(moduleId);
       assert.fail("An error should have been thrown");
     }
     catch (error) {
       expect(error).to.be.an.instanceOf(RangeError);
-      expect(error.message).to.equal(`Error importing module: ${module} \nBoom!`);
+      expect(error.message).to.equal(`Error importing module: ${moduleId} \nBoom!`);
     }
   });
 

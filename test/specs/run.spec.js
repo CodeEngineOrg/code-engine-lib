@@ -1,110 +1,66 @@
 /* eslint-disable no-new-wrappers, no-new-object */
 "use strict";
 
-const { CodeEngine } = require("../../");
+const { CodeEngine } = require("../../lib");
 const { getCallArg, testThreadConsistency } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
-describe("Context", () => {
+describe("Run object", () => {
   testThreadConsistency((createModule) => {
 
-    function isAnyContext (context) {
-      expect(context).to.be.an("object").and.include.keys("cwd", "concurrency", "debug", "dev", "log");
-      expect(context.cwd).to.be.a("string").and.not.empty;
-      expect(context.concurrency).to.be.a("number").above(0);
-      expect(context.debug).to.be.a("boolean");
-      expect(context.dev).to.be.a("boolean");
-      expect(context.log).to.be.a("function");
-      return true;
-    }
+    function isRun (run) {
+      expect(run).to.be.an("object").with.keys(
+        "cwd", "concurrency", "full", "partial", "debug", "dev", "changedFiles", "log");
+      expect(run.cwd).to.be.a("string").and.not.empty;
+      expect(run.concurrency).to.be.a("number").above(0);
+      expect(run.full).to.be.a("boolean");
+      expect(run.partial).to.be.a("boolean");
+      expect(run.debug).to.be.a("boolean");
+      expect(run.dev).to.be.a("boolean");
+      expect(run.changedFiles).to.be.an("array");
+      expect(run.log).to.be.a("function");
 
-    function isContext (context) {
-      isAnyContext(context);
-      expect(context).to.have.keys("cwd", "concurrency", "debug", "dev", "log");
-      return true;
-    }
-
-    function isBuildContext (context) {
-      isAnyContext(context);
-      expect(context).to.have.keys("cwd", "concurrency", "debug", "dev", "fullBuild", "partialBuild", "changedFiles", "log");
-      expect(context.fullBuild).to.be.a("boolean");
-      expect(context.partialBuild).to.be.a("boolean");
-      expect(context.changedFiles).to.be.an("array");
-
-      for (let file of context.changedFiles) {
-        expect(file).to.be.a("File").with.keys("path", "");
+      for (let file of run.changedFiles) {
+        expect(file).to.be.a("File").with.keys("path");
       }
 
       return true;
     }
 
-    it("should be a Context object in the Plugin.clean method", async () => {
-      let context;
+    it("should be passed to the Plugin.read method", async () => {
+      let run;
 
       let plugin = {
-        name: "Context Test",
-        clean (ctx) { context = { ...ctx }; }
+        read (r) { run = { ...r }; }
       };
 
       let engine = new CodeEngine();
       await engine.use(plugin);
-      await engine.clean();
+      await engine.run();
 
-      expect(context).to.satisfy(isContext);
+      expect(run).to.satisfy(isRun);
     });
 
-    it("should be a Context object in the Plugin.dispose method", async () => {
-      let context;
+    it("should be passed to the Plugin.processFiles method", async () => {
+      let run;
 
       let plugin = {
-        name: "Context Test",
-        dispose (ctx) { context = { ...ctx }; }
+        processFiles (files, r) { run = { ...r }; }
       };
 
       let engine = new CodeEngine();
       await engine.use(plugin);
-      await engine.dispose();
+      await engine.run();
 
-      expect(context).to.satisfy(isContext);
+      expect(run).to.satisfy(isRun);
     });
 
-    it("should be a BuildContext object in the Plugin.read method", async () => {
-      let context;
-
+    it("should be passed to the Plugin.processFile method", async () => {
       let plugin = {
-        name: "Context Test",
-        read (ctx) { context = { ...ctx }; }
-      };
-
-      let engine = new CodeEngine();
-      await engine.use(plugin);
-      await engine.build();
-
-      expect(context).to.satisfy(isBuildContext);
-    });
-
-    it("should be a BuildContext object in the Plugin.processFiles method", async () => {
-      let context;
-
-      let plugin = {
-        name: "Context Test",
-        processFiles (files, ctx) { context = { ...ctx }; }
-      };
-
-      let engine = new CodeEngine();
-      await engine.use(plugin);
-      await engine.build();
-
-      expect(context).to.satisfy(isBuildContext);
-    });
-
-    it("should be a BuildContext object in the Plugin.processFile method", async () => {
-      let plugin = {
-        name: "Context Test",
         read () { return { path: "file.txt" }; },
-        processFile: await createModule((file, ctx) => {
-          file.text = JSON.stringify({ ...ctx, log: null });
+        processFile: await createModule((file, run) => {
+          file.text = JSON.stringify({ ...run, log: null });
           return file;
         })
       };
@@ -113,14 +69,14 @@ describe("Context", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(spy);
       let file = spy.firstCall.args[0];
-      let context = JSON.parse(file.text);
+      let run = JSON.parse(file.text);
 
-      context.log = () => undefined;
-      expect(context).to.satisfy(isBuildContext);
+      run.log = () => undefined;
+      expect(run).to.satisfy(isRun);
     });
 
     it("should log messages", async () => {
@@ -142,7 +98,7 @@ describe("Context", () => {
       let log = sinon.spy();
       engine.on("log", log);
       await engine.use(plugin);
-      await engine.build();
+      await engine.run();
 
       // The log method may get invoked extra times due to CodeEngine debug messages
       expect(log.callCount).to.be.at.least(5);
@@ -172,7 +128,7 @@ describe("Context", () => {
       let log = sinon.spy();
       engine.on("log", log);
       await engine.use(plugin);
-      await engine.build();
+      await engine.run();
 
       // The log method may get invoked extra times due to CodeEngine debug messages
       expect(log.callCount).to.be.at.least(3);

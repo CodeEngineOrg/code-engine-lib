@@ -24,7 +24,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(source, plugin, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin.processFiles);
       sinon.assert.notCalled(spy);
@@ -51,7 +51,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(source, plugin, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledTwice(spy);
       let files = getFiles(spy);
@@ -79,7 +79,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(source, plugin, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.callCount(spy, 5);
       let files = getFiles(spy);
@@ -107,7 +107,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin1.processFiles);
       sinon.assert.calledOnce(plugin2.processFiles);
@@ -131,7 +131,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin1.processFiles);
       sinon.assert.calledOnce(plugin2.processFiles);
@@ -157,7 +157,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(source, plugin1, plugin2, plugin3, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin2.processFiles);
       sinon.assert.calledOnce(plugin3.processFiles);
@@ -214,7 +214,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, plugin3, plugin4, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.callCount(spy, 6);
 
@@ -267,7 +267,7 @@ describe("Plugin.processFiles()", () => {
       let spy = sinon.spy();
       let engine = new CodeEngine();
       await engine.use(source, processor1, processor2, processor3, spy);
-      await engine.build();
+      await engine.run();
 
       let files = getFiles(spy);
       expect(files).to.have.lengthOf(3);
@@ -293,7 +293,7 @@ describe("Plugin.processFiles()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin1.processFiles);
       sinon.assert.calledOn(plugin1.processFiles, plugin1);
@@ -323,7 +323,7 @@ describe("Plugin.processFiles()", () => {
       await engine.use(source, plugin);
 
       try {
-        await engine.build();
+        await engine.run();
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {
@@ -358,7 +358,7 @@ describe("Plugin.processFiles()", () => {
       await engine.use(source, plugin);
 
       try {
-        await engine.build();
+        await engine.run();
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {

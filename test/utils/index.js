@@ -79,7 +79,7 @@ const utils = module.exports = {
    */
   testThreadConsistency (testSuite) {
     describe("Main Thread", () => testSuite(createMainThreadModule));
-    describe("Worker Thread", () => testSuite(utils.createModule));
+    describe("Worker Thread", () => testSuite(createWorkerThreadModule));
   },
 
 
@@ -87,10 +87,8 @@ const utils = module.exports = {
    * Creates a worker module that exports the given plugin method, optionally accepting the given data.
    *
    * @param code {function|string} - The module's source code
-   * @param [data] {object} - The data (if any) to make available to the plugin method
-   * @returns {string|object} - A CodeEngine worker module
    */
-  async createModule (code, data) {
+  async createModule (code) {
     // Create a temp file
     let moduleId = await new Promise((resolve, reject) =>
       tmp.file({ prefix: "code-engine-", postfix: ".js" }, (e, p) => e ? reject(e) : resolve(p)));
@@ -101,12 +99,7 @@ const utils = module.exports = {
 
     await fs.writeFile(moduleId, code);
 
-    if (data === undefined) {
-      return moduleId;
-    }
-    else {
-      return { moduleId, data };
-    }
+    return moduleId;
   },
 };
 
@@ -119,4 +112,13 @@ async function createMainThreadModule (method, data) {
     method = method(data);
   }
   return method;
+}
+
+
+/**
+ * Runs the given plugin method on a worker thread
+ */
+async function createWorkerThreadModule (method, data) {
+  let moduleId = await utils.createModule(method);
+  return { moduleId, data };
 }

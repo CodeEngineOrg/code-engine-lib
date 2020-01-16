@@ -17,7 +17,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     sinon.assert.calledOnce(plugin1.read);
     sinon.assert.calledOnce(plugin2.read);
@@ -64,7 +64,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(iterable, iterator, generator, asyncGenerator, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(8);
 
@@ -105,7 +105,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(5);
 
@@ -140,7 +140,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine({ concurrency: 3 });             // We can read 3 files simultaneously
     await engine.use(plugin);
-    let summary = await engine.build();
+    let summary = await engine.run();
     readTimes = readTimes.map(t => t - summary.time.start);
 
     // Make sure all 5 files were read
@@ -188,7 +188,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine({ concurrency: 5 });             // We can read 5 files simultaneously
     await engine.use(plugin1, plugin2, plugin3);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     plugin1.readTimes = plugin1.readTimes.map(t => t - summary.time.start);
     plugin2.readTimes = plugin2.readTimes.map(t => t - summary.time.start);
@@ -251,7 +251,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine({ concurrency: 3 });             // We can read 3 files simultaneously
     await engine.use(reader, processor, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     let files = getFiles(spy).map((file) => {
       let { startedReading, finishedReading, startedProcessing, finishedProcessing } = JSON.parse(file.text);
@@ -413,7 +413,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine({ concurrency: 1 });
     await engine.use(plugin1, plugin2, plugin3, plugin4, plugin5, plugin6, plugin7, plugin8, plugin9, spy);
-    await engine.build();
+    await engine.run();
 
     sinon.assert.callCount(spy, 9);
 
@@ -448,7 +448,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(6);
 
@@ -486,7 +486,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin1, plugin2, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(6);
 
@@ -518,7 +518,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin, spy);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(3);
 
@@ -537,7 +537,7 @@ describe("Plugin.read()", () => {
 
   it("should process an empty set if there are no plugins", async () => {
     let engine = new CodeEngine();
-    let summary = await engine.build();
+    let summary = await engine.run();
     expect(summary.input.fileCount).to.equal(0);
     expect(summary.input.fileSize).to.equal(0);
     expect(summary.output.fileCount).to.equal(0);
@@ -550,7 +550,7 @@ describe("Plugin.read()", () => {
 
     let engine = new CodeEngine();
     await engine.use(plugin1, plugin2);
-    let summary = await engine.build();
+    let summary = await engine.run();
 
     expect(summary.input.fileCount).to.equal(0);
     expect(summary.input.fileSize).to.equal(0);
@@ -572,7 +572,7 @@ describe("Plugin.read()", () => {
     await engine.use(plugin);
 
     try {
-      await engine.build();
+      await engine.run();
       assert.fail("CodeEngine should have thrown an error");
     }
     catch (error) {

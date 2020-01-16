@@ -41,7 +41,7 @@ describe("Concurrent processing", () => {
       let engine = new CodeEngine({ concurrency: 2 });
       await engine.use(source, ...plugins, spy);
       let startTime = Date.now();
-      let summary = await engine.build();
+      let summary = await engine.run();
 
       // Build a sorted log with the timestamps at which each file was processed
       let files = getFiles(spy);

@@ -6,19 +6,29 @@ const { assert, expect } = require("chai");
 
 describe("CodeEngine class", () => {
 
+  function isCodeEngine (engine) {
+    expect(engine).to.be.an.instanceOf(CodeEngine);
+    expect(engine.cwd).to.be.a("string").and.not.empty;
+    expect(engine.concurrency).to.be.a("number").above(0);
+    expect(engine.debug).to.be.a("boolean");
+    expect(engine.dev).to.be.a("boolean");
+    expect(engine.log).to.be.a("function");
+    return true;
+  }
+
   it("should work without any arguments", async () => {
     let engine = new CodeEngine();
-    expect(engine).to.be.a("CodeEngine");
+    expect(engine).to.satisfy(isCodeEngine);
   });
 
   it("should work with an empty configuration", async () => {
     let engine = new CodeEngine({});
-    expect(engine).to.be.a("CodeEngine");
+    expect(engine).to.satisfy(isCodeEngine);
   });
 
   it("should ignore unknown configuration properties", async () => {
     let engine = new CodeEngine({ foo: true, bar: 5 });
-    expect(engine).to.be.a("CodeEngine");
+    expect(engine).to.satisfy(isCodeEngine);
   });
 
   it('should not work without the "new" keyword', () => {
@@ -121,15 +131,15 @@ describe("CodeEngine class", () => {
 
   it("should ignore multiple dispose() calls", async () => {
     let engine = new CodeEngine();
-    expect(engine.isDisposed).to.be.false;
+    expect(engine.disposed).to.be.false;
     expect(CodeEngine.instances).to.have.lengthOf(1);
 
     await engine.dispose();
-    expect(engine.isDisposed).to.be.true;
+    expect(engine.disposed).to.be.true;
     expect(CodeEngine.instances).to.have.lengthOf(0);
 
     await engine.dispose();
-    expect(engine.isDisposed).to.be.true;
+    expect(engine.disposed).to.be.true;
     expect(CodeEngine.instances).to.have.lengthOf(0);
   });
 
@@ -156,7 +166,7 @@ describe("CodeEngine class", () => {
     }
 
     try {
-      await engine.build();
+      await engine.run();
       assert.fail("CodeEngine should have thrown an error");
     }
     catch (error) {

@@ -17,7 +17,7 @@ describe("Plugin.processFile()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledOnce(plugin1.read);
     });
@@ -40,7 +40,7 @@ describe("Plugin.processFile()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.calledThrice(spy);
       let files = getFiles(spy);
@@ -68,7 +68,7 @@ describe("Plugin.processFile()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, plugin3, plugin4);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.callCount(plugin1.processFile, 4);
       sinon.assert.callCount(plugin2, 4);
@@ -110,7 +110,7 @@ describe("Plugin.processFile()", () => {
 
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, plugin3, plugin4, spy);
-      await engine.build();
+      await engine.run();
 
       sinon.assert.callCount(spy, 6);
 
@@ -148,7 +148,7 @@ describe("Plugin.processFile()", () => {
       let spy = sinon.spy();
       let engine = new CodeEngine();
       await engine.use(source, processor1, processor2, processor3, spy);
-      await engine.build();
+      await engine.run();
 
       let files = getFiles(spy);
       expect(files).to.have.lengthOf(3);
@@ -181,7 +181,7 @@ describe("Plugin.processFile()", () => {
       let spy = sinon.spy();
       let engine = new CodeEngine();
       await engine.use(plugin1, plugin2, spy);
-      await engine.build();
+      await engine.run();
 
       let files = getFiles(spy);
       expect(files).to.have.lengthOf(1);
@@ -214,7 +214,7 @@ describe("Plugin.processFile()", () => {
       await engine.use(source, plugin);
 
       try {
-        await engine.build();
+        await engine.run();
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {
@@ -246,7 +246,7 @@ describe("Plugin.processFile()", () => {
       await engine.use(source, plugin);
 
       try {
-        await engine.build();
+        await engine.run();
         assert.fail("CodeEngine should have re-thrown the error");
       }
       catch (error) {

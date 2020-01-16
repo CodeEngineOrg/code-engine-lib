@@ -1,6 +1,6 @@
 "use strict";
 
-const { CodeEngine } = require("../../");
+const { CodeEngine } = require("../../lib");
 const { delay } = require("../utils");
 const { expect } = require("chai");
 const sinon = require("sinon");
@@ -8,17 +8,17 @@ const sinon = require("sinon");
 // CI environments are slow, so use a larger time buffer
 const TIME_BUFFER = process.env.CI ? 200 : 50;
 
-describe("BuildSummary object", () => {
+describe("Summary object", () => {
 
-  function isValidBuildSummary (summary) {
+  function isValidSummary (summary) {
     expect(summary).to.be.an("object").with.keys(
-      "cwd", "concurrency", "dev", "debug", "fullBuild", "partialBuild", "changedFiles", "input", "output", "time", "log");
+      "cwd", "concurrency", "dev", "debug", "full", "partial", "changedFiles", "input", "output", "time", "log");
     expect(summary.cwd).to.be.a("string").with.length.above(0);
     expect(summary.concurrency).to.be.a("number").above(0);
     expect(summary.dev).to.be.a("boolean");
     expect(summary.debug).to.be.a("boolean");
-    expect(summary.fullBuild).to.be.a("boolean");
-    expect(summary.partialBuild).to.be.a("boolean");
+    expect(summary.full).to.be.a("boolean");
+    expect(summary.partial).to.be.a("boolean");
     expect(summary.changedFiles).to.be.an("array");
     expect(summary.input.fileCount).to.be.a("number").at.least(0).and.satisfies(Number.isInteger);
     expect(summary.input.fileSize).to.be.a("number").at.least(0).and.satisfies(Number.isInteger);
@@ -49,16 +49,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 0, fileSize: 0 });
     expect(summary.output).to.deep.equal({ fileCount: 0, fileSize: 0 });
   });
@@ -78,16 +78,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 0, fileSize: 0 });
   });
@@ -107,16 +107,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 0, fileSize: 0 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 28 });
   });
@@ -138,21 +138,21 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 28 });
   });
 
-  it("should have the same input and output data if no files were modified during the build", async () => {
+  it("should have the same input and output data if no files were modified during the run", async () => {
     let source = {
       *read () {
         yield { path: "file1.txt" };
@@ -167,16 +167,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 28 });
   });
@@ -197,16 +197,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 58 });
   });
@@ -243,16 +243,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 6, fileSize: 89 });
   });
@@ -273,16 +273,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine();
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 43 });
     expect(summary.time.elapsed).to.be.at.least(0).and.below(TIME_BUFFER);
@@ -308,16 +308,16 @@ describe("BuildSummary object", () => {
     };
 
     let engine = new CodeEngine({ concurrency: 1 });
-    let onBuildFinished = sinon.spy();
-    engine.on("buildFinished", onBuildFinished);
+    let onFinish = sinon.spy();
+    engine.on("finish", onFinish);
     await engine.use(source, plugin);
 
-    let summary = await engine.build();
+    let summary = await engine.run();
 
-    sinon.assert.calledOnce(onBuildFinished);
-    sinon.assert.calledWithExactly(onBuildFinished, summary);
+    sinon.assert.calledOnce(onFinish);
+    sinon.assert.calledWithExactly(onFinish, summary);
 
-    expect(summary).to.satisfy(isValidBuildSummary);
+    expect(summary).to.satisfy(isValidSummary);
     expect(summary.input).to.deep.equal({ fileCount: 3, fileSize: 28 });
     expect(summary.output).to.deep.equal({ fileCount: 3, fileSize: 43 });
     expect(summary.time.elapsed).to.be.at.least(400).and.below(400 + TIME_BUFFER);
