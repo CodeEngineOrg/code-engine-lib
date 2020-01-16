@@ -21,13 +21,16 @@ export async function mountPlugin(engine: CodeEngine, workerPool: WorkerPool, de
       // Import the FileProcessor on all worker threads
       let { moduleId, data } = normalized.processFile;
       processFile = await workerPool.importFileProcessor(moduleId, data);
+
+      // Use the FileProcessor's name as the plugin name, if necessary
+      name = name || processFile.name;
     }
     else {
       processFile = normalized.processFile;
     }
 
-    // If no name was specified for the plugin, then use the FileProcessor's name, or fallback to our default
-    name = String(name || (processFile && processFile.name) || defaultName);
+    // Fallback to a default name if no name was specified
+    name = String(name || defaultName);
 
     // Replace/set the properties of the original plugin object
     return Object.assign(normalized, { engine, name, processFile });
