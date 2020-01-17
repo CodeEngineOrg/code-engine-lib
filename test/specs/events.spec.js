@@ -125,7 +125,7 @@ describe("Events", () => {
 
     await engine.use({
       read (run) {
-        run.log("This is a log message", { foo: "bar" })
+        run.log("This is a log message", { foo: "bar" });
       }
     });
 
