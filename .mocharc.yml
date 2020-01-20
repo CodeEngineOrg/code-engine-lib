@@ -9,7 +9,7 @@ spec:
   # Test specs
   - test/specs/**/*.spec.js
 
-retries: 30 # Due to sporadic timing failures on Windows
 bail: true
 recursive: true
 require: source-map-support/register
+retries: 30 # Due to sporadic timing failures on Windows
