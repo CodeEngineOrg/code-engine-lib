@@ -1,8 +1,8 @@
 CodeEngine lib
 ======================================
 
-[![Cross-Platform Compatibility](https://engine.codes/img/badges/os-badges.svg)](https://travis-ci.com/CodeEngineOrg/code-engine-lib)
-[![Build Status](https://api.travis-ci.com/CodeEngineOrg/code-engine-lib.svg?branch=master)](https://travis-ci.com/CodeEngineOrg/code-engine-lib)
+[![Cross-Platform Compatibility](https://engine.codes/img/badges/os-badges.svg)](https://github.com/CodeEngineOrg/code-engine-lib/blob/master/.github/workflows/CI-CD.yaml)
+[![Build Status](https://github.com/CodeEngineOrg/code-engine-lib/workflows/CI-CD/badge.svg)](https://github.com/CodeEngineOrg/code-engine-lib/blob/master/.github/workflows/CI-CD.yaml)
 
 [![Coverage Status](https://coveralls.io/repos/github/CodeEngineOrg/code-engine-lib/badge.svg?branch=master)](https://coveralls.io/github/CodeEngineOrg/code-engine-lib)
 [![Dependencies](https://david-dm.org/CodeEngineOrg/code-engine-lib.svg)](https://david-dm.org/CodeEngineOrg/code-engine-lib)
