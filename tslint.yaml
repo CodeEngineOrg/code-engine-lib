@@ -6,3 +6,7 @@ extends:
   - "@jsdevtools/tslint-modular/best-practices"
   - "@jsdevtools/tslint-modular/style"
   - "@jsdevtools/tslint-modular/node"
+
+rules:
+  # Disabling this rule because it crashes TSLint
+  promise-function-async: false

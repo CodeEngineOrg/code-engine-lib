@@ -2,8 +2,8 @@ import { Cloneable, CodeEngine as ICodeEngine, CodeEngineEventEmitter, EventName
 import { createLogEmitter } from "@code-engine/utils";
 import { validate } from "@code-engine/validate";
 import { WorkerPool } from "@code-engine/workers";
-import { EventEmitter } from "events";
 import { ono } from "@jsdevtools/ono";
+import { EventEmitter } from "events";
 import * as os from "os";
 import { Config } from "./config";
 import { mountPlugin } from "./plugins/mount";
