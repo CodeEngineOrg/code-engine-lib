@@ -4,7 +4,7 @@ const { CodeEngine } = require("../../lib");
 const { delay } = require("../utils");
 const { assert, expect } = require("chai");
 const sinon = require("sinon");
-const ono = require("ono");
+const ono = require("@jsdevtools/ono");
 
 describe("Events", () => {
 

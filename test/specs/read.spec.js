@@ -4,10 +4,11 @@ const path = require("path");
 const sinon = require("sinon");
 const { CodeEngine } = require("../../");
 const { delay, getFiles, getFilePaths, createModule } = require("../utils");
+const { host } = require("@jsdevtools/host-environment");
 const { assert, expect } = require("chai");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 300 : 75;
+const TIME_BUFFER = host.ci ? 300 : 75;
 
 describe("Plugin.read()", () => {
 

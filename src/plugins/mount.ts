@@ -1,7 +1,7 @@
 import { stringify } from "@code-engine/stringify";
 import { CodeEngine, FileProcessor, ModuleDefinition, MountedPlugin, Plugin, PluginDefinition } from "@code-engine/types";
 import { WorkerPool } from "@code-engine/workers";
-import { ono } from "ono";
+import { ono } from "@jsdevtools/ono";
 import { isModuleDefinition, isPlugin } from "./types";
 
 

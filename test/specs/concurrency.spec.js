@@ -2,12 +2,13 @@
 
 const { CodeEngine } = require("../../");
 const { getFiles, testThreadConsistency } = require("../utils");
+const { host } = require("@jsdevtools/host-environment");
 const { expect } = require("chai");
 const sinon = require("sinon");
-const ono = require("ono");
+const ono = require("@jsdevtools/ono");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 400 : 100;
+const TIME_BUFFER = host.ci ? 400 : 100;
 
 describe("Concurrent processing", () => {
   testThreadConsistency((createModule) => {

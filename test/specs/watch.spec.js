@@ -2,12 +2,13 @@
 
 const { CodeEngine } = require("../../");
 const { delay, getFiles, iterateAll } = require("../utils");
+const { host } = require("@jsdevtools/host-environment");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 300 : 75;
-const WATCH_DELAY = process.env.CI ? 300 : 100;
+const TIME_BUFFER = host.ci ? 300 : 75;
+const WATCH_DELAY = host.ci ? 300 : 100;
 
 describe("Plugin.watch()", () => {
 

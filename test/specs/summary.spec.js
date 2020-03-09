@@ -2,11 +2,12 @@
 
 const { CodeEngine } = require("../../lib");
 const { delay } = require("../utils");
+const { host } = require("@jsdevtools/host-environment");
 const { expect } = require("chai");
 const sinon = require("sinon");
 
 // CI environments are slow, so use a larger time buffer
-const TIME_BUFFER = process.env.CI ? 200 : 50;
+const TIME_BUFFER = host.ci ? 200 : 50;
 
 describe("Summary object", () => {
 
