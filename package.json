@@ -78,9 +78,9 @@
     "typescript-tslint-plugin": "^0.5.5"
   },
   "dependencies": {
-    "@code-engine/stringify": "^1.0.0",
+    "@jsdevtools/humanize-anything": "^1.0.0",
     "@code-engine/utils": "^1.0.0",
-    "@code-engine/validate": "^1.0.0",
+    "@jsdevtools/assert": "^1.0.0",
     "@code-engine/workers": "^1.0.0",
     "@jsdevtools/file-path-filter": "^3.0.0",
     "@jsdevtools/ono": "^7.1.0"

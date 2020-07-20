@@ -1,4 +1,4 @@
-import { stringify } from "@code-engine/stringify";
+import { humanize } from "@jsdevtools/humanize-anything";
 import { CodeEngine, FileProcessor, ModuleDefinition, MountedPlugin, Plugin, PluginDefinition } from "@code-engine/types";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "@jsdevtools/ono";
@@ -76,7 +76,7 @@ export function normalizePluginDefinition(definition: PluginDefinition): Normali
     }
   }
   else {
-    throw ono.type(`Invalid CodeEngine plugin: ${stringify(definition)}`);
+    throw ono.type(`Invalid CodeEngine plugin: ${humanize(definition)}`);
   }
 
   return normalized;

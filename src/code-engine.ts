@@ -1,6 +1,6 @@
 import { Cloneable, CodeEngine as ICodeEngine, CodeEngineEventEmitter, EventName, Logger, PluginDefinition, Summary } from "@code-engine/types";
 import { createLogEmitter } from "@code-engine/utils";
-import { validate } from "@code-engine/validate";
+import { assert } from "@jsdevtools/assert";
 import { WorkerPool } from "@code-engine/workers";
 import { ono } from "@jsdevtools/ono";
 import { EventEmitter } from "events";
@@ -47,7 +47,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
     super();
 
     this._cwd = config.cwd || process.cwd();
-    this._concurrency = validate.number.integer.positive(config.concurrency, "concurrency", os.cpus().length);
+    this._concurrency = assert.number.integer.positive(config.concurrency, "concurrency", os.cpus().length);
     this._dev = config.dev === undefined ? process.env.NODE_ENV === "development" : config.dev;
     this._debug = config.debug === undefined ? Boolean(process.env.DEBUG) : config.debug;
     this._log = createLogEmitter(this, this.debug);
@@ -177,7 +177,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
    * This allows multiple files that are changed together to all be re-built together.
    */
   public watch(delay?: number): void {
-    delay = validate.number.integer.positive(delay, "watch delay", 300);
+    delay = assert.number.integer.positive(delay, "watch delay", 300);
     this._assertNotDisposed();
 
     this._pipeline.watch(delay);
