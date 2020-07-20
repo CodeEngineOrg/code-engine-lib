@@ -66,7 +66,7 @@ export class Pipeline {
     let steps = this._plugins.filter(isFileProcessorPlugin);
 
     Promise.resolve()
-      .then(async () => {
+      .then(async() => {
         for await (let changedFiles of watchAllSources(this._plugins, this._engine, delay)) {
           let run = createRun(this._engine, {
             full: false,

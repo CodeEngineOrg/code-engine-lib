@@ -50,11 +50,14 @@ export async function runStep(
  * If the step has a `processFiles()` (plural) method, then this function creates the input and output iterables for it.
  */
 function setupProcessFilesIO(step: FileProcessorPlugin, output: IterableWriter<File>, run: Run) {
+  let finished = false;
+  let processFilesInput: IterableWriter<File>;
+  let processFilesOutput: AsyncGenerator<File>;
+
   if (step.processFiles) {
     // Create the input/output iterables for the processFiles() method
-    let processFilesInput = new IterableWriter<File>();
-    let processFilesOutput = step.processFiles(processFilesInput.iterable, run)[Symbol.asyncIterator]();
-    let finished = false;
+    processFilesInput = new IterableWriter<File>();
+    processFilesOutput = step.processFiles(processFilesInput.iterable, run)[Symbol.asyncIterator]();
 
     // Connect the processFiles() output to the step's output
     output.onRead = pipeOutput;
@@ -63,37 +66,37 @@ function setupProcessFilesIO(step: FileProcessorPlugin, output: IterableWriter<F
       input: processFilesInput,
       waitUntilFinished,
     };
+  }
 
-    /**
-     * Pipes output from the `processFiles()` method to the next step.
-     */
-    async function pipeOutput() {
-      try {
-        let result = await processFilesOutput.next();
+  /**
+   * Pipes output from the `processFiles()` method to the next step.
+   */
+  async function pipeOutput() {
+    try {
+      let result = await processFilesOutput.next();
 
-        if (result.done) {
-          finished = true;
-        }
-        else {
-          await output.write(result.value);
-        }
+      if (result.done) {
+        finished = true;
       }
-      catch (error) {
-        await output.throw(error as Error);
+      else {
+        await output.write(result.value);
       }
     }
+    catch (error) {
+      await output.throw(error as Error);
+    }
+  }
 
-    /**
-     * Waits for the `processFiles()` method to finish processing all input files.
-     */
-    async function waitUntilFinished() {
-      // Let the processFiles() method know that all files have been received
-      await processFilesInput.end();
+  /**
+   * Waits for the `processFiles()` method to finish processing all input files.
+   */
+  async function waitUntilFinished() {
+    // Let the processFiles() method know that all files have been received
+    await processFilesInput.end();
 
-      // Wait for it to finish processing any remaining files
-      while (!finished) {
-        await pipeOutput();
-      }
+    // Wait for it to finish processing any remaining files
+    while (!finished) {
+      await pipeOutput();
     }
   }
 }

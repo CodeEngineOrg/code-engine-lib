@@ -12,7 +12,7 @@ export async function runPipeline(files: AsyncIterable<File>, steps: FileProcess
 
   // Remove the contents from the changed files so the Run is lightweight
   // for cloning across the thread boundary
-  // @ts-ignore
+  // @ts-expect-error - Assigning to read-only property
   run.changedFiles = run.changedFiles.map(lightweightChangedFile);
 
   let summary: Summary = {
@@ -61,8 +61,7 @@ function lightweightChangedFile(changedFile: ChangedFile): ChangedFile {
 /**
  * Updates the `input` or `output` metrics of the given `Summary`.
  */
-function updateSummary(summary: Summary, io: "input" | "output", files: AsyncIterable<File>)
-: AsyncIterable<File> {
+function updateSummary(summary: Summary, io: "input" | "output", files: AsyncIterable<File>): AsyncIterable<File> {
   return {
     [Symbol.asyncIterator]() {
       let iterator = files[Symbol.asyncIterator]();

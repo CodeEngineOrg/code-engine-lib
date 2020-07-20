@@ -19,7 +19,6 @@ export function isModuleDefinition<T>(value: unknown): value is ModuleDefinition
 export function isPlugin(value: unknown): value is Plugin {
   let plugin = value as Plugin;
 
-  // tslint:disable-next-line: cyclomatic-complexity
   return Boolean(plugin &&
     typeof plugin === "object" &&
     (
@@ -63,7 +62,7 @@ export function isFileSourcePlugin(plugin: PluginController): plugin is FileSour
  * @internal
  */
 export type FileProcessorPlugin = PluginController &
-  (Required<Pick<PluginController, "processFile">> | Required<Pick<PluginController, "processFiles">>);
+(Required<Pick<PluginController, "processFile">> | Required<Pick<PluginController, "processFiles">>);
 
 /**
  * Determines whether the given Plugin implements the `processFile()` and/or `processFiles()` methods.

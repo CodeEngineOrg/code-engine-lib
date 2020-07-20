@@ -8,7 +8,7 @@ describe("CodeEngine class", () => {
 
   function isCodeEngine (engine) {
     expect(engine).to.be.an.instanceOf(CodeEngine);
-    expect(engine.cwd).to.be.a("string").and.not.empty;
+    expect(engine.cwd).to.be.a("string").with.length.of.at.least(1);
     expect(engine.concurrency).to.be.a("number").above(0);
     expect(engine.debug).to.be.a("boolean");
     expect(engine.dev).to.be.a("boolean");
@@ -131,15 +131,15 @@ describe("CodeEngine class", () => {
 
   it("should ignore multiple dispose() calls", async () => {
     let engine = new CodeEngine();
-    expect(engine.disposed).to.be.false;
+    expect(engine.disposed).to.equal(false);
     expect(CodeEngine.instances).to.have.lengthOf(1);
 
     await engine.dispose();
-    expect(engine.disposed).to.be.true;
+    expect(engine.disposed).to.equal(true);
     expect(CodeEngine.instances).to.have.lengthOf(0);
 
     await engine.dispose();
-    expect(engine.disposed).to.be.true;
+    expect(engine.disposed).to.equal(true);
     expect(CodeEngine.instances).to.have.lengthOf(0);
   });
 

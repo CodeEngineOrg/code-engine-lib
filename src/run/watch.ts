@@ -7,7 +7,6 @@ import { isWatcherPlugin, WatcherPlugin } from "../plugins/types";
  * Watches all source files for changes and de-dupes changes that occur within the specified delay window.
  * @internal
  */
-// tslint:disable-next-line: no-async-without-await
 export async function* watchAllSources(plugins: PluginController[], emitter: CodeEngineEventEmitter, delay: number) {
   let watchers = plugins.filter(isWatcherPlugin);
   let fileGenerators = watchers.map((watcher) => emitFileChanges(watcher, emitter));
@@ -22,9 +21,7 @@ export async function* watchAllSources(plugins: PluginController[], emitter: Cod
 /**
  * Emits FileChange events whenever a file change is detected.
  */
-// tslint:disable-next-line: no-async-without-await
-async function* emitFileChanges(watcher: WatcherPlugin, emitter: CodeEngineEventEmitter)
-: AsyncGenerator<Change> {
+async function* emitFileChanges(watcher: WatcherPlugin, emitter: CodeEngineEventEmitter): AsyncGenerator<Change> {
   for await (let change of watcher.watch()) {
     emitter.emit(EventName.Change, change.file);
     yield change;

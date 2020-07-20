@@ -12,7 +12,7 @@ describe("Run object", () => {
     function isRun (run) {
       expect(run).to.be.an("object").with.keys(
         "cwd", "concurrency", "full", "partial", "debug", "dev", "changedFiles", "log");
-      expect(run.cwd).to.be.a("string").and.not.empty;
+      expect(run.cwd).to.be.a("string").with.length.of.at.least(1);
       expect(run.concurrency).to.be.a("number").above(0);
       expect(run.full).to.be.a("boolean");
       expect(run.partial).to.be.a("boolean");

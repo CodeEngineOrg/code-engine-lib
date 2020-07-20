@@ -1,4 +1,3 @@
-// tslint:disable: completed-docs
 import { ChangedFileInfo, File, FileInfo, FilterFunction, MountedPlugin, Run } from "@code-engine/types";
 import { createChangedFile, createFile, drainIterable, IterableWriter, iterate } from "@code-engine/utils";
 import { createFilter } from "@jsdevtools/file-path-filter";
@@ -37,7 +36,6 @@ export class PluginController {
     }
   }
 
-  // tslint:disable-next-line: no-async-without-await
   public async* processFiles?(files: AsyncIterable<File>, run: Run): AsyncGenerator<File> {
     try {
       let fileInfos = this._plugin.processFiles!(files, run);
@@ -81,7 +79,7 @@ export class PluginController {
       throw ono(error, `An error occurred in ${this} while reading source files.`);
     }
 
-    let next = async () => {
+    let next = async() => {
       try {
         let result = await iterator.next();
 
@@ -100,21 +98,20 @@ export class PluginController {
     return { [Symbol.asyncIterator]: () => ({ next }) };
   }
 
-  // tslint:disable-next-line: no-async-without-await
   public async* watch?(): AsyncGenerator<Change> {
     try {
       // Create a callback function that yields a changed file
       let writer = new IterableWriter<ChangedFileInfo>();
       let callback = (file: ChangedFileInfo) => writer.write(file);
 
-      let changedFileInfos = this._plugin.watch!(callback);
+      let changedFileInfos = this._plugin.watch!(callback);   // eslint-disable-line @typescript-eslint/no-misused-promises
 
       if (changedFileInfos) {
         // The plugin returned an async iterable, so read from it
         // in addition to any values that are written via the callback function.
         let iterator = iterate(changedFileInfos)[Symbol.asyncIterator]();
 
-        writer.onRead = async () => {
+        writer.onRead = async() => {
           try {
             let result = await iterator.next();
 

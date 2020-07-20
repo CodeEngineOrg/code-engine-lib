@@ -32,7 +32,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
   private _debug: boolean;
 
   /** @internal */
-  private _disposed: boolean = false;
+  private _disposed = false;
 
   /** @internal */
   private _log: Logger;
@@ -60,7 +60,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
   /**
    * Returns all CodeEngine instances that have been created and not yet disposed.
    */
-  public static get instances(): ReadonlyArray<CodeEngine> {
+  public static get instances(): readonly CodeEngine[] {
     return instances.slice();
   }
 
@@ -206,7 +206,6 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
   /**
    * Disposes all CodeEngine instances.
    */
-  // tslint:disable-next-line: member-ordering
   public static async disposeAll(): Promise<void> {
     await Promise.all(
       instances.splice(0, instances.length).map((engine) => engine.dispose())
@@ -218,7 +217,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
    */
   public toString(): string {
     if (this._disposed) {
-      return `CodeEngine (disposed)`;
+      return "CodeEngine (disposed)";
     }
     else {
       return `CodeEngine (${this._pipeline.size} plugins)`;
@@ -238,7 +237,7 @@ export class CodeEngine extends codeEngineEventEmitter implements ICodeEngine {
    */
   private _assertNotDisposed() {
     if (this.disposed) {
-      throw ono(`CodeEngine cannot be used after it has been disposed.`);
+      throw ono("CodeEngine cannot be used after it has been disposed.");
     }
   }
 }

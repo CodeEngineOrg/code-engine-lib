@@ -531,7 +531,7 @@ describe("Plugin.read()", () => {
 
     function validateFileProps (file) {
       expect(file).to.be.a("File").with.keys(expectedKeys);
-      expect(file.metadata).to.be.an("object").and.empty;
+      expect(file.metadata).to.be.an("object").and.empty;   // eslint-disable-line no-unused-expressions
       return true;
     }
   });
