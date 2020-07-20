@@ -39,9 +39,7 @@
   ],
   "scripts": {
     "clean": "shx rm -rf .nyc_output coverage lib",
-    "lint": "npm run lint:typescript && npm run lint:javascript",
-    "lint:typescript": "tslint -p tsconfig.json",
-    "lint:javascript": "eslint test",
+    "lint": "eslint src test",
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "mocha && npm run lint",
